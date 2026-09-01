@@ -267,6 +267,30 @@ p.page-sub{
   margin:0 0 16px;
 }
 .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.field-row-3{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+
+.tab-row{
+  display:flex;
+  gap:4px;
+  margin-bottom:18px;
+  border-bottom:1px solid var(--border);
+}
+.tab-btn{
+  background:none;
+  border:none;
+  padding:10px 16px;
+  font-size:14px;
+  font-weight:600;
+  color:var(--ink-soft);
+  cursor:pointer;
+  border-bottom:2px solid transparent;
+  margin-bottom:-1px;
+}
+.tab-btn:hover{ color:var(--ink); }
+.tab-btn.active{
+  color:var(--accent-dark);
+  border-bottom-color:var(--accent);
+}
 
 /* ---------- Table ---------- */
 table{ width:100%; border-collapse:collapse; font-size:14px; }
