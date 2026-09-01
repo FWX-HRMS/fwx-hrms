@@ -163,5 +163,6 @@ async function refreshAll() {
   if (!ME) return;
   document.getElementById("whoami").textContent = `${ME.full_name} · #${ME.file_number}`;
   if (ME.role === "admin") document.getElementById("adminLink").style.display = "";
+  if (ME.role === "admin") document.getElementById("clientsLink").style.display = "";
   await refreshAll();
 })();

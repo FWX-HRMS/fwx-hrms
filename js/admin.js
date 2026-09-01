@@ -3,6 +3,7 @@ let SUPERVISORS = [];
 let DIRECTORY = [];
 let BALANCES_BY_ID = {};
 let ACTIVE_TAB = "all"; // "all" | "supervisors"
+const COMPANY_FILTER = new URLSearchParams(window.location.search).get("company");
 
 function showToast(msg) {
   const t = document.getElementById("toast");
@@ -69,7 +70,14 @@ document.getElementById("role").addEventListener("change", toggleSupervisorField
 document.getElementById("showAddFormBtn").addEventListener("click", () => {
   document.getElementById("addPanel").style.display = "";
   const roleSelect = document.getElementById("role");
-  document.getElementById("clientCompany").value = "";
+  const companySelect = document.getElementById("clientCompany");
+  if (COMPANY_FILTER) {
+    companySelect.value = COMPANY_FILTER;
+    companySelect.disabled = true;
+  } else {
+    companySelect.value = "";
+    companySelect.disabled = false;
+  }
   if (ACTIVE_TAB === "supervisors") {
     roleSelect.value = "supervisor";
     document.getElementById("roleField").style.display = "none";
@@ -146,9 +154,10 @@ function renderDirectory() {
   body.innerHTML = "";
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
-  const rows = ACTIVE_TAB === "supervisors"
+  let rows = ACTIVE_TAB === "supervisors"
     ? DIRECTORY.filter(e => e.role === "supervisor" || e.role === "admin")
     : DIRECTORY;
+  if (COMPANY_FILTER) rows = rows.filter(e => e.client_company === COMPANY_FILTER);
 
   for (const e of rows) {
     const supervisorName = e.supervisor_id && byId[e.supervisor_id] ? byId[e.supervisor_id].full_name : "—";
@@ -308,20 +317,23 @@ function downloadPDF(title, subtitle, columns, rows, filename) {
 }
 
 document.getElementById("downloadReportBtn").addEventListener("click", () => {
-  const source = ACTIVE_TAB === "supervisors"
+  let source = ACTIVE_TAB === "supervisors"
     ? DIRECTORY.filter(e => e.role === "supervisor" || e.role === "admin")
     : DIRECTORY;
+  if (COMPANY_FILTER) source = source.filter(e => e.client_company === COMPANY_FILTER);
   const rows = source.map(e => {
     const bal = BALANCES_BY_ID[e.id] || {};
     return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, String(e.annual_entitlement), String(bal.taken ?? "—"), String(bal.remaining ?? "—")];
   });
-  const title = ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "All Employees — Leave Report";
+  const scope = COMPANY_FILTER ? `${COMPANY_FILTER} — ` : "";
+  const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "All Employees — Leave Report");
+  const filenamePrefix = COMPANY_FILTER ? `${COMPANY_FILTER.toLowerCase()}_` : "";
   downloadPDF(
     title,
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}`,
     ["Name", "File #", "Company", "Department", "Role", "Entitlement", "Taken", "Remaining"],
     rows,
-    ACTIVE_TAB === "supervisors" ? "supervisors_leave_report.pdf" : "all_employees_leave_report.pdf"
+    `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report.pdf`
   );
 });
 
@@ -386,6 +398,7 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
 
   document.getElementById("addForm").reset();
   document.getElementById("entitlement").value = "30";
+  if (COMPANY_FILTER) document.getElementById("clientCompany").value = COMPANY_FILTER;
   toggleSupervisorField();
   populateSupervisorOptions();
 
@@ -396,6 +409,10 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   ME = await requireSession("admin");
   if (!ME) return;
   document.getElementById("whoami").textContent = `${ME.full_name} · #${ME.file_number}`;
+  if (COMPANY_FILTER) {
+    document.querySelector(".page-title").textContent = `${COMPANY_FILTER} — Employees`;
+    document.querySelector(".page-sub").textContent = `Add, manage, and report on ${COMPANY_FILTER} staff and supervisors only.`;
+  }
   toggleSupervisorField();
   await Promise.all([loadSupervisors(), loadBalances()]);
   await loadDirectory();
