@@ -42,7 +42,7 @@
       </div>
       <table>
         <thead>
-          <tr><th>Name</th><th>File #</th><th>Role</th><th>Company</th><th>Department</th><th>Supervisor</th><th>Leave (days)</th><th>Taken</th><th>Remaining</th><th></th></tr>
+          <tr><th>Name</th><th>File #</th><th>Role</th><th>Company</th><th>Department</th><th>Supervisor</th><th>Annual</th><th>Taken</th><th>Remaining</th><th>Sick</th><th>Sick left</th><th></th></tr>
         </thead>
         <tbody id="directoryBody"></tbody>
       </table>
@@ -112,11 +112,9 @@
               <option value="">Select a supervisor…</option>
             </select>
           </div>
-          <div>
-            <label for="entitlement">Annual leave days</label>
-            <input type="text" id="entitlement" value="30">
-          </div>
+          <div></div>
         </div>
+        <p class="help-text" style="margin:-4px 0 14px">Leave entitlement is calculated automatically from hiring date: 14 annual + 14 sick days for 5 years of service or less, 21 annual + 14 sick days for more than 5 years.</p>
 
         <div style="display:flex; gap:10px; margin-top:6px">
           <button type="submit" class="btn btn-primary" id="addBtn" style="width:220px">Create employee</button>
