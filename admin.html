@@ -71,7 +71,7 @@
             <input type="date" id="hiringDate">
           </div>
         </div>
-        <div class="field-row">
+        <div class="field-row" id="roleRow">
           <div>
             <label for="department">Department</label>
             <select id="department">
@@ -84,7 +84,7 @@
               <option value="Administration">Administration</option>
             </select>
           </div>
-          <div>
+          <div id="roleField">
             <label for="role">Role</label>
             <select id="role">
               <option value="staff">Staff</option>
@@ -107,7 +107,7 @@
 
         <div style="display:flex; gap:10px; margin-top:6px">
           <button type="submit" class="btn btn-primary" id="addBtn" style="max-width:220px">Create employee</button>
-          <button type="button" class="btn btn-ghost" id="cancelAddBtn" style="max-width:120px">Cancel</button>
+          <button type="button" class="btn btn-danger" id="cancelAddBtn" style="max-width:220px">Cancel</button>
         </div>
         <div class="error-msg" id="addError"></div>
       </form>
