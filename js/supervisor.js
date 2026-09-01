@@ -96,7 +96,12 @@ async function loadRequests() {
         .update({ status: btn.dataset.action, decided_by: ME.id, decided_at: new Date().toISOString() })
         .eq("id", btn.dataset.id);
       if (error) { showToast("Could not update that request."); }
-      else { showToast(`Request ${btn.dataset.action}.`); }
+      else {
+        showToast(`Request ${btn.dataset.action}.`);
+        db.functions.invoke("send-leave-notification", {
+          body: { leave_request_id: btn.dataset.id, type: "decided" }
+        }).catch(() => {});
+      }
       await refreshAll();
     });
   });
@@ -116,62 +121,42 @@ async function loadRequests() {
   }
 }
 
-function downloadCSV(rows, filename) {
-  const csv = rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+function downloadPDF(title, subtitle, columns, rows, filename) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.setTextColor(27, 36, 48);
+  doc.text(title, 14, 18);
+  doc.setFontSize(10);
+  doc.setTextColor(75, 87, 104);
+  doc.text(subtitle, 14, 25);
+  doc.autoTable({
+    head: [columns],
+    body: rows,
+    startY: 32,
+    theme: "striped",
+    headStyles: { fillColor: [47, 111, 94] },
+    styles: { fontSize: 9, cellPadding: 4 },
+    margin: { left: 14, right: 14 },
+  });
+  doc.save(filename);
 }
 
 document.getElementById("downloadReportBtn").addEventListener("click", () => {
-  const rows = [["Name", "File number", "Entitlement", "Taken", "Remaining", "Pending"]];
-  for (const r of TEAM_BALANCE_ROWS) {
-    rows.push([r.full_name, r.file_number, r.annual_entitlement, r.taken, r.remaining, r.pending]);
-  }
-  downloadCSV(rows, "my_team_leave_report.csv");
+  const rows = TEAM_BALANCE_ROWS.map(r => [r.full_name, r.file_number, String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending)]);
+  downloadPDF(
+    "My Team — Leave Report",
+    `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}`,
+    ["Name", "File #", "Entitlement", "Taken", "Remaining", "Pending"],
+    rows,
+    "my_team_leave_report.pdf"
+  );
 });
 
 async function refreshAll() {
   await loadTeam();
   await Promise.all([loadBalances(), loadRequests()]);
 }
-
-document.getElementById("passwordForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const errBox = document.getElementById("pwError");
-  errBox.classList.remove("show");
-
-  const newPassword = document.getElementById("newPassword").value;
-  const confirmPassword = document.getElementById("confirmPassword").value;
-
-  if (newPassword !== confirmPassword) {
-    errBox.textContent = "Passwords don't match.";
-    errBox.classList.add("show");
-    return;
-  }
-
-  const btn = document.getElementById("pwBtn");
-  btn.disabled = true;
-  btn.textContent = "Updating…";
-
-  const { error } = await db.auth.updateUser({ password: newPassword });
-
-  btn.disabled = false;
-  btn.textContent = "Update password";
-
-  if (error) {
-    errBox.textContent = "Something went wrong updating your password.";
-    errBox.classList.add("show");
-    return;
-  }
-
-  document.getElementById("passwordForm").reset();
-  showToast("Password updated.");
-});
 
 (async () => {
   ME = await requireSession("supervisor");

@@ -89,11 +89,11 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   btn.disabled = true;
   btn.textContent = "Submitting…";
 
-  const { error } = await db.from("leave_requests").insert({
+  const { data: inserted, error } = await db.from("leave_requests").insert({
     employee_id: ME.id,
     start_date, end_date, leave_type,
     reason: reason || null
-  });
+  }).select().single();
 
   btn.disabled = false;
   btn.textContent = "Submit request";
@@ -104,42 +104,14 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
     return;
   }
 
+  // Best-effort email to the supervisor — doesn't block the UI if it fails.
+  db.functions.invoke("send-leave-notification", {
+    body: { leave_request_id: inserted.id, type: "submitted" }
+  }).catch(() => {});
+
   document.getElementById("leaveForm").reset();
   showToast("Leave request submitted.");
   await Promise.all([loadRequests(), loadBalance()]);
-});
-
-document.getElementById("passwordForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const errBox = document.getElementById("pwError");
-  errBox.classList.remove("show");
-
-  const newPassword = document.getElementById("newPassword").value;
-  const confirmPassword = document.getElementById("confirmPassword").value;
-
-  if (newPassword !== confirmPassword) {
-    errBox.textContent = "Passwords don't match.";
-    errBox.classList.add("show");
-    return;
-  }
-
-  const btn = document.getElementById("pwBtn");
-  btn.disabled = true;
-  btn.textContent = "Updating…";
-
-  const { error } = await db.auth.updateUser({ password: newPassword });
-
-  btn.disabled = false;
-  btn.textContent = "Update password";
-
-  if (error) {
-    errBox.textContent = "Something went wrong updating your password.";
-    errBox.classList.add("show");
-    return;
-  }
-
-  document.getElementById("passwordForm").reset();
-  showToast("Password updated.");
 });
 
 (async () => {

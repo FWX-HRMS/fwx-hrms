@@ -12,10 +12,10 @@ function showToast(msg) {
 }
 
 // ---------- Custom confirm/info modal (replaces browser confirm()/alert()) ----------
-function showInfo(title, message) {
+function showInfo(title, messageHTML) {
   return new Promise((resolve) => {
     document.getElementById("actionTitle").textContent = title;
-    document.getElementById("actionMessage").textContent = message;
+    document.getElementById("actionMessage").innerHTML = messageHTML;
     const btns = document.getElementById("actionButtons");
     btns.innerHTML = "";
     const ok = document.createElement("button");
@@ -34,7 +34,7 @@ function showConfirm(title, message, confirmLabel = "Confirm", danger = false) {
     const btns = document.getElementById("actionButtons");
     btns.innerHTML = "";
     const cancel = document.createElement("button");
-    cancel.className = "btn btn-ghost btn-sm";
+    cancel.className = "btn btn-danger btn-sm";
     cancel.textContent = "Cancel";
     cancel.onclick = () => { document.getElementById("actionOverlay").style.display = "none"; resolve(false); };
     const ok = document.createElement("button");
@@ -151,7 +151,7 @@ function renderDirectory() {
       <td class="row-actions">
         <button class="btn btn-blue btn-sm" data-view="${e.id}">View</button>
         <button class="btn btn-blue btn-sm" data-reset="${e.id}">Reset password</button>
-        ${isSelf ? "" : `<button class="btn btn-danger btn-sm" data-delete="${e.id}">Delete</button>`}
+        <button class="btn btn-danger btn-sm" data-delete="${e.id}" ${isSelf ? 'style="visibility:hidden"' : ""}>Delete</button>
       </td>
     `;
     body.appendChild(tr);
@@ -242,7 +242,7 @@ async function resetPassword(id, employee) {
 
   await showInfo(
     "New password generated",
-    `${employee.full_name} (#${employee.file_number}) — new password: ${data.password}\n\nShare this with them securely.`
+    `${employee.full_name} (#${employee.file_number}) — new password: <strong>${data.password}</strong><br><br>Share this with them securely.`
   );
 }
 
@@ -268,27 +268,43 @@ async function deleteEmployee(id, employee) {
   await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
 }
 
-function downloadCSV(rows, filename) {
-  const csv = rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+function downloadPDF(title, subtitle, columns, rows, filename) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.setFontSize(16);
+  doc.setTextColor(27, 36, 48);
+  doc.text(title, 14, 18);
+  doc.setFontSize(10);
+  doc.setTextColor(75, 87, 104);
+  doc.text(subtitle, 14, 25);
+  doc.autoTable({
+    head: [columns],
+    body: rows,
+    startY: 32,
+    theme: "striped",
+    headStyles: { fillColor: [47, 111, 94] },
+    styles: { fontSize: 9, cellPadding: 4 },
+    margin: { left: 14, right: 14 },
+  });
+  doc.save(filename);
 }
 
 document.getElementById("downloadReportBtn").addEventListener("click", () => {
-  const rows = [["Name", "File number", "Department", "Role", "Annual entitlement", "Taken", "Remaining"]];
   const source = ACTIVE_TAB === "supervisors"
     ? DIRECTORY.filter(e => e.role === "supervisor" || e.role === "admin")
     : DIRECTORY;
-  for (const e of source) {
+  const rows = source.map(e => {
     const bal = BALANCES_BY_ID[e.id] || {};
-    rows.push([e.full_name, e.file_number, e.department || "", e.role, e.annual_entitlement, bal.taken ?? "", bal.remaining ?? ""]);
-  }
-  downloadCSV(rows, ACTIVE_TAB === "supervisors" ? "supervisors_leave_report.csv" : "all_employees_leave_report.csv");
+    return [e.full_name, e.file_number, e.department || "—", e.role, String(e.annual_entitlement), String(bal.taken ?? "—"), String(bal.remaining ?? "—")];
+  });
+  const title = ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "All Employees — Leave Report";
+  downloadPDF(
+    title,
+    `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}`,
+    ["Name", "File #", "Department", "Role", "Entitlement", "Taken", "Remaining"],
+    rows,
+    ACTIVE_TAB === "supervisors" ? "supervisors_leave_report.pdf" : "all_employees_leave_report.pdf"
+  );
 });
 
 document.getElementById("addForm").addEventListener("submit", async (e) => {
