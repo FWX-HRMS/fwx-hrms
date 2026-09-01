@@ -98,7 +98,7 @@ async function loadRequests() {
       if (error) { showToast("Could not update that request."); }
       else {
         showToast(`Request ${btn.dataset.action}.`);
-        db.functions.invoke("send-leave-notification", {
+        db.functions.invoke("clever-api", {
           body: { leave_request_id: btn.dataset.id, type: "decided" }
         }).catch(() => {});
       }

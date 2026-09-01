@@ -105,7 +105,7 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   }
 
   // Best-effort email to the supervisor — doesn't block the UI if it fails.
-  db.functions.invoke("send-leave-notification", {
+  db.functions.invoke("clever-api", {
     body: { leave_request_id: inserted.id, type: "submitted" }
   }).catch(() => {});
 
