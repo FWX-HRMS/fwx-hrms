@@ -22,50 +22,113 @@
   </aside>
 
   <main>
-    <h1 class="page-title">Client Companies</h1>
-    <p class="page-sub">Pick a company to manage its staff and supervisors.</p>
-
-    <div class="company-grid">
-      <a class="company-card" href="admin.html?company=Zain">
-        <span class="company-name">Zain</span>
-        <span class="company-count" id="countZain">—</span>
-      </a>
-      <a class="company-card" href="admin.html?company=Umniah">
-        <span class="company-name">Umniah</span>
-        <span class="company-count" id="countUmniah">—</span>
-      </a>
-      <a class="company-card" href="admin.html?company=Orange">
-        <span class="company-name">Orange</span>
-        <span class="company-count" id="countOrange">—</span>
-      </a>
-      <a class="company-card" href="admin.html?company=Fiber-Tech">
-        <span class="company-name">Fiber-Tech</span>
-        <span class="company-count" id="countFiber-Tech">—</span>
-      </a>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px">
+      <div>
+        <h1 class="page-title" style="margin-bottom:4px">Client Companies</h1>
+        <p class="page-sub" style="margin-bottom:0">Pick a company to manage its staff and supervisors.</p>
+      </div>
+      <button type="button" class="btn btn-primary" id="showAddCompanyBtn" style="width:220px">+ Add new client company</button>
     </div>
+
+    <div class="panel" id="addCompanyPanel" style="display:none; max-width:420px; margin:24px 0">
+      <h2>New client company</h2>
+      <label for="newCompanyName">Company name</label>
+      <input type="text" id="newCompanyName" placeholder="e.g. Vodafone">
+      <div style="display:flex; gap:10px; margin-top:14px">
+        <button type="button" class="btn btn-primary" id="saveCompanyBtn" style="width:140px">Add</button>
+        <button type="button" class="btn btn-danger" id="cancelCompanyBtn" style="width:140px">Cancel</button>
+      </div>
+      <div class="error-msg" id="companyError"></div>
+    </div>
+
+    <div class="company-grid" id="companyGrid"></div>
   </main>
 </div>
+
+<div class="toast" id="toast"></div>
 
 <script src="js/supabaseClient.js"></script>
 <script src="js/auth-guard.js"></script>
 <script>
-(async () => {
-  const me = await requireSession("admin");
-  if (!me) return;
-  document.getElementById("whoami").textContent = `${me.full_name} · #${me.file_number}`;
+let ME = null;
 
-  const { data } = await db.from("employees").select("client_company");
-  if (data) {
-    const counts = {};
-    for (const row of data) {
-      if (!row.client_company) continue;
-      counts[row.client_company] = (counts[row.client_company] || 0) + 1;
-    }
-    for (const company of ["Zain", "Umniah", "Orange", "Fiber-Tech"]) {
-      const el = document.getElementById("count" + company);
-      if (el) el.textContent = `${counts[company] || 0} people`;
-    }
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+document.getElementById("showAddCompanyBtn").addEventListener("click", () => {
+  document.getElementById("addCompanyPanel").style.display = "";
+  document.getElementById("newCompanyName").value = "";
+  document.getElementById("companyError").classList.remove("show");
+  document.getElementById("newCompanyName").focus();
+});
+document.getElementById("cancelCompanyBtn").addEventListener("click", () => {
+  document.getElementById("addCompanyPanel").style.display = "none";
+});
+
+document.getElementById("saveCompanyBtn").addEventListener("click", async () => {
+  const errBox = document.getElementById("companyError");
+  errBox.classList.remove("show");
+  const name = document.getElementById("newCompanyName").value.trim();
+  if (!name) {
+    errBox.textContent = "Enter a company name.";
+    errBox.classList.add("show");
+    return;
   }
+
+  const btn = document.getElementById("saveCompanyBtn");
+  btn.disabled = true;
+  btn.textContent = "Adding…";
+
+  const { error } = await db.from("client_companies").insert({ name });
+
+  btn.disabled = false;
+  btn.textContent = "Add";
+
+  if (error) {
+    errBox.textContent = error.code === "23505" ? "That company already exists." : "Something went wrong adding it.";
+    errBox.classList.add("show");
+    return;
+  }
+
+  document.getElementById("addCompanyPanel").style.display = "none";
+  showToast("Company added.");
+  await loadCompanies();
+});
+
+async function loadCompanies() {
+  const { data: companies, error } = await db.from("client_companies").select("*").order("name");
+  const grid = document.getElementById("companyGrid");
+  grid.innerHTML = "";
+  if (error || !companies) return;
+
+  const { data: employees } = await db.from("employees").select("client_company");
+  const counts = {};
+  for (const row of employees || []) {
+    if (!row.client_company) continue;
+    counts[row.client_company] = (counts[row.client_company] || 0) + 1;
+  }
+
+  for (const c of companies) {
+    const a = document.createElement("a");
+    a.className = "company-card";
+    a.href = `admin.html?company=${encodeURIComponent(c.name)}`;
+    a.innerHTML = `
+      <span class="company-name">${c.name}</span>
+      <span class="company-count">${counts[c.name] || 0} people</span>
+    `;
+    grid.appendChild(a);
+  }
+}
+
+(async () => {
+  ME = await requireSession("admin");
+  if (!ME) return;
+  document.getElementById("whoami").textContent = `${ME.full_name} · #${ME.file_number}`;
+  await loadCompanies();
 })();
 </script>
 </body>
