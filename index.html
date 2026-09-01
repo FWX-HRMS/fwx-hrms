@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in — HR Portal</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="login-wrap">
+    <form class="login-card" id="loginForm">
+      <img src="images/logo.png" alt="FWX" class="login-logo">
+      <h1>Sign in</h1>
+      <p class="sub">Use your employee file number and password.</p>
+
+      <label for="fileNumber">File number</label>
+      <input type="text" id="fileNumber" autocomplete="username" required>
+
+      <label for="password">Password</label>
+      <input type="password" id="password" autocomplete="current-password" required>
+
+      <button type="submit" class="btn btn-primary" id="submitBtn">Sign in</button>
+      <div class="error-msg" id="errorMsg"></div>
+      <p class="forgot-link"><a href="forgot-password.html">Forgot your password?</a></p>
+    </form>
+  </div>
+
+  <script src="js/supabaseClient.js"></script>
+  <script>
+    const form = document.getElementById("loginForm");
+    const errorMsg = document.getElementById("errorMsg");
+    const submitBtn = document.getElementById("submitBtn");
+
+    // If already logged in, skip straight to the right portal.
+    (async () => {
+      const { data: { session } } = await db.auth.getSession();
+      if (session) {
+        const { data: me } = await db.from("employees").select("role").eq("id", session.user.id).single();
+        window.location.href = (me && me.role !== "staff") ? "supervisor.html" : "staff.html";
+      }
+    })();
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorMsg.classList.remove("show");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Signing in…";
+
+      const fileNumber = document.getElementById("fileNumber").value.trim();
+      const password = document.getElementById("password").value;
+
+      const email = await lookupEmailForFileNumber(fileNumber);
+      if (!email) {
+        errorMsg.textContent = "Incorrect file number or password.";
+        errorMsg.classList.add("show");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign in";
+        return;
+      }
+
+      const { data, error } = await db.auth.signInWithPassword({
+        email,
+        password
+      });
+
+      if (error) {
+        errorMsg.textContent = "Incorrect file number or password.";
+        errorMsg.classList.add("show");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign in";
+        return;
+      }
+
+      const { data: me } = await db
+        .from("employees")
+        .select("role")
+        .eq("id", data.user.id)
+        .single();
+
+      window.location.href = (me && me.role !== "staff") ? "supervisor.html" : "staff.html";
+    });
+  </script>
+</body>
+</html>

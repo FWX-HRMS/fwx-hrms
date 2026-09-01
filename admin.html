@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Add Employee — HR Portal</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><img src="images/logo.png" alt="FWX" class="brand-logo"> Supervisor Portal</div>
+    <div class="whoami" id="whoami">Loading…</div>
+    <nav>
+      <a href="supervisor.html">Team overview</a>
+      <a href="admin.html" class="active">Add employee</a>
+    </nav>
+    <button class="logout" onclick="logout()">Log out</button>
+  </aside>
+
+  <main>
+    <h1 class="page-title">Add employee</h1>
+    <p class="page-sub">Creates a login for a new employee and generates their initial password.</p>
+
+    <div class="panel">
+      <h2>New employee details</h2>
+      <form id="addForm">
+        <div class="field-row">
+          <div>
+            <label for="fullName">Full name</label>
+            <input type="text" id="fullName" required>
+          </div>
+          <div>
+            <label for="email">Email</label>
+            <input type="text" id="email" required>
+          </div>
+        </div>
+        <div class="field-row">
+          <div>
+            <label for="dob">Date of birth</label>
+            <input type="date" id="dob">
+          </div>
+          <div>
+            <label for="department">Department</label>
+            <input type="text" id="department">
+          </div>
+        </div>
+        <div class="field-row">
+          <div>
+            <label for="role">Role</label>
+            <select id="role">
+              <option value="staff">Staff</option>
+              <option value="supervisor">Supervisor</option>
+            </select>
+          </div>
+          <div id="supervisorField">
+            <label for="supervisor">Assign to supervisor</label>
+            <select id="supervisor">
+              <option value="">Select a supervisor…</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div>
+            <label for="entitlement">Annual leave days</label>
+            <input type="text" id="entitlement" value="30">
+          </div>
+          <div></div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="addBtn" style="max-width:220px">Create employee</button>
+        <div class="error-msg" id="addError"></div>
+      </form>
+
+      <div class="success-msg" id="credentialsBox" style="margin-top:20px">
+        <p style="margin:0 0 8px"><strong>Employee created.</strong> Share these with them — they can change the password after logging in.</p>
+        <p style="margin:0">File number: <strong id="credFileNumber"></strong></p>
+        <p style="margin:0">Initial password: <strong id="credPassword"></strong></p>
+        <p style="margin:8px 0 0"><button type="button" class="btn btn-ghost btn-sm" id="copyCredsBtn">Copy details</button></p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>All employees</h2>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>File #</th><th>Role</th><th>Department</th><th>Supervisor</th></tr>
+        </thead>
+        <tbody id="directoryBody"></tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>

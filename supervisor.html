@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Supervisor Portal</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><img src="images/logo.png" alt="FWX" class="brand-logo"> Supervisor Portal</div>
+    <div class="whoami" id="whoami">Loading…</div>
+    <nav>
+      <a href="supervisor.html" class="active">Team overview</a>
+      <a href="admin.html" id="adminLink" style="display:none">Add employee</a>
+    </nav>
+    <button class="logout" onclick="logout()">Log out</button>
+  </aside>
+
+  <main>
+    <h1 class="page-title">Team overview</h1>
+    <p class="page-sub" id="teamCount"></p>
+
+    <div class="panel">
+      <h2>Change password</h2>
+      <form id="passwordForm">
+        <div class="field-row">
+          <div>
+            <label for="newPassword">New password</label>
+            <input type="password" id="newPassword" autocomplete="new-password" minlength="8" required>
+          </div>
+          <div>
+            <label for="confirmPassword">Confirm new password</label>
+            <input type="password" id="confirmPassword" autocomplete="new-password" minlength="8" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" id="pwBtn" style="max-width:200px">Update password</button>
+        <div class="error-msg" id="pwError"></div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Pending requests</h2>
+      <table>
+        <thead>
+          <tr><th>Employee</th><th>Dates</th><th>Days</th><th>Type</th><th>Reason</th><th></th></tr>
+        </thead>
+        <tbody id="pendingBody"></tbody>
+      </table>
+      <div class="empty-state" id="noPending" style="display:none">No pending requests.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Team balances</h2>
+      <table>
+        <thead>
+          <tr><th>Employee</th><th>File #</th><th>Entitlement</th><th>Taken</th><th>Remaining</th><th>Pending</th></tr>
+        </thead>
+        <tbody id="teamBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>Request history</h2>
+      <table>
+        <thead>
+          <tr><th>Employee</th><th>Dates</th><th>Days</th><th>Type</th><th>Status</th></tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+      <div class="empty-state" id="noHistory" style="display:none">No decided requests yet.</div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/supervisor.js"></script>
+</body>
+</html>

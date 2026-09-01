@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My HR Portal</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><img src="images/logo.png" alt="FWX" class="brand-logo"> Staff Portal</div>
+    <div class="whoami" id="whoami">Loading…</div>
+    <nav>
+      <a href="#" class="active">My leave</a>
+    </nav>
+    <button class="logout" onclick="logout()">Log out</button>
+  </aside>
+
+  <main>
+    <h1 class="page-title">My leave</h1>
+    <p class="page-sub" id="deptLine"></p>
+
+    <div class="stat-row">
+      <div class="stat-card"><div class="num" id="statEntitlement">—</div><div class="label">Annual entitlement</div></div>
+      <div class="stat-card"><div class="num" id="statTaken">—</div><div class="label">Taken this year</div></div>
+      <div class="stat-card"><div class="num" id="statRemaining">—</div><div class="label">Remaining</div></div>
+      <div class="stat-card"><div class="num" id="statPending">—</div><div class="label">Pending approval</div></div>
+    </div>
+
+    <div class="panel">
+      <h2>Apply for leave</h2>
+      <form id="leaveForm">
+        <div class="field-row">
+          <div>
+            <label for="startDate">Start date</label>
+            <input type="date" id="startDate" required>
+          </div>
+          <div>
+            <label for="endDate">End date</label>
+            <input type="date" id="endDate" required>
+          </div>
+        </div>
+        <div class="field-row">
+          <div>
+            <label for="leaveType">Type</label>
+            <select id="leaveType">
+              <option value="annual">Annual</option>
+              <option value="sick">Sick</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div></div>
+        </div>
+        <label for="reason">Reason (optional)</label>
+        <textarea id="reason" rows="2"></textarea>
+        <button type="submit" class="btn btn-primary" id="applyBtn" style="max-width:220px">Submit request</button>
+        <div class="error-msg" id="leaveError"></div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>Change password</h2>
+      <form id="passwordForm">
+        <div class="field-row">
+          <div>
+            <label for="newPassword">New password</label>
+            <input type="password" id="newPassword" autocomplete="new-password" minlength="8" required>
+          </div>
+          <div>
+            <label for="confirmPassword">Confirm new password</label>
+            <input type="password" id="confirmPassword" autocomplete="new-password" minlength="8" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm" id="pwBtn" style="max-width:200px">Update password</button>
+        <div class="error-msg" id="pwError"></div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <h2>My requests</h2>
+      <table id="requestsTable">
+        <thead>
+          <tr><th>Dates</th><th>Days</th><th>Type</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody id="requestsBody"></tbody>
+      </table>
+      <div class="empty-state" id="noRequests" style="display:none">No leave requests yet.</div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/staff.js"></script>
+</body>
+</html>
