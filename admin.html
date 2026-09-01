@@ -15,6 +15,7 @@
     <nav>
       <a href="supervisor.html">Team overview</a>
       <a href="admin.html" class="active">Employees</a>
+      <a href="settings.html">⚙ Settings</a>
     </nav>
     <button class="logout" onclick="logout()">Log out</button>
   </aside>
@@ -32,8 +33,8 @@
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
         <h2 style="margin:0" id="tableTitle">All employees</h2>
         <div style="display:flex; gap:8px">
-          <button type="button" class="btn btn-ghost btn-sm" id="downloadReportBtn">Download report (CSV)</button>
-          <button type="button" class="btn btn-primary btn-sm" id="showAddFormBtn">+ Add new employee</button>
+          <button type="button" class="btn btn-blue" id="downloadReportBtn" style="width:200px">Download report (CSV)</button>
+          <button type="button" class="btn btn-primary" id="showAddFormBtn" style="width:200px">+ Add new employee</button>
         </div>
       </div>
       <table>
@@ -106,8 +107,8 @@
         </div>
 
         <div style="display:flex; gap:10px; margin-top:6px">
-          <button type="submit" class="btn btn-primary" id="addBtn" style="max-width:220px">Create employee</button>
-          <button type="button" class="btn btn-danger" id="cancelAddBtn" style="max-width:220px">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="addBtn" style="width:220px">Create employee</button>
+          <button type="button" class="btn btn-danger" id="cancelAddBtn" style="width:220px">Cancel</button>
         </div>
         <div class="error-msg" id="addError"></div>
       </form>
