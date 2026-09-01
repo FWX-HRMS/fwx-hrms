@@ -6,6 +6,8 @@
 <title>Supervisor Portal</title>
 <link rel="stylesheet" href="css/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -23,24 +25,6 @@
   <main>
     <h1 class="page-title">Team overview</h1>
     <p class="page-sub" id="teamCount"></p>
-
-    <div class="panel">
-      <h2>Change password</h2>
-      <form id="passwordForm">
-        <div class="field-row">
-          <div>
-            <label for="newPassword">New password</label>
-            <input type="password" id="newPassword" autocomplete="new-password" minlength="8" required>
-          </div>
-          <div>
-            <label for="confirmPassword">Confirm new password</label>
-            <input type="password" id="confirmPassword" autocomplete="new-password" minlength="8" required>
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary btn-sm" id="pwBtn" style="max-width:200px">Update password</button>
-        <div class="error-msg" id="pwError"></div>
-      </form>
-    </div>
 
     <div class="panel">
       <h2>Pending requests</h2>
