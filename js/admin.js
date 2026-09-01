@@ -71,8 +71,10 @@ document.getElementById("showAddFormBtn").addEventListener("click", () => {
   const roleSelect = document.getElementById("role");
   if (ACTIVE_TAB === "supervisors") {
     roleSelect.value = "supervisor";
+    document.getElementById("roleField").style.display = "none";
   } else {
     roleSelect.value = "staff";
+    document.getElementById("roleField").style.display = "";
   }
   toggleSupervisorField();
   document.getElementById("addPanel").scrollIntoView({ behavior: "smooth" });
