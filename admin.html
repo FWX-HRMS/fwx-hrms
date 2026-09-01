@@ -14,22 +14,48 @@
     <div class="whoami" id="whoami">Loading…</div>
     <nav>
       <a href="supervisor.html">Team overview</a>
-      <a href="admin.html" class="active">Add employee</a>
+      <a href="admin.html" class="active">Employees</a>
     </nav>
     <button class="logout" onclick="logout()">Log out</button>
   </aside>
 
   <main>
-    <h1 class="page-title">Add employee</h1>
-    <p class="page-sub">Creates a login for a new employee and generates their initial password.</p>
+    <h1 class="page-title">Employees</h1>
+    <p class="page-sub">Add, manage, and report on everyone in the system.</p>
 
     <div class="panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+        <h2 style="margin:0">All employees</h2>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-ghost btn-sm" id="downloadReportBtn">Download report (CSV)</button>
+          <button type="button" class="btn btn-primary btn-sm" id="showAddFormBtn">+ Add new employee</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Name</th><th>File #</th><th>Role</th><th>Department</th><th>Supervisor</th><th></th></tr>
+        </thead>
+        <tbody id="directoryBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel" id="addPanel" style="display:none">
       <h2>New employee details</h2>
       <form id="addForm">
         <div class="field-row">
           <div>
-            <label for="fullName">Full name</label>
-            <input type="text" id="fullName" required>
+            <label for="firstName">First name</label>
+            <input type="text" id="firstName" required>
+          </div>
+          <div>
+            <label for="middleName">Middle name</label>
+            <input type="text" id="middleName">
+          </div>
+        </div>
+        <div class="field-row">
+          <div>
+            <label for="familyName">Family name</label>
+            <input type="text" id="familyName" required>
           </div>
           <div>
             <label for="email">Email</label>
@@ -77,7 +103,10 @@
           <div></div>
         </div>
 
-        <button type="submit" class="btn btn-primary" id="addBtn" style="max-width:220px">Create employee</button>
+        <div style="display:flex; gap:10px; margin-top:6px">
+          <button type="submit" class="btn btn-primary" id="addBtn" style="max-width:220px">Create employee</button>
+          <button type="button" class="btn btn-ghost" id="cancelAddBtn" style="max-width:120px">Cancel</button>
+        </div>
         <div class="error-msg" id="addError"></div>
       </form>
 
@@ -88,17 +117,18 @@
         <p style="margin:8px 0 0"><button type="button" class="btn btn-ghost btn-sm" id="copyCredsBtn">Copy details</button></p>
       </div>
     </div>
-
-    <div class="panel">
-      <h2>All employees</h2>
-      <table>
-        <thead>
-          <tr><th>Name</th><th>File #</th><th>Role</th><th>Department</th><th>Supervisor</th></tr>
-        </thead>
-        <tbody id="directoryBody"></tbody>
-      </table>
-    </div>
   </main>
+</div>
+
+<!-- View details modal -->
+<div id="detailsOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+      <h2 style="margin:0" id="detailsTitle">Employee details</h2>
+      <button type="button" class="btn btn-ghost btn-sm" id="closeDetailsBtn">Close</button>
+    </div>
+    <div id="detailsBody"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
