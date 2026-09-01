@@ -190,6 +190,7 @@ function renderDirectory() {
       <td>${bal ? bal.taken : "—"}</td>
       <td>${bal ? bal.remaining : "—"}</td>
       <td>${bal ? bal.sick_entitlement : "—"}</td>
+      <td>${bal ? bal.sick_taken : "—"}</td>
       <td>${bal ? bal.sick_remaining : "—"}</td>
       <td class="row-actions">
         <button class="btn btn-blue btn-sm" data-view="${e.id}">View</button>

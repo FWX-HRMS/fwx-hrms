@@ -45,6 +45,7 @@ async function loadBalances() {
       <td>${r.remaining}</td>
       <td>${r.pending}</td>
       <td>${r.sick_entitlement}</td>
+      <td>${r.sick_taken}</td>
       <td>${r.sick_remaining}</td>
     `;
     body.appendChild(tr);
@@ -145,11 +146,11 @@ function downloadPDF(title, subtitle, columns, rows, filename) {
 }
 
 document.getElementById("downloadReportBtn").addEventListener("click", () => {
-  const rows = TEAM_BALANCE_ROWS.map(r => [r.full_name, r.file_number, String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_remaining)]);
+  const rows = TEAM_BALANCE_ROWS.map(r => [r.full_name, r.file_number, String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
   downloadPDF(
     "My Team — Leave Report",
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}`,
-    ["Name", "File #", "Annual", "Taken", "Remaining", "Pending", "Sick", "Sick Left"],
+    ["Name", "File #", "Annual", "Taken", "Remaining", "Pending", "Sick", "Sick Taken", "Sick Remaining"],
     rows,
     "my_team_leave_report.pdf"
   );
