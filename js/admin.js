@@ -149,8 +149,8 @@ function renderDirectory() {
       <td>${bal ? bal.taken : "—"}</td>
       <td>${bal ? bal.remaining : "—"}</td>
       <td class="row-actions">
-        <button class="btn btn-ghost btn-sm" data-view="${e.id}">View</button>
-        <button class="btn btn-ghost btn-sm" data-reset="${e.id}">Reset password</button>
+        <button class="btn btn-blue btn-sm" data-view="${e.id}">View</button>
+        <button class="btn btn-blue btn-sm" data-reset="${e.id}">Reset password</button>
         ${isSelf ? "" : `<button class="btn btn-danger btn-sm" data-delete="${e.id}">Delete</button>`}
       </td>
     `;
