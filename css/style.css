@@ -249,7 +249,7 @@ button{
 
 main{
   padding:32px 40px;
-  max-width:1320px;
+  max-width:1680px;
 }
 h1.page-title{
   font-size:22px;
@@ -284,6 +284,7 @@ p.page-sub{
   border-radius:var(--radius);
   padding:22px 24px;
   margin-bottom:24px;
+  overflow-x:auto;
 }
 .panel h2{
   font-size:15.5px;
@@ -324,6 +325,7 @@ th{
   color:var(--ink-soft);
   padding:8px 10px;
   border-bottom:1px solid var(--border);
+  white-space:nowrap;
 }
 td{
   padding:11px 10px;
