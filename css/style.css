@@ -374,3 +374,34 @@ tr:last-child td{ border-bottom:none; }
   main{ padding:20px; }
   .field-row{ grid-template-columns:1fr; }
 }
+
+.company-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(200px,1fr));
+  gap:16px;
+  max-width:800px;
+}
+.company-card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:28px 22px;
+  text-decoration:none;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  transition:border-color .15s, transform .15s;
+}
+.company-card:hover{
+  border-color:var(--accent);
+  transform:translateY(-2px);
+}
+.company-card .company-name{
+  font-size:19px;
+  font-weight:700;
+  color:var(--ink);
+}
+.company-card .company-count{
+  font-size:13px;
+  color:var(--ink-soft);
+}
