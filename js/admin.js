@@ -53,7 +53,7 @@ function applyTab(tab) {
   ACTIVE_TAB = tab;
   document.getElementById("tabAllBtn").classList.toggle("active", tab === "all");
   document.getElementById("tabSupervisorsBtn").classList.toggle("active", tab === "supervisors");
-  document.getElementById("tableTitle").textContent = tab === "supervisors" ? "Supervisors" : "All employees";
+  document.getElementById("tableTitle").textContent = tab === "supervisors" ? "Supervisors" : "Employees";
   document.getElementById("showAddFormBtn").textContent = tab === "supervisors" ? "+ Add new supervisor" : "+ Add new employee";
   document.getElementById("addPanelTitle").textContent = tab === "supervisors" ? "New supervisor details" : "New employee details";
   renderDirectory();
@@ -341,7 +341,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", () => {
     return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, String(e.annual_entitlement), String(bal.taken ?? "—"), String(bal.remaining ?? "—")];
   });
   const scope = COMPANY_FILTER ? `${COMPANY_FILTER} — ` : "";
-  const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "All Employees — Leave Report");
+  const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
   const filenamePrefix = COMPANY_FILTER ? `${COMPANY_FILTER.toLowerCase()}_` : "";
   downloadPDF(
     title,
