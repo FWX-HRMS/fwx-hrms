@@ -99,6 +99,21 @@ document.getElementById("closeDetailsBtn").addEventListener("click", () => {
 });
 
 // ---------- Data loading ----------
+async function loadCompanyOptions() {
+  const { data, error } = await db.from("client_companies").select("name").order("name");
+  const select = document.getElementById("clientCompany");
+  const current = select.value;
+  select.innerHTML = '<option value="">Select a company…</option>';
+  if (error || !data) return;
+  for (const c of data) {
+    const opt = document.createElement("option");
+    opt.value = c.name;
+    opt.textContent = c.name;
+    select.appendChild(opt);
+  }
+  if (current) select.value = current;
+}
+
 async function loadSupervisors() {
   const { data, error } = await db
     .from("employees")
@@ -414,6 +429,7 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
     document.querySelector(".page-sub").textContent = `Add, manage, and report on ${COMPANY_FILTER} staff and supervisors only.`;
   }
   toggleSupervisorField();
-  await Promise.all([loadSupervisors(), loadBalances()]);
+  await Promise.all([loadCompanyOptions(), loadSupervisors(), loadBalances()]);
   await loadDirectory();
+  if (COMPANY_FILTER) document.getElementById("clientCompany").value = COMPANY_FILTER;
 })();
