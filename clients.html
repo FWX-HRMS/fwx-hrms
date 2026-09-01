@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Client Companies — HR Portal</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><img src="images/logo.png" alt="FWX" class="brand-logo"> Supervisor Portal</div>
+    <div class="whoami" id="whoami">Loading…</div>
+    <nav>
+      <a href="supervisor.html">Team overview</a>
+      <a href="admin.html">Employees</a>
+      <a href="clients.html" class="active">Client Companies</a>
+    </nav>
+    <a href="settings.html" class="settings-link">⚙ Settings</a>
+    <button class="logout" onclick="logout()">Log out</button>
+  </aside>
+
+  <main>
+    <h1 class="page-title">Client Companies</h1>
+    <p class="page-sub">Pick a company to manage its staff and supervisors.</p>
+
+    <div class="company-grid">
+      <a class="company-card" href="admin.html?company=Zain">
+        <span class="company-name">Zain</span>
+        <span class="company-count" id="countZain">—</span>
+      </a>
+      <a class="company-card" href="admin.html?company=Umniah">
+        <span class="company-name">Umniah</span>
+        <span class="company-count" id="countUmniah">—</span>
+      </a>
+      <a class="company-card" href="admin.html?company=Orange">
+        <span class="company-name">Orange</span>
+        <span class="company-count" id="countOrange">—</span>
+      </a>
+      <a class="company-card" href="admin.html?company=Fiber-Tech">
+        <span class="company-name">Fiber-Tech</span>
+        <span class="company-count" id="countFiber-Tech">—</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth-guard.js"></script>
+<script>
+(async () => {
+  const me = await requireSession("admin");
+  if (!me) return;
+  document.getElementById("whoami").textContent = `${me.full_name} · #${me.file_number}`;
+
+  const { data } = await db.from("employees").select("client_company");
+  if (data) {
+    const counts = {};
+    for (const row of data) {
+      if (!row.client_company) continue;
+      counts[row.client_company] = (counts[row.client_company] || 0) + 1;
+    }
+    for (const company of ["Zain", "Umniah", "Orange", "Fiber-Tech"]) {
+      const el = document.getElementById("count" + company);
+      if (el) el.textContent = `${counts[company] || 0} people`;
+    }
+  }
+})();
+</script>
+</body>
+</html>
