@@ -170,8 +170,8 @@ function renderDirectory() {
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
   let rows = ACTIVE_TAB === "supervisors"
-    ? DIRECTORY.filter(e => e.role === "supervisor" || e.role === "admin")
-    : DIRECTORY;
+    ? DIRECTORY.filter(e => e.role === "supervisor")
+    : DIRECTORY.filter(e => e.role !== "admin");
   if (COMPANY_FILTER) rows = rows.filter(e => e.client_company === COMPANY_FILTER);
 
   for (const e of rows) {
@@ -333,8 +333,8 @@ function downloadPDF(title, subtitle, columns, rows, filename) {
 
 document.getElementById("downloadReportBtn").addEventListener("click", () => {
   let source = ACTIVE_TAB === "supervisors"
-    ? DIRECTORY.filter(e => e.role === "supervisor" || e.role === "admin")
-    : DIRECTORY;
+    ? DIRECTORY.filter(e => e.role === "supervisor")
+    : DIRECTORY.filter(e => e.role !== "admin");
   if (COMPANY_FILTER) source = source.filter(e => e.client_company === COMPANY_FILTER);
   const rows = source.map(e => {
     const bal = BALANCES_BY_ID[e.id] || {};
