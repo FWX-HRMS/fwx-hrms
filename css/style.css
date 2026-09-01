@@ -117,6 +117,12 @@ button{
   border-color:var(--brick);
 }
 .btn-danger:hover{ background:#8a3423; }
+.btn-blue{
+  background:#2563eb;
+  color:#fff;
+  border-color:#2563eb;
+}
+.btn-blue:hover{ background:#1d4ed8; }
 .error-msg{
   background:var(--brick-soft);
   color:var(--brick);
