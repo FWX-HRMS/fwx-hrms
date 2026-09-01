@@ -41,7 +41,7 @@
       </div>
       <table>
         <thead>
-          <tr><th>Name</th><th>File #</th><th>Role</th><th>Department</th><th>Supervisor</th><th>Leave (days)</th><th>Taken</th><th>Remaining</th><th></th></tr>
+          <tr><th>Name</th><th>File #</th><th>Role</th><th>Company</th><th>Department</th><th>Supervisor</th><th>Leave (days)</th><th>Taken</th><th>Remaining</th><th></th></tr>
         </thead>
         <tbody id="directoryBody"></tbody>
       </table>
@@ -74,7 +74,17 @@
             <input type="date" id="hiringDate">
           </div>
         </div>
-        <div class="field-row" id="roleRow">
+        <div class="field-row">
+          <div>
+            <label for="clientCompany">Company client</label>
+            <select id="clientCompany">
+              <option value="">Select a company…</option>
+              <option value="Zain">Zain</option>
+              <option value="Umniah">Umniah</option>
+              <option value="Fiber-Tech">Fiber-Tech</option>
+              <option value="Orange">Orange</option>
+            </select>
+          </div>
           <div>
             <label for="department">Department</label>
             <select id="department">
@@ -87,6 +97,8 @@
               <option value="Administration">Administration</option>
             </select>
           </div>
+        </div>
+        <div class="field-row" id="roleRow">
           <div id="roleField">
             <label for="role">Role</label>
             <select id="role">
@@ -94,6 +106,7 @@
               <option value="supervisor">Supervisor</option>
             </select>
           </div>
+          <div></div>
         </div>
         <div class="field-row">
           <div id="supervisorField">
