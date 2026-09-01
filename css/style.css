@@ -92,7 +92,9 @@ button{
   align-items:center;
   justify-content:center;
   gap:6px;
-  padding:10px 16px;
+  height:44px;
+  padding:0 16px;
+  white-space:nowrap;
   border-radius:8px;
   border:1px solid transparent;
   font-weight:600;
@@ -228,7 +230,19 @@ button{
   background:#2A3340;
   color:#fff;
 }
-.sidebar .logout{ margin-top:auto; color:#8992A0; }
+.sidebar .logout{ margin-top:0; color:#e0796a; font-weight:600; }
+.sidebar .logout:hover{ background:#3a2420; color:#f5a495; }
+.sidebar .settings-link{
+  margin-top:auto;
+  text-decoration:none;
+  color:#C7CCD4;
+  padding:9px 10px;
+  border-radius:7px;
+  font-size:14px;
+  font-weight:500;
+  display:block;
+}
+.sidebar .settings-link:hover{ background:#2A3340; color:#fff; }
 
 main{
   padding:32px 40px;
@@ -328,7 +342,7 @@ tr:last-child td{ border-bottom:none; }
 .badge-cancelled{ background:#EEF0F2; color:var(--ink-soft); }
 
 .row-actions{ display:flex; gap:8px; }
-.btn-sm{ padding:6px 12px; font-size:13px; border-radius:6px; }
+.btn-sm{ padding:0 12px; height:34px; font-size:13px; border-radius:6px; }
 
 .empty-state{
   color:var(--ink-soft);
