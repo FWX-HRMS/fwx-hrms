@@ -19,6 +19,8 @@ async function loadBalance() {
   document.getElementById("statTaken").textContent = data.taken;
   document.getElementById("statRemaining").textContent = data.remaining;
   document.getElementById("statPending").textContent = data.pending;
+  document.getElementById("statSickEntitlement").textContent = data.sick_entitlement;
+  document.getElementById("statSickRemaining").textContent = data.sick_remaining;
 }
 
 function badgeFor(status) {

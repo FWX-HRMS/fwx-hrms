@@ -186,9 +186,11 @@ function renderDirectory() {
       <td>${e.client_company || "—"}</td>
       <td>${e.department || "—"}</td>
       <td>${supervisorName}</td>
-      <td>${e.annual_entitlement ?? "—"}</td>
+      <td>${bal ? bal.annual_entitlement : "—"}</td>
       <td>${bal ? bal.taken : "—"}</td>
       <td>${bal ? bal.remaining : "—"}</td>
+      <td>${bal ? bal.sick_entitlement : "—"}</td>
+      <td>${bal ? bal.sick_remaining : "—"}</td>
       <td class="row-actions">
         <button class="btn btn-blue btn-sm" data-view="${e.id}">View</button>
         <button class="btn btn-blue btn-sm" data-reset="${e.id}">Reset password</button>
@@ -228,9 +230,12 @@ async function showDetails(id) {
     <div class="detail-row"><span class="label">Nationality</span><span class="value">${e.nationality || "—"}</span></div>
     <div class="detail-row"><span class="label">Education</span><span class="value">${e.education || "—"}</span></div>
     <div class="detail-row"><span class="label">Salary</span><span class="value">${fmtMoney(e.salary)}</span></div>
-    <div class="detail-row"><span class="label">Annual leave days</span><span class="value">${e.annual_entitlement}</span></div>
+    <div class="detail-row"><span class="label">Annual leave days</span><span class="value">${bal ? bal.annual_entitlement : "—"}</span></div>
     <div class="detail-row"><span class="label">Taken this year</span><span class="value">${bal ? bal.taken : "—"}</span></div>
     <div class="detail-row"><span class="label">Remaining</span><span class="value">${bal ? bal.remaining : "—"}</span></div>
+    <div class="detail-row"><span class="label">Sick leave days</span><span class="value">${bal ? bal.sick_entitlement : "—"}</span></div>
+    <div class="detail-row"><span class="label">Sick taken this year</span><span class="value">${bal ? bal.sick_taken : "—"}</span></div>
+    <div class="detail-row"><span class="label">Sick remaining</span><span class="value">${bal ? bal.sick_remaining : "—"}</span></div>
   `;
   document.getElementById("detailsOverlay").style.display = "flex";
 
@@ -338,7 +343,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", () => {
   if (COMPANY_FILTER) source = source.filter(e => e.client_company === COMPANY_FILTER);
   const rows = source.map(e => {
     const bal = BALANCES_BY_ID[e.id] || {};
-    return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, String(e.annual_entitlement), String(bal.taken ?? "—"), String(bal.remaining ?? "—")];
+    return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, String(bal.annual_entitlement ?? "—"), String(bal.taken ?? "—"), String(bal.remaining ?? "—"), String(bal.sick_entitlement ?? "—"), String(bal.sick_taken ?? "—"), String(bal.sick_remaining ?? "—")];
   });
   const scope = COMPANY_FILTER ? `${COMPANY_FILTER} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
@@ -346,7 +351,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", () => {
   downloadPDF(
     title,
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}`,
-    ["Name", "File #", "Company", "Department", "Role", "Entitlement", "Taken", "Remaining"],
+    ["Name", "File #", "Company", "Department", "Role", "Annual", "Ann. Taken", "Ann. Left", "Sick", "Sick Taken", "Sick Left"],
     rows,
     `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report.pdf`
   );
@@ -370,7 +375,6 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   const department = document.getElementById("department").value;
   const role = document.getElementById("role").value;
   const supervisor_file_number = document.getElementById("supervisor").value || null;
-  const annual_entitlement = Number(document.getElementById("entitlement").value) || 30;
 
   if (!client_company) {
     errBox.textContent = "Please select a company client.";
@@ -389,7 +393,7 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   btn.textContent = "Creating…";
 
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "create_employee", full_name, email, role, hiring_date, department, client_company, supervisor_file_number, annual_entitlement }
+    body: { action: "create_employee", full_name, email, role, hiring_date, department, client_company, supervisor_file_number }
   });
 
   btn.disabled = false;
@@ -412,7 +416,6 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   };
 
   document.getElementById("addForm").reset();
-  document.getElementById("entitlement").value = "30";
   if (COMPANY_FILTER) document.getElementById("clientCompany").value = COMPANY_FILTER;
   toggleSupervisorField();
   populateSupervisorOptions();
