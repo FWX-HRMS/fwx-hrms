@@ -230,8 +230,8 @@ button{
   background:#2A3340;
   color:#fff;
 }
-.sidebar .logout{ margin-top:0; color:#e0796a; font-weight:600; }
-.sidebar .logout:hover{ background:#3a2420; color:#f5a495; }
+.sidebar .logout{ margin-top:0; background:var(--brick); color:#fff; font-weight:600; border:none; }
+.sidebar .logout:hover{ background:#8a3423; }
 .sidebar .settings-link{
   margin-top:auto;
   text-decoration:none;
@@ -342,6 +342,7 @@ tr:last-child td{ border-bottom:none; }
 .badge-cancelled{ background:#EEF0F2; color:var(--ink-soft); }
 
 .row-actions{ display:flex; gap:8px; }
+.row-actions .btn{ width:120px; }
 .btn-sm{ padding:0 12px; height:34px; font-size:13px; border-radius:6px; }
 
 .empty-state{
