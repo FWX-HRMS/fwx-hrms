@@ -85,7 +85,7 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   btn.disabled = true;
   btn.textContent = "Creating…";
 
-  const { data, error } = await db.functions.invoke("admin-create-employee", {
+  const { data, error } = await db.functions.invoke("clever-action", {
     body: { full_name, email, role, dob, department, supervisor_file_number, annual_entitlement }
   });
 
