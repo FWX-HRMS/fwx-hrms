@@ -14,7 +14,7 @@
     <div class="whoami" id="whoami">Loading…</div>
     <nav>
       <a href="supervisor.html" class="active">Team overview</a>
-      <a href="admin.html" id="adminLink" style="display:none">Add employee</a>
+      <a href="admin.html" id="adminLink" style="display:none">Employees</a>
     </nav>
     <button class="logout" onclick="logout()">Log out</button>
   </aside>
@@ -53,7 +53,10 @@
     </div>
 
     <div class="panel">
-      <h2>Team balances</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
+        <h2 style="margin:0">Team balances</h2>
+        <button type="button" class="btn btn-ghost btn-sm" id="downloadReportBtn">Download report (CSV)</button>
+      </div>
       <table>
         <thead>
           <tr><th>Employee</th><th>File #</th><th>Entitlement</th><th>Taken</th><th>Remaining</th><th>Pending</th></tr>
