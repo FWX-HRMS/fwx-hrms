@@ -382,26 +382,26 @@ tr:last-child td{ border-bottom:none; }
   max-width:800px;
 }
 .company-card{
-  background:var(--surface);
-  border:1px solid var(--border);
+  background:var(--accent);
+  border:1px solid var(--accent);
   border-radius:var(--radius);
   padding:28px 22px;
   text-decoration:none;
   display:flex;
   flex-direction:column;
   gap:8px;
-  transition:border-color .15s, transform .15s;
+  transition:background .15s, transform .15s;
 }
 .company-card:hover{
-  border-color:var(--accent);
+  background:var(--accent-dark);
   transform:translateY(-2px);
 }
 .company-card .company-name{
   font-size:19px;
   font-weight:700;
-  color:var(--ink);
+  color:#fff;
 }
 .company-card .company-count{
   font-size:13px;
-  color:var(--ink-soft);
+  color:rgba(255,255,255,0.85);
 }
