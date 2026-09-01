@@ -1,5 +1,6 @@
 let ME = null;
 let TEAM_BY_ID = {};
+let TEAM_BALANCE_ROWS = [];
 
 function showToast(msg) {
   const t = document.getElementById("toast");
@@ -33,6 +34,7 @@ async function loadBalances() {
 
   // leave_balances RLS already restricts this to "my team + me"
   const rows = data.filter(r => TEAM_BY_ID[r.employee_id]);
+  TEAM_BALANCE_ROWS = rows;
   for (const r of rows) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -113,6 +115,25 @@ async function loadRequests() {
     historyBody.appendChild(tr);
   }
 }
+
+function downloadCSV(rows, filename) {
+  const csv = rows.map(r => r.map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById("downloadReportBtn").addEventListener("click", () => {
+  const rows = [["Name", "File number", "Entitlement", "Taken", "Remaining", "Pending"]];
+  for (const r of TEAM_BALANCE_ROWS) {
+    rows.push([r.full_name, r.file_number, r.annual_entitlement, r.taken, r.remaining, r.pending]);
+  }
+  downloadCSV(rows, "my_team_leave_report.csv");
+});
 
 async function refreshAll() {
   await loadTeam();
