@@ -341,9 +341,9 @@ tr:last-child td{ border-bottom:none; }
 .badge-rejected{ background:var(--brick-soft); color:var(--brick); }
 .badge-cancelled{ background:#EEF0F2; color:var(--ink-soft); }
 
-.row-actions{ display:flex; gap:8px; }
+.row-actions{ display:flex; gap:8px; align-items:center; }
 .row-actions .btn{ width:120px; }
-.btn-sm{ padding:0 12px; height:34px; font-size:13px; border-radius:6px; }
+.btn-sm{ padding:0 12px; height:44px; font-size:13px; border-radius:6px; }
 
 .empty-state{
   color:var(--ink-soft);
