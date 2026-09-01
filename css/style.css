@@ -241,6 +241,7 @@ button{
   font-size:14px;
   font-weight:500;
   display:block;
+  text-align:center;
 }
 .sidebar .settings-link:hover{ background:#2A3340; color:#fff; }
 
