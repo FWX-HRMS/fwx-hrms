@@ -72,6 +72,11 @@ async function loadRequests() {
   });
 }
 
+document.getElementById("leaveType").addEventListener("change", (e) => {
+  const isSick = e.target.value === "sick";
+  document.getElementById("documentLabel").textContent = isSick ? t("attachDocRequiredLabel") : t("attachDocOptionalLabel");
+});
+
 document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const errBox = document.getElementById("leaveError");
@@ -88,12 +93,19 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
     return;
   }
 
+  const fileInput = document.getElementById("document");
+  const file = fileInput.files[0];
+
+  if (leave_type === "sick" && !file) {
+    errBox.textContent = t("documentRequiredForSick");
+    errBox.classList.add("show");
+    return;
+  }
+
   const btn = document.getElementById("applyBtn");
   btn.disabled = true;
   btn.textContent = t("submitting");
 
-  const fileInput = document.getElementById("document");
-  const file = fileInput.files[0];
   let document_path = null;
 
   if (file) {

@@ -131,6 +131,16 @@ async function loadLeaveRequests() {
   });
 }
 
+function computeAnnualEntitlementClientSide(hiringDateStr) {
+  if (!hiringDateStr) return 14;
+  const hire = new Date(hiringDateStr);
+  const years = (Date.now() - hire.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  return years >= 5 ? 21 : 14;
+}
+document.getElementById("hiringDate").addEventListener("change", (e) => {
+  document.getElementById("annualEntitlement").value = computeAnnualEntitlementClientSide(e.target.value);
+});
+
 function toggleSupervisorField() {
   const role = document.getElementById("role").value;
   document.getElementById("supervisorField").style.display = (role === "staff") ? "" : "none";
@@ -157,6 +167,8 @@ document.getElementById("showAddFormBtn").addEventListener("click", () => {
   }
   toggleSupervisorField();
   populateSupervisorOptions();
+  document.getElementById("annualEntitlement").value = computeAnnualEntitlementClientSide(document.getElementById("hiringDate").value);
+  document.getElementById("carryoverBalance").value = 0;
   document.getElementById("addPanel").scrollIntoView({ behavior: "smooth" });
 });
 document.getElementById("cancelAddBtn").addEventListener("click", () => {
@@ -566,6 +578,8 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
 
   const email = document.getElementById("email").value.trim();
   const hiring_date = document.getElementById("hiringDate").value || null;
+  const annual_entitlement_override = document.getElementById("annualEntitlement").value !== "" ? Number(document.getElementById("annualEntitlement").value) : null;
+  const carryover_balance = document.getElementById("carryoverBalance").value !== "" ? Number(document.getElementById("carryoverBalance").value) : 0;
   const client_company = document.getElementById("clientCompany").value;
   const department = document.getElementById("department").value;
   const role = document.getElementById("role").value;
@@ -588,7 +602,7 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   btn.textContent = t("creating");
 
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "create_employee", full_name, email, role, hiring_date, department, client_company, supervisor_file_number }
+    body: { action: "create_employee", full_name, email, role, hiring_date, department, client_company, supervisor_file_number, annual_entitlement_override, carryover_balance }
   });
 
   btn.disabled = false;
