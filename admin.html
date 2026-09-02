@@ -159,6 +159,101 @@
   </main>
 </div>
 
+<!-- Edit employee modal -->
+<div id="editOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+      <h2 style="margin:0" data-i18n="editEmployeeTitle">Edit employee</h2>
+      <button type="button" class="btn btn-blue btn-sm" id="closeEditBtn" data-i18n="close">Close</button>
+    </div>
+    <form id="editForm">
+      <div class="field-row">
+        <div>
+          <label for="editFullName" data-i18n="fullNameLabel">Full name</label>
+          <input type="text" id="editFullName" required>
+        </div>
+        <div>
+          <label for="editEmail" data-i18n="emailLabel">Email</label>
+          <input type="text" id="editEmail" required>
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="editHiringDate" data-i18n="hiringDateLabel">Hiring date</label>
+          <input type="date" id="editHiringDate">
+        </div>
+        <div></div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="editAnnualEntitlement" data-i18n="annualEntitlementLabel">Annual entitlement (days)</label>
+          <input type="number" id="editAnnualEntitlement" min="0" step="1">
+        </div>
+        <div>
+          <label for="editCarryoverBalance" data-i18n="carryoverLabel">Previous year remaining balance (days)</label>
+          <input type="number" id="editCarryoverBalance" min="0" step="1">
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="editClientCompany" data-i18n="companyClientLabel">Company client</label>
+          <select id="editClientCompany"></select>
+        </div>
+        <div>
+          <label for="editDepartment" data-i18n="departmentLabel">Department</label>
+          <select id="editDepartment">
+            <option value="Technical" data-i18n="departmentTechnical">Technical</option>
+            <option value="Sales" data-i18n="departmentSales">Sales</option>
+            <option value="Marketing" data-i18n="departmentMarketing">Marketing</option>
+            <option value="HR" data-i18n="departmentHR">HR</option>
+            <option value="Finance" data-i18n="departmentFinance">Finance</option>
+            <option value="IT" data-i18n="departmentIT">IT</option>
+            <option value="Administration" data-i18n="departmentAdministration">Administration</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="editRole" data-i18n="roleLabel">Role</label>
+          <select id="editRole">
+            <option value="staff" data-i18n="roleStaff">Staff</option>
+            <option value="supervisor" data-i18n="roleSupervisor">Supervisor</option>
+          </select>
+        </div>
+        <div id="editSupervisorField">
+          <label for="editSupervisor" data-i18n="assignSupervisorLabel">Assign to supervisor</label>
+          <select id="editSupervisor"></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="editDob" data-i18n="colDob">Date of birth</label>
+          <input type="date" id="editDob">
+        </div>
+        <div>
+          <label for="editNationality" data-i18n="colNationality">Nationality</label>
+          <input type="text" id="editNationality">
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="editEducation" data-i18n="colEducation">Education</label>
+          <input type="text" id="editEducation">
+        </div>
+        <div>
+          <label for="editSalary" data-i18n="colSalary">Salary</label>
+          <input type="number" id="editSalary" min="0" step="1">
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:6px">
+        <button type="submit" class="btn btn-primary" id="editSaveBtn" style="width:220px" data-i18n="save">Save</button>
+        <button type="button" class="btn btn-danger" id="cancelEditBtn" style="width:220px" data-i18n="cancel">Cancel</button>
+      </div>
+      <div class="error-msg" id="editError"></div>
+    </form>
+  </div>
+</div>
+
 <!-- View details modal -->
 <div id="detailsOverlay" class="modal-overlay" style="display:none">
   <div class="modal-box">
