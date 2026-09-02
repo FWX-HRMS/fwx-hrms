@@ -54,14 +54,21 @@ function applyTab(tab) {
   document.getElementById("tabAllBtn").classList.toggle("active", tab === "all");
   document.getElementById("tabSupervisorsBtn").classList.toggle("active", tab === "supervisors");
   document.getElementById("tabLeaveBtn").classList.toggle("active", tab === "leave");
+  document.getElementById("tabContractsBtn").classList.toggle("active", tab === "contracts");
 
   const isLeave = tab === "leave";
-  document.getElementById("directoryPanel").style.display = isLeave ? "none" : "";
+  const isContracts = tab === "contracts";
+  document.getElementById("directoryPanel").style.display = (isLeave || isContracts) ? "none" : "";
   document.getElementById("addPanel").style.display = "none";
   document.getElementById("leavePanel").style.display = isLeave ? "" : "none";
+  document.getElementById("contractsPanel").style.display = isContracts ? "" : "none";
 
   if (isLeave) {
     loadLeaveRequests();
+    return;
+  }
+  if (isContracts) {
+    loadContracts();
     return;
   }
 
@@ -75,6 +82,7 @@ function applyTab(tab) {
 }
 document.getElementById("tabAllBtn").addEventListener("click", () => applyTab("all"));
 document.getElementById("tabSupervisorsBtn").addEventListener("click", () => applyTab("supervisors"));
+document.getElementById("tabContractsBtn").addEventListener("click", () => applyTab("contracts"));
 document.getElementById("tabLeaveBtn").addEventListener("click", () => applyTab("leave"));
 
 function roleLabel(role) {
@@ -325,6 +333,7 @@ function renderDirectory() {
           <div class="action-menu" id="actionMenu-${e.id}">
             <button type="button" data-view="${e.id}">${t("view")}</button>
             <button type="button" data-edit="${e.id}">${t("editBtn")}</button>
+            ${e.role !== "admin" ? `<button type="button" data-contract="${e.id}">${t("shareContractBtn")}</button>` : ""}
             <button type="button" data-reset="${e.id}">${t("resetPasswordBtn")}</button>
             ${!isSelf ? (e.frozen
               ? `<button type="button" data-unfreeze="${e.id}">${t("unfreezeBtn")}</button>`
@@ -380,6 +389,9 @@ function renderDirectory() {
   body.querySelectorAll("button[data-edit]").forEach(btn => {
     btn.addEventListener("click", () => { closeActionMenus(); openEditModal(btn.dataset.edit); });
   });
+  body.querySelectorAll("button[data-contract]").forEach(btn => {
+    btn.addEventListener("click", () => { closeActionMenus(); openContractCreateModal(btn.dataset.contract); });
+  });
   body.querySelectorAll("button[data-reset]").forEach(btn => {
     btn.addEventListener("click", () => { closeActionMenus(); resetPassword(btn.dataset.reset, byId[btn.dataset.reset]); });
   });
@@ -392,6 +404,206 @@ function renderDirectory() {
   body.querySelectorAll("button[data-unfreeze]").forEach(btn => {
     btn.addEventListener("click", () => { closeActionMenus(); unfreezeEmployee(btn.dataset.unfreeze, byId[btn.dataset.unfreeze]); });
   });
+}
+
+function openContractCreateModal(employeeId) {
+  const e = DIRECTORY.find(x => x.id === employeeId);
+  if (!e) return;
+  document.getElementById("contractCreateForm").reset();
+  document.getElementById("contractCreateError").classList.remove("show");
+  document.getElementById("contractCreateForm").dataset.targetId = employeeId;
+  document.getElementById("contractCreateOverlay").style.display = "flex";
+}
+document.getElementById("contractCreateCancelBtn").addEventListener("click", () => {
+  document.getElementById("contractCreateOverlay").style.display = "none";
+});
+
+document.getElementById("contractCreateForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const errBox = document.getElementById("contractCreateError");
+  errBox.classList.remove("show");
+
+  const target_id = document.getElementById("contractCreateForm").dataset.targetId;
+  const dob = document.getElementById("contractDob").value || null;
+  const education = document.getElementById("contractEducation").value.trim() || null;
+  const address = document.getElementById("contractAddress").value.trim() || null;
+  const salary = document.getElementById("contractSalary").value;
+  const job_title = document.getElementById("contractJobTitle").value.trim();
+  const start_date = document.getElementById("contractStartDate").value;
+  const contract_period_months = document.getElementById("contractPeriodMonths").value;
+
+  const btn = document.getElementById("contractCreateBtn");
+  btn.disabled = true;
+  btn.textContent = t("preparing");
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "create_contract", target_id, dob, education, address, salary, job_title, start_date, contract_period_months }
+  });
+
+  btn.disabled = false;
+  btn.textContent = t("prepareContractBtn");
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongCreatingContract");
+    errBox.classList.add("show");
+    return;
+  }
+
+  document.getElementById("contractCreateOverlay").style.display = "none";
+  showToast(t("contractPreparedToast"));
+  if (ACTIVE_TAB === "contracts") await loadContracts();
+  openContractViewModal(data.contract.id, data.contract);
+});
+
+function contractStatusBadge(status) {
+  const cls = { draft: "cancelled", shared: "pending", commented: "rejected", signed: "approved" }[status] || "cancelled";
+  return `<span class="badge badge-${cls}">${t("contractStatus" + status[0].toUpperCase() + status.slice(1))}</span>`;
+}
+
+let CONTRACTS_LIST = [];
+
+async function loadContracts() {
+  const { data, error } = await db.from("contracts").select("*").order("created_at", { ascending: false });
+  const body = document.getElementById("contractsBody");
+  const empty = document.getElementById("noContracts");
+  body.innerHTML = "";
+
+  if (error || !data) { empty.style.display = "block"; return; }
+  CONTRACTS_LIST = data;
+  empty.style.display = data.length ? "none" : "block";
+
+  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  for (const c of data) {
+    const emp = byId[c.employee_id];
+    const contractName = emp ? `${emp.file_number} - ${emp.full_name}` : c.id;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${contractName}</td>
+      <td>${emp ? emp.full_name : "—"}</td>
+      <td>${c.job_title || "—"}</td>
+      <td>${contractStatusBadge(c.status)}</td>
+      <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-view-contract="${c.id}">${t("view")}</button></td>
+    `;
+    body.appendChild(tr);
+  }
+  body.querySelectorAll("button[data-view-contract]").forEach(btn => {
+    btn.addEventListener("click", () => openContractViewModal(btn.dataset.viewContract));
+  });
+}
+
+function openContractViewModal(contractId, contractData) {
+  const c = contractData || CONTRACTS_LIST.find(x => x.id === contractId);
+  if (!c) return;
+
+  document.getElementById("contractViewOverlay").dataset.contractId = c.id;
+  document.getElementById("contractTextArea").value = c.contract_text || "";
+  document.getElementById("contractViewError").classList.remove("show");
+
+  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  const emp = byId[c.employee_id];
+  document.getElementById("contractViewTitle").textContent = emp ? `${emp.file_number} - ${emp.full_name}` : t("contractDetailsTitle");
+
+  const statusLabel = t("contractStatus" + c.status[0].toUpperCase() + c.status.slice(1));
+  document.getElementById("contractStatusLine").textContent = `${t("colStatus")}: ${statusLabel}` + (c.signed_at ? ` — ${t("signedOnLabel")} ${fmtDate(c.signed_at.slice(0,10))}` : "");
+
+  const commentsBox = document.getElementById("contractEmployeeCommentsBox");
+  if (c.employee_comments) {
+    commentsBox.style.display = "block";
+    commentsBox.textContent = `${t("employeeCommentsLabel")}: ${c.employee_comments}`;
+  } else {
+    commentsBox.style.display = "none";
+  }
+
+  const isSigned = c.status === "signed";
+  document.getElementById("contractTextArea").disabled = isSigned;
+  document.getElementById("contractSaveBtn").style.display = isSigned ? "none" : "";
+  document.getElementById("contractShareBtn").style.display = (c.status === "draft" || c.status === "commented") ? "" : "none";
+  document.getElementById("contractShareBtn").textContent = c.status === "commented" ? t("shareAgainBtn") : t("shareWithEmployeeBtn");
+
+  document.getElementById("contractViewOverlay").style.display = "flex";
+}
+document.getElementById("closeContractViewBtn").addEventListener("click", () => {
+  document.getElementById("contractViewOverlay").style.display = "none";
+});
+
+document.getElementById("contractSaveBtn").addEventListener("click", async () => {
+  const errBox = document.getElementById("contractViewError");
+  errBox.classList.remove("show");
+  const contract_id = document.getElementById("contractViewOverlay").dataset.contractId;
+  const contract_text = document.getElementById("contractTextArea").value;
+
+  const btn = document.getElementById("contractSaveBtn");
+  btn.disabled = true;
+  btn.textContent = t("saving");
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "update_contract", contract_id, contract_text }
+  });
+
+  btn.disabled = false;
+  btn.textContent = t("saveChangesBtn");
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSaving");
+    errBox.classList.add("show");
+    return;
+  }
+  showToast(t("contractSavedToast"));
+  await loadContracts();
+});
+
+document.getElementById("contractShareBtn").addEventListener("click", async () => {
+  const errBox = document.getElementById("contractViewError");
+  errBox.classList.remove("show");
+  const contract_id = document.getElementById("contractViewOverlay").dataset.contractId;
+
+  const btn = document.getElementById("contractShareBtn");
+  btn.disabled = true;
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "share_contract", contract_id }
+  });
+
+  btn.disabled = false;
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSharing");
+    errBox.classList.add("show");
+    return;
+  }
+  showToast(t("contractSharedToast"));
+  document.getElementById("contractViewOverlay").style.display = "none";
+  await loadContracts();
+});
+
+document.getElementById("contractDownloadBtn").addEventListener("click", () => {
+  const text = document.getElementById("contractTextArea").value;
+  const title = document.getElementById("contractViewTitle").textContent;
+  downloadContractPDF(title, text);
+});
+
+async function downloadContractPDF(title, text) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const logo = await loadLogoDataURL();
+  let y = 20;
+  if (logo) {
+    const logoHeight = 14;
+    const logoWidth = (logo.w / logo.h) * logoHeight;
+    doc.addImage(logo.dataUrl, "PNG", 14, 10, logoWidth, logoHeight);
+    y = 32;
+  }
+  doc.setFontSize(11);
+  doc.setTextColor(27, 36, 48);
+  const lines = doc.splitTextToSize(text, 180);
+  const pageHeight = doc.internal.pageSize.getHeight();
+  for (const line of lines) {
+    if (y > pageHeight - 15) { doc.addPage(); y = 20; }
+    doc.text(line, 14, y);
+    y += 6;
+  }
+  doc.save(`contract_${title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
 }
 
 function closeActionMenus() {
