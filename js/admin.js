@@ -268,6 +268,8 @@ function renderDirectory() {
       <td>${e.client_company || "—"}</td>
       <td>${e.department || "—"}</td>
       <td>${supervisorName}</td>
+      <td>${fmtDate(e.hiring_date)}</td>
+      <td>${e.frozen ? fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null) : "—"}</td>
       <td>${e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0}</td>
       <td>${bal ? bal.annual_entitlement : "—"}</td>
       <td>${bal ? bal.taken : "—"}</td>
@@ -610,7 +612,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
 
   const rows = source.map(e => {
     const bal = BALANCES_BY_ID[e.id] || {};
-    return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, String(e.carryover_balance ?? 0), String(bal.annual_entitlement ?? "—"), String(bal.taken ?? "—"), String(bal.remaining ?? "—"), String(bal.sick_entitlement ?? "—"), String(bal.sick_taken ?? "—"), String(bal.sick_remaining ?? "—")];
+    return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, fmtDate(e.hiring_date), e.frozen ? fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null) : "—", String(e.carryover_balance ?? 0), String(bal.annual_entitlement ?? "—"), String(bal.taken ?? "—"), String(bal.remaining ?? "—"), String(bal.sick_entitlement ?? "—"), String(bal.sick_taken ?? "—"), String(bal.sick_remaining ?? "—")];
   });
   const scope = COMPANY_FILTER ? `${COMPANY_FILTER} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
@@ -619,7 +621,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   downloadPDF(
     title,
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
-    ["Employee Name", "ID #", "Company", "Department", "Role", "Prev. Balance", "Annual", "Ann. Taken", "Ann. Left", "Sick", "Sick Taken", "Sick Left"],
+    ["Employee Name", "ID #", "Company", "Department", "Role", "Hiring Date", "Frozen Date", "Prev. Balance", "Annual", "Ann. Taken", "Ann. Left", "Sick", "Sick Taken", "Sick Left"],
     rows,
     `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report.pdf`
   );
