@@ -10,33 +10,34 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="brand"><a href="https://www.fwxperts.com/" target="_blank" rel="noopener noreferrer" style="line-height:0"><img src="images/logo.png" alt="FWX" class="brand-logo"></a> Supervisor Portal</div>
+    <button type="button" class="lang-toggle" id="langToggleBtn">العربية</button>
+    <div class="brand"><a href="https://www.fwxperts.com/" target="_blank" rel="noopener noreferrer" style="line-height:0"><img src="images/logo.png" alt="FWX" class="brand-logo"></a> <span data-i18n="brandSupervisorPortal">Supervisor Portal</span></div>
     <div class="whoami" id="whoami">Loading…</div>
     <nav>
-      <a href="supervisor.html">Team overview</a>
-      <a href="admin.html">Users</a>
-      <a href="clients.html" class="active">Client Companies</a>
+      <a href="supervisor.html" data-i18n="navTeamOverview">Team overview</a>
+      <a href="admin.html" data-i18n="navUsers">Users</a>
+      <a href="clients.html" class="active" data-i18n="navClientCompanies">Client Companies</a>
     </nav>
-    <a href="settings.html" class="settings-link">⚙ Settings</a>
-    <button class="logout" onclick="logout()">Log out</button>
+    <a href="settings.html" class="settings-link" data-i18n="settingsLink">⚙ Settings</a>
+    <button class="logout" onclick="logout()" data-i18n="logout">Log out</button>
   </aside>
 
   <main>
     <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px">
       <div>
-        <h1 class="page-title" style="margin-bottom:4px">Client Companies</h1>
-        <p class="page-sub" style="margin-bottom:0">Pick a company to manage its staff and supervisors.</p>
+        <h1 class="page-title" style="margin-bottom:4px" data-i18n="clientCompaniesTitle">Client Companies</h1>
+        <p class="page-sub" style="margin-bottom:0" data-i18n="clientCompaniesSub">Pick a company to manage its staff and supervisors.</p>
       </div>
-      <button type="button" class="btn btn-primary" id="showAddCompanyBtn" style="width:220px">+ Add new client company</button>
+      <button type="button" class="btn btn-primary" id="showAddCompanyBtn" style="width:220px" data-i18n="addNewClientCompanyBtn">+ Add new client company</button>
     </div>
 
     <div class="panel" id="addCompanyPanel" style="display:none; max-width:420px; margin:24px 0">
-      <h2>New client company</h2>
-      <label for="newCompanyName">Company name</label>
-      <input type="text" id="newCompanyName" placeholder="e.g. Vodafone">
+      <h2 data-i18n="newClientCompanyTitle">New client company</h2>
+      <label for="newCompanyName" data-i18n="companyNameLabel">Company name</label>
+      <input type="text" id="newCompanyName" placeholder="e.g. Vodafone" data-i18n-placeholder="companyNamePlaceholder">
       <div style="display:flex; gap:10px; margin-top:14px">
-        <button type="button" class="btn btn-primary" id="saveCompanyBtn" style="width:140px">Add</button>
-        <button type="button" class="btn btn-danger" id="cancelCompanyBtn" style="width:140px">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveCompanyBtn" style="width:140px" data-i18n="addBtn">Add</button>
+        <button type="button" class="btn btn-danger" id="cancelCompanyBtn" style="width:140px" data-i18n="cancel">Cancel</button>
       </div>
       <div class="error-msg" id="companyError"></div>
     </div>
@@ -49,14 +50,17 @@
 
 <script src="js/supabaseClient.js"></script>
 <script src="js/auth-guard.js"></script>
+<script src="js/i18n.js"></script>
 <script>
+initLangToggle();
+
 let ME = null;
 
 function showToast(msg) {
-  const t = document.getElementById("toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  setTimeout(() => t.classList.remove("show"), 2600);
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2600);
 }
 
 document.getElementById("showAddCompanyBtn").addEventListener("click", () => {
@@ -74,28 +78,28 @@ document.getElementById("saveCompanyBtn").addEventListener("click", async () => 
   errBox.classList.remove("show");
   const name = document.getElementById("newCompanyName").value.trim();
   if (!name) {
-    errBox.textContent = "Enter a company name.";
+    errBox.textContent = t("enterCompanyName");
     errBox.classList.add("show");
     return;
   }
 
   const btn = document.getElementById("saveCompanyBtn");
   btn.disabled = true;
-  btn.textContent = "Adding…";
+  btn.textContent = t("adding");
 
   const { error } = await db.from("client_companies").insert({ name });
 
   btn.disabled = false;
-  btn.textContent = "Add";
+  btn.textContent = t("addBtn");
 
   if (error) {
-    errBox.textContent = error.code === "23505" ? "That company already exists." : "Something went wrong adding it.";
+    errBox.textContent = error.code === "23505" ? t("companyAlreadyExists") : t("somethingWrongAddingCompany");
     errBox.classList.add("show");
     return;
   }
 
   document.getElementById("addCompanyPanel").style.display = "none";
-  showToast("Company added.");
+  showToast(t("companyAddedToast"));
   await loadCompanies();
 });
 
@@ -118,7 +122,7 @@ async function loadCompanies() {
     a.href = `admin.html?company=${encodeURIComponent(c.name)}`;
     a.innerHTML = `
       <span class="company-name">${c.name}</span>
-      <span class="company-count">${counts[c.name] || 0} people</span>
+      <span class="company-count">${counts[c.name] || 0} ${t("peopleSuffix")}</span>
     `;
     grid.appendChild(a);
   }
