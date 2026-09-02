@@ -276,33 +276,53 @@ function renderDirectory() {
       <td>${bal ? bal.sick_taken : "—"}</td>
       <td>${bal ? bal.sick_remaining : "—"}</td>
       <td class="row-actions">
-        <button class="btn btn-blue btn-sm" data-view="${e.id}">${t("view")}</button>
-        <button class="btn btn-blue btn-sm" data-reset="${e.id}">${t("resetPasswordBtn")}</button>
-        ${!isSelf ? (e.frozen
-          ? `<button class="btn btn-primary btn-sm" data-unfreeze="${e.id}">${t("unfreezeBtn")}</button>`
-          : `<button class="btn btn-danger btn-sm" data-freeze="${e.id}">${t("freezeBtn")}</button>`) : ""}
-        <button class="btn btn-danger btn-sm" data-delete="${e.id}" ${isSelf ? 'style="visibility:hidden"' : ""}>${t("deleteBtn")}</button>
+        <div class="action-menu-wrap">
+          <button type="button" class="btn btn-blue btn-sm" data-action-toggle="${e.id}">${t("actionsBtn")} ▾</button>
+          <div class="action-menu" id="actionMenu-${e.id}">
+            <button type="button" data-view="${e.id}">${t("view")}</button>
+            <button type="button" data-reset="${e.id}">${t("resetPasswordBtn")}</button>
+            ${!isSelf ? (e.frozen
+              ? `<button type="button" data-unfreeze="${e.id}">${t("unfreezeBtn")}</button>`
+              : `<button type="button" data-freeze="${e.id}">${t("freezeBtn")}</button>`) : ""}
+            ${!isSelf ? `<button type="button" class="danger" data-delete="${e.id}">${t("deleteBtn")}</button>` : ""}
+          </div>
+        </div>
       </td>
     `;
     body.appendChild(tr);
   }
 
+  body.querySelectorAll("button[data-action-toggle]").forEach(btn => {
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const menu = document.getElementById(`actionMenu-${btn.dataset.actionToggle}`);
+      const wasOpen = menu.classList.contains("open");
+      document.querySelectorAll(".action-menu.open").forEach(m => m.classList.remove("open"));
+      if (!wasOpen) menu.classList.add("open");
+    });
+  });
+
   body.querySelectorAll("button[data-view]").forEach(btn => {
-    btn.addEventListener("click", () => showDetails(btn.dataset.view));
+    btn.addEventListener("click", () => { closeActionMenus(); showDetails(btn.dataset.view); });
   });
   body.querySelectorAll("button[data-reset]").forEach(btn => {
-    btn.addEventListener("click", () => resetPassword(btn.dataset.reset, byId[btn.dataset.reset]));
+    btn.addEventListener("click", () => { closeActionMenus(); resetPassword(btn.dataset.reset, byId[btn.dataset.reset]); });
   });
   body.querySelectorAll("button[data-delete]").forEach(btn => {
-    btn.addEventListener("click", () => deleteEmployee(btn.dataset.delete, byId[btn.dataset.delete]));
+    btn.addEventListener("click", () => { closeActionMenus(); deleteEmployee(btn.dataset.delete, byId[btn.dataset.delete]); });
   });
   body.querySelectorAll("button[data-freeze]").forEach(btn => {
-    btn.addEventListener("click", () => freezeEmployee(btn.dataset.freeze, byId[btn.dataset.freeze]));
+    btn.addEventListener("click", () => { closeActionMenus(); freezeEmployee(btn.dataset.freeze, byId[btn.dataset.freeze]); });
   });
   body.querySelectorAll("button[data-unfreeze]").forEach(btn => {
-    btn.addEventListener("click", () => unfreezeEmployee(btn.dataset.unfreeze, byId[btn.dataset.unfreeze]));
+    btn.addEventListener("click", () => { closeActionMenus(); unfreezeEmployee(btn.dataset.unfreeze, byId[btn.dataset.unfreeze]); });
   });
 }
+
+function closeActionMenus() {
+  document.querySelectorAll(".action-menu.open").forEach(m => m.classList.remove("open"));
+}
+document.addEventListener("click", closeActionMenus);
 
 async function showDetails(id) {
   const e = DIRECTORY.find(x => x.id === id);
