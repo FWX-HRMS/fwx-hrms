@@ -55,13 +55,16 @@ function applyTab(tab) {
   document.getElementById("tabSupervisorsBtn").classList.toggle("active", tab === "supervisors");
   document.getElementById("tabLeaveBtn").classList.toggle("active", tab === "leave");
   document.getElementById("tabContractsBtn").classList.toggle("active", tab === "contracts");
+  document.getElementById("tabWarningsBtn").classList.toggle("active", tab === "warnings");
 
   const isLeave = tab === "leave";
   const isContracts = tab === "contracts";
-  document.getElementById("directoryPanel").style.display = (isLeave || isContracts) ? "none" : "";
+  const isWarnings = tab === "warnings";
+  document.getElementById("directoryPanel").style.display = (isLeave || isContracts || isWarnings) ? "none" : "";
   document.getElementById("addPanel").style.display = "none";
   document.getElementById("leavePanel").style.display = isLeave ? "" : "none";
   document.getElementById("contractsPanel").style.display = isContracts ? "" : "none";
+  document.getElementById("warningsPanel").style.display = isWarnings ? "" : "none";
 
   if (isLeave) {
     loadLeaveRequests();
@@ -69,6 +72,10 @@ function applyTab(tab) {
   }
   if (isContracts) {
     loadContracts();
+    return;
+  }
+  if (isWarnings) {
+    loadWarnings();
     return;
   }
 
@@ -83,6 +90,7 @@ function applyTab(tab) {
 document.getElementById("tabAllBtn").addEventListener("click", () => applyTab("all"));
 document.getElementById("tabSupervisorsBtn").addEventListener("click", () => applyTab("supervisors"));
 document.getElementById("tabContractsBtn").addEventListener("click", () => applyTab("contracts"));
+document.getElementById("tabWarningsBtn").addEventListener("click", () => applyTab("warnings"));
 document.getElementById("tabLeaveBtn").addEventListener("click", () => applyTab("leave"));
 
 function roleLabel(role) {
@@ -334,6 +342,7 @@ function renderDirectory() {
             <button type="button" data-view="${e.id}">${t("view")}</button>
             <button type="button" data-edit="${e.id}">${t("editBtn")}</button>
             ${e.role !== "admin" ? `<button type="button" data-contract="${e.id}">${t("shareContractBtn")}</button>` : ""}
+            ${e.role !== "admin" ? `<button type="button" class="danger" data-warning="${e.id}">${t("giveWarningBtn")}</button>` : ""}
             <button type="button" data-reset="${e.id}">${t("resetPasswordBtn")}</button>
             ${!isSelf ? (e.frozen
               ? `<button type="button" data-unfreeze="${e.id}">${t("unfreezeBtn")}</button>`
@@ -391,6 +400,9 @@ function renderDirectory() {
   });
   body.querySelectorAll("button[data-contract]").forEach(btn => {
     btn.addEventListener("click", () => { closeActionMenus(); openContractCreateModal(btn.dataset.contract); });
+  });
+  body.querySelectorAll("button[data-warning]").forEach(btn => {
+    btn.addEventListener("click", () => { closeActionMenus(); openWarningCreateModal(btn.dataset.warning); });
   });
   body.querySelectorAll("button[data-reset]").forEach(btn => {
     btn.addEventListener("click", () => { closeActionMenus(); resetPassword(btn.dataset.reset, byId[btn.dataset.reset]); });
@@ -453,6 +465,173 @@ document.getElementById("contractCreateForm").addEventListener("submit", async (
   showToast(t("contractPreparedToast"));
   if (ACTIVE_TAB === "contracts") await loadContracts();
   openContractViewModal(data.contract.id, data.contract);
+});
+
+function warningStatusBadge(status) {
+  const cls = { draft: "cancelled", sent: "approved" }[status] || "cancelled";
+  return `<span class="badge badge-${cls}">${t("warningStatus" + status[0].toUpperCase() + status.slice(1))}</span>`;
+}
+
+function openWarningCreateModal(employeeId) {
+  const e = DIRECTORY.find(x => x.id === employeeId);
+  if (!e) return;
+  document.getElementById("warningCreateForm").reset();
+  document.getElementById("warningCreateError").classList.remove("show");
+  document.getElementById("warningCreateForm").dataset.targetId = employeeId;
+  document.getElementById("warningCreateOverlay").style.display = "flex";
+}
+document.getElementById("warningCreateCancelBtn").addEventListener("click", () => {
+  document.getElementById("warningCreateOverlay").style.display = "none";
+});
+
+document.getElementById("warningCreateForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const errBox = document.getElementById("warningCreateError");
+  errBox.classList.remove("show");
+
+  const target_id = document.getElementById("warningCreateForm").dataset.targetId;
+  const reason = document.getElementById("warningReason").value.trim();
+  if (!reason) {
+    errBox.textContent = t("pleaseEnterWarningReason");
+    errBox.classList.add("show");
+    return;
+  }
+
+  const btn = document.getElementById("warningCreateBtn");
+  btn.disabled = true;
+  btn.textContent = t("preparing");
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "create_warning", target_id, reason }
+  });
+
+  btn.disabled = false;
+  btn.textContent = t("prepareWarningBtn");
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongCreatingWarning");
+    errBox.classList.add("show");
+    return;
+  }
+
+  document.getElementById("warningCreateOverlay").style.display = "none";
+  showToast(t("warningPreparedToast"));
+  if (ACTIVE_TAB === "warnings") await loadWarnings();
+  openWarningViewModal(data.warning.id, data.warning);
+});
+
+let WARNINGS_LIST = [];
+
+async function loadWarnings() {
+  const { data, error } = await db.from("warnings").select("*").order("created_at", { ascending: false });
+  const body = document.getElementById("warningsBody");
+  const empty = document.getElementById("noWarnings");
+  body.innerHTML = "";
+
+  if (error || !data) { empty.style.display = "block"; return; }
+  WARNINGS_LIST = data;
+  empty.style.display = data.length ? "none" : "block";
+
+  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  for (const w of data) {
+    const emp = byId[w.employee_id];
+    const warningName = emp ? `${emp.file_number} - ${emp.full_name}` : w.id;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${warningName}</td>
+      <td>${emp ? emp.full_name : "—"}</td>
+      <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
+      <td>${warningStatusBadge(w.status)}</td>
+      <td>${fmtDate(w.created_at ? w.created_at.slice(0,10) : null)}</td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-view-warning="${w.id}">${t("view")}</button></td>
+    `;
+    body.appendChild(tr);
+  }
+  body.querySelectorAll("button[data-view-warning]").forEach(btn => {
+    btn.addEventListener("click", () => openWarningViewModal(btn.dataset.viewWarning));
+  });
+}
+
+function openWarningViewModal(warningId, warningData) {
+  const w = warningData || WARNINGS_LIST.find(x => x.id === warningId);
+  if (!w) return;
+
+  document.getElementById("warningViewOverlay").dataset.warningId = w.id;
+  document.getElementById("warningTextArea").value = w.warning_text || "";
+  document.getElementById("warningViewError").classList.remove("show");
+
+  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  const emp = byId[w.employee_id];
+  document.getElementById("warningViewTitle").textContent = emp ? `${emp.file_number} - ${emp.full_name}` : t("warningDetailsTitle");
+
+  const statusLabel = t("warningStatus" + w.status[0].toUpperCase() + w.status.slice(1));
+  document.getElementById("warningStatusLine").textContent = `${t("colStatus")}: ${statusLabel}` + (w.sent_at ? ` — ${fmtDate(w.sent_at.slice(0,10))}` : "");
+
+  const isSent = w.status === "sent";
+  document.getElementById("warningTextArea").disabled = isSent;
+  document.getElementById("warningSaveBtn").style.display = isSent ? "none" : "";
+  document.getElementById("warningSendBtn").style.display = isSent ? "none" : "";
+
+  document.getElementById("warningViewOverlay").style.display = "flex";
+}
+document.getElementById("closeWarningViewBtn").addEventListener("click", () => {
+  document.getElementById("warningViewOverlay").style.display = "none";
+});
+
+document.getElementById("warningSaveBtn").addEventListener("click", async () => {
+  const errBox = document.getElementById("warningViewError");
+  errBox.classList.remove("show");
+  const warning_id = document.getElementById("warningViewOverlay").dataset.warningId;
+  const warning_text = document.getElementById("warningTextArea").value;
+
+  const btn = document.getElementById("warningSaveBtn");
+  btn.disabled = true;
+  btn.textContent = t("saving");
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "update_warning", warning_id, warning_text }
+  });
+
+  btn.disabled = false;
+  btn.textContent = t("saveChangesBtn");
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSaving");
+    errBox.classList.add("show");
+    return;
+  }
+  showToast(t("warningSavedToast"));
+  await loadWarnings();
+});
+
+document.getElementById("warningSendBtn").addEventListener("click", async () => {
+  const errBox = document.getElementById("warningViewError");
+  errBox.classList.remove("show");
+  const warning_id = document.getElementById("warningViewOverlay").dataset.warningId;
+
+  const btn = document.getElementById("warningSendBtn");
+  btn.disabled = true;
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "send_warning", warning_id }
+  });
+
+  btn.disabled = false;
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSendingWarning");
+    errBox.classList.add("show");
+    return;
+  }
+  showToast(t("warningSentToast"));
+  document.getElementById("warningViewOverlay").style.display = "none";
+  await loadWarnings();
+});
+
+document.getElementById("warningDownloadBtn").addEventListener("click", () => {
+  const text = document.getElementById("warningTextArea").value;
+  const title = document.getElementById("warningViewTitle").textContent;
+  downloadContractPDF(title, text);
 });
 
 function contractStatusBadge(status) {
