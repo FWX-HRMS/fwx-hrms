@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Staff Locations — HR Portal</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <button type="button" class="lang-toggle" id="langToggleBtn">العربية</button>
+    <div class="brand"><a href="https://www.fwxperts.com/" target="_blank" rel="noopener noreferrer" style="line-height:0"><img src="images/logo.png" alt="FWX" class="brand-logo"></a> <span data-i18n="brandSupervisorPortal">Supervisor Portal</span></div>
+    <div class="whoami" id="whoami">Loading…</div>
+    <nav>
+      <a href="supervisor.html" data-i18n="navTeamOverview">Team overview</a>
+      <a href="admin.html" id="adminLink" style="display:none" data-i18n="navUsers">Users</a>
+      <a href="clients.html" id="clientsLink" style="display:none" data-i18n="navClientCompanies">Client Companies</a>
+      <a href="locations.html" class="active" data-i18n="navStaffLocations">Staff Locations</a>
+    </nav>
+    <a href="settings.html" class="settings-link" data-i18n="settingsLink">⚙ Settings</a>
+    <button class="logout" onclick="logout()" data-i18n="logout">Log out</button>
+  </aside>
+
+  <main>
+    <h1 class="page-title" data-i18n="staffLocationsTitle">Staff Locations</h1>
+    <p class="page-sub" id="locationsSub"></p>
+
+    <div class="panel" style="padding:0; overflow:hidden">
+      <div id="map" style="height:520px; width:100%"></div>
+    </div>
+
+    <div class="panel">
+      <h2 data-i18n="staffLocationsListTitle">Last known locations</h2>
+      <table>
+        <thead>
+          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colCompany">Company</th><th data-i18n="colLastUpdated">Last updated</th><th></th></tr>
+        </thead>
+        <tbody id="locationsBody"></tbody>
+      </table>
+      <div class="empty-state" id="noLocations" style="display:none" data-i18n="noLocationsShared">No location data shared yet.</div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/i18n.js"></script>
+<script>initLangToggle();</script>
+<script src="js/locations.js"></script>
+</body>
+</html>
