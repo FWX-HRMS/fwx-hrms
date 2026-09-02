@@ -196,6 +196,10 @@
         <input type="date" id="rangeToInput">
       </div>
     </div>
+    <label style="display:flex; align-items:center; gap:8px; margin-top:16px; font-weight:500; color:var(--ink)">
+      <input type="checkbox" id="rangeIncludeFrozen" checked style="width:auto">
+      <span data-i18n="includeFrozenLabel">Include frozen staff</span>
+    </label>
     <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:18px">
       <button type="button" class="btn btn-danger btn-sm" id="rangeCancelBtn" data-i18n="cancel">Cancel</button>
       <button type="button" class="btn btn-primary btn-sm" id="rangeGenerateBtn" data-i18n="generatePdfBtn">Generate PDF</button>
