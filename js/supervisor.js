@@ -203,7 +203,7 @@ async function refreshAll() {
 (async () => {
   ME = await requireSession("supervisor");
   if (!ME) return;
-  document.getElementById("whoami").textContent = `${ME.full_name} · #${ME.file_number}`;
+  document.getElementById("whoami").innerHTML = `${ME.full_name} · #${ME.file_number}<br><span style="opacity:.7">${ME.client_company || ""}</span>`;
   if (ME.role === "admin") document.getElementById("adminLink").style.display = "";
   if (ME.role === "admin") document.getElementById("clientsLink").style.display = "";
   await refreshAll();

@@ -138,7 +138,7 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
 (async () => {
   ME = await requireSession("staff");
   if (!ME) return;
-  document.getElementById("whoami").textContent = `${ME.full_name} · #${ME.file_number}`;
+  document.getElementById("whoami").innerHTML = `${ME.full_name} · #${ME.file_number}<br><span style="opacity:.7">${ME.client_company || ""}</span>`;
   document.getElementById("deptLine").textContent = ME.department ? `${ME.department}` : "";
   await Promise.all([loadBalance(), loadRequests()]);
 })();
