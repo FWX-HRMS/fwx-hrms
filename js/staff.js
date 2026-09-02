@@ -1,6 +1,6 @@
 let ME = null;
 let LAST_LOCATION_PUSH = 0;
-const LOCATION_PUSH_INTERVAL_MS = 25000;
+const LOCATION_PUSH_INTERVAL_MS = 35000;
 
 function setLocationBadge(text, statusClass) {
   const badge = document.getElementById("locationStatusBadge");

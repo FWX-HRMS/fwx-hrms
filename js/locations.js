@@ -2,7 +2,7 @@ let ME = null;
 let MAP = null;
 let MARKERS = {};
 let ACCURACY_CIRCLES = {};
-const REFRESH_INTERVAL_MS = 20000;
+const REFRESH_INTERVAL_MS = 35000;
 
 function showToast(msg) {
   const el = document.getElementById("toast");
