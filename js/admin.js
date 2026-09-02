@@ -69,6 +69,8 @@ function applyTab(tab) {
   document.getElementById("showAddFormBtn").textContent = tab === "supervisors" ? t("addNewSupervisorBtn") : t("addNewEmployeeBtn");
   document.getElementById("addPanelTitle").textContent = tab === "supervisors" ? t("newSupervisorDetailsTitle") : t("newEmployeeDetailsTitle");
   document.getElementById("hiringDateRow").style.display = tab === "supervisors" ? "none" : "";
+  document.getElementById("entitlementRow").style.display = tab === "supervisors" ? "none" : "";
+  if (tab === "supervisors") document.getElementById("takenThisYearRow").style.display = "none";
   renderDirectory();
 }
 document.getElementById("tabAllBtn").addEventListener("click", () => applyTab("all"));
@@ -186,7 +188,13 @@ document.getElementById("showAddFormBtn").addEventListener("click", () => {
   document.getElementById("annualEntitlement").value = computeAnnualEntitlementClientSide(document.getElementById("hiringDate").value);
   document.getElementById("carryoverBalance").value = 0;
   document.getElementById("takenThisYear").value = 0;
-  toggleTakenThisYearField();
+  document.getElementById("hiringDateRow").style.display = ACTIVE_TAB === "supervisors" ? "none" : "";
+  document.getElementById("entitlementRow").style.display = ACTIVE_TAB === "supervisors" ? "none" : "";
+  if (ACTIVE_TAB === "supervisors") {
+    document.getElementById("takenThisYearRow").style.display = "none";
+  } else {
+    toggleTakenThisYearField();
+  }
   document.getElementById("addPanel").scrollIntoView({ behavior: "smooth" });
 });
 document.getElementById("cancelAddBtn").addEventListener("click", () => {
