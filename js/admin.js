@@ -428,7 +428,7 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   });
 
   btn.disabled = false;
-  btn.textContent = "Create employee";
+  btn.textContent = "Create";
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : "Something went wrong creating this employee.";
