@@ -529,6 +529,14 @@ async function unfreezeEmployee(id, employee) {
   await Promise.all([loadDirectory(), loadBalances()]);
 }
 
+function toggleEditTakenThisYearField() {
+  const carryover = Number(document.getElementById("editCarryoverBalance").value) || 0;
+  const row = document.getElementById("editTakenThisYearRow");
+  row.style.display = carryover === 0 ? "" : "none";
+  if (carryover > 0) document.getElementById("editTakenThisYear").value = 0;
+}
+document.getElementById("editCarryoverBalance").addEventListener("input", toggleEditTakenThisYearField);
+
 function toggleEditSupervisorField() {
   document.getElementById("editSupervisorField").style.display = document.getElementById("editRole").value === "staff" ? "" : "none";
 }
@@ -571,6 +579,8 @@ async function openEditModal(id) {
   document.getElementById("editHiringDate").value = e.hiring_date || "";
   document.getElementById("editAnnualEntitlement").value = bal ? bal.annual_entitlement : (e.annual_entitlement ?? "");
   document.getElementById("editCarryoverBalance").value = e.carryover_balance ?? 0;
+  document.getElementById("editTakenThisYear").value = 0;
+  toggleEditTakenThisYearField();
   populateDepartmentOptions(document.getElementById("editDepartment"), e.client_company, e.department);
   document.getElementById("editDob").value = e.dob || "";
   document.getElementById("editNationality").value = e.nationality || "";
@@ -623,6 +633,7 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
   const supervisor_file_number = role === "staff" ? document.getElementById("editSupervisor").value : null;
   const annual_entitlement_override = document.getElementById("editAnnualEntitlement").value !== "" ? Number(document.getElementById("editAnnualEntitlement").value) : null;
   const carryover_balance = document.getElementById("editCarryoverBalance").value !== "" ? Number(document.getElementById("editCarryoverBalance").value) : 0;
+  const taken_this_year = carryover_balance === 0 && document.getElementById("editTakenThisYear").value !== "" ? Number(document.getElementById("editTakenThisYear").value) : 0;
   const dob = document.getElementById("editDob").value || null;
   const nationality = document.getElementById("editNationality").value.trim() || null;
   const education = document.getElementById("editEducation").value.trim() || null;
@@ -644,7 +655,7 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
   btn.textContent = t("saving");
 
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "update_employee", target_id, full_name, email, hiring_date, department, client_company, role, supervisor_file_number, annual_entitlement_override, carryover_balance, dob, nationality, education, salary }
+    body: { action: "update_employee", target_id, full_name, email, hiring_date, department, client_company, role, supervisor_file_number, annual_entitlement_override, carryover_balance, dob, nationality, education, salary, taken_this_year }
   });
 
   btn.disabled = false;
