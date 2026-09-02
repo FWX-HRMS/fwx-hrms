@@ -282,6 +282,7 @@ const translations = {
     locationUnsupported: "Not supported on this device",
     mapStreetLabel: "Street",
     mapSatelliteLabel: "Satellite",
+    accuracyLabel: "Accurate to ~%n% m",
 
     // Extra keys for admin.js dynamic content
     okBtn: "OK",
@@ -585,6 +586,7 @@ const translations = {
     locationUnsupported: "غير مدعوم على هذا الجهاز",
     mapStreetLabel: "خريطة الشوارع",
     mapSatelliteLabel: "قمر صناعي",
+    accuracyLabel: "الدقة ضمن ~%n% متر",
 
     // Extra keys for admin.js dynamic content
     okBtn: "موافق",

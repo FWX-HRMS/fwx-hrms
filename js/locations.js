@@ -1,6 +1,7 @@
 let ME = null;
 let MAP = null;
 let MARKERS = {};
+let ACCURACY_CIRCLES = {};
 const REFRESH_INTERVAL_MS = 20000;
 
 function showToast(msg) {
@@ -59,7 +60,22 @@ async function refreshLocations() {
     } else {
       MARKERS[loc.employee_id].setLatLng([loc.latitude, loc.longitude]);
     }
-    MARKERS[loc.employee_id].bindPopup(`<strong>${emp.full_name}</strong><br>${timeAgo(loc.updated_at)}`);
+    MARKERS[loc.employee_id].bindPopup(`<strong>${emp.full_name}</strong><br>${timeAgo(loc.updated_at)}${loc.accuracy ? `<br>${tv("accuracyLabel", { n: Math.round(loc.accuracy) })}` : ""}`);
+
+    if (loc.accuracy) {
+      if (!ACCURACY_CIRCLES[loc.employee_id]) {
+        ACCURACY_CIRCLES[loc.employee_id] = L.circle([loc.latitude, loc.longitude], {
+          radius: loc.accuracy,
+          color: "#2563eb",
+          weight: 1,
+          fillColor: "#2563eb",
+          fillOpacity: 0.12
+        }).addTo(MAP);
+      } else {
+        ACCURACY_CIRCLES[loc.employee_id].setLatLng([loc.latitude, loc.longitude]);
+        ACCURACY_CIRCLES[loc.employee_id].setRadius(loc.accuracy);
+      }
+    }
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -76,6 +92,7 @@ async function refreshLocations() {
     if (!seen.has(id)) {
       MAP.removeLayer(MARKERS[id]);
       delete MARKERS[id];
+      if (ACCURACY_CIRCLES[id]) { MAP.removeLayer(ACCURACY_CIRCLES[id]); delete ACCURACY_CIRCLES[id]; }
     }
   }
 
