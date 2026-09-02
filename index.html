@@ -37,11 +37,22 @@
     const errorMsg = document.getElementById("errorMsg");
     const submitBtn = document.getElementById("submitBtn");
 
+    if (new URLSearchParams(window.location.search).get("frozen") === "1") {
+      errorMsg.textContent = t("accountSuspendedLoginMsg");
+      errorMsg.classList.add("show");
+    }
+
     // If already logged in, skip straight to the right portal.
     (async () => {
       const { data: { session } } = await db.auth.getSession();
       if (session) {
-        const { data: me } = await db.from("employees").select("role").eq("id", session.user.id).single();
+        const { data: me } = await db.from("employees").select("role, frozen").eq("id", session.user.id).single();
+        if (me && me.frozen) {
+          await db.auth.signOut();
+          document.getElementById("errorMsg").textContent = t("accountSuspendedLoginMsg");
+          document.getElementById("errorMsg").classList.add("show");
+          return;
+        }
         window.location.href = (me && me.role !== "staff") ? "supervisor.html" : "staff.html";
       }
     })();
@@ -79,9 +90,18 @@
 
       const { data: me } = await db
         .from("employees")
-        .select("role")
+        .select("role, frozen")
         .eq("id", data.user.id)
         .single();
+
+      if (me && me.frozen) {
+        await db.auth.signOut();
+        errorMsg.textContent = t("accountSuspendedLoginMsg");
+        errorMsg.classList.add("show");
+        submitBtn.disabled = false;
+        submitBtn.textContent = t("signInBtn");
+        return;
+      }
 
       window.location.href = (me && me.role !== "staff") ? "supervisor.html" : "staff.html";
     });
