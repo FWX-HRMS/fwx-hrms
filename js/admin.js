@@ -262,12 +262,13 @@ function renderDirectory() {
     const bal = BALANCES_BY_ID[e.id];
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${e.full_name}</td>
+      <td>${e.full_name}${e.frozen ? ` <span class="badge badge-rejected">${t("statusFrozenBadge")}</span>` : ""}</td>
       <td>${e.file_number}</td>
       <td style="text-transform:capitalize">${e.role}</td>
       <td>${e.client_company || "—"}</td>
       <td>${e.department || "—"}</td>
       <td>${supervisorName}</td>
+      <td>${e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0}</td>
       <td>${bal ? bal.annual_entitlement : "—"}</td>
       <td>${bal ? bal.taken : "—"}</td>
       <td>${bal ? bal.remaining : "—"}</td>
@@ -277,6 +278,9 @@ function renderDirectory() {
       <td class="row-actions">
         <button class="btn btn-blue btn-sm" data-view="${e.id}">${t("view")}</button>
         <button class="btn btn-blue btn-sm" data-reset="${e.id}">${t("resetPasswordBtn")}</button>
+        ${!isSelf ? (e.frozen
+          ? `<button class="btn btn-primary btn-sm" data-unfreeze="${e.id}">${t("unfreezeBtn")}</button>`
+          : `<button class="btn btn-danger btn-sm" data-freeze="${e.id}">${t("freezeBtn")}</button>`) : ""}
         <button class="btn btn-danger btn-sm" data-delete="${e.id}" ${isSelf ? 'style="visibility:hidden"' : ""}>${t("deleteBtn")}</button>
       </td>
     `;
@@ -291,6 +295,12 @@ function renderDirectory() {
   });
   body.querySelectorAll("button[data-delete]").forEach(btn => {
     btn.addEventListener("click", () => deleteEmployee(btn.dataset.delete, byId[btn.dataset.delete]));
+  });
+  body.querySelectorAll("button[data-freeze]").forEach(btn => {
+    btn.addEventListener("click", () => freezeEmployee(btn.dataset.freeze, byId[btn.dataset.freeze]));
+  });
+  body.querySelectorAll("button[data-unfreeze]").forEach(btn => {
+    btn.addEventListener("click", () => unfreezeEmployee(btn.dataset.unfreeze, byId[btn.dataset.unfreeze]));
   });
 }
 
@@ -313,12 +323,17 @@ async function showDetails(id) {
     <div class="detail-row"><span class="label">${t("colNationality")}</span><span class="value">${e.nationality || "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colEducation")}</span><span class="value">${e.education || "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colSalary")}</span><span class="value">${fmtMoney(e.salary)}</span></div>
+    <div class="detail-row"><span class="label">${t("colPrevYearBalance")}</span><span class="value">${e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0}</span></div>
     <div class="detail-row"><span class="label">${t("colAnnualLeaveDays")}</span><span class="value">${bal ? bal.annual_entitlement : "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colTakenThisYear")}</span><span class="value">${bal ? bal.taken : "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colRemaining")}</span><span class="value">${bal ? bal.remaining : "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colSickLeaveDays")}</span><span class="value">${bal ? bal.sick_entitlement : "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colSickTakenThisYear")}</span><span class="value">${bal ? bal.sick_taken : "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colSickRemaining")}</span><span class="value">${bal ? bal.sick_remaining : "—"}</span></div>
+    ${e.frozen ? `
+    <div class="detail-row"><span class="label">${t("statusFrozenBadge")}</span><span class="value">${t("reason" + (e.frozen_reason === "resignation" ? "Resignation" : e.frozen_reason === "end_of_contract" ? "EndOfContract" : "Termination"))}</span></div>
+    <div class="detail-row"><span class="label">${t("frozenSinceLabel")}</span><span class="value">${fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null)}</span></div>
+    ` : ""}
   `;
   document.getElementById("detailsOverlay").style.display = "flex";
 
@@ -354,6 +369,77 @@ async function showDetails(id) {
       </tbody>
     </table>
   `;
+}
+
+function showFreezePrompt() {
+  return new Promise((resolve) => {
+    document.getElementById("freezeReasonSelect").value = "";
+    document.getElementById("freezeReasonError").classList.remove("show");
+    document.getElementById("freezeOverlay").style.display = "flex";
+
+    const confirmBtn = document.getElementById("freezeConfirmBtn");
+    const cancelBtn = document.getElementById("freezeCancelBtn");
+
+    const cleanup = () => {
+      document.getElementById("freezeOverlay").style.display = "none";
+      confirmBtn.removeEventListener("click", onConfirm);
+      cancelBtn.removeEventListener("click", onCancel);
+    };
+    const onConfirm = () => {
+      const reason = document.getElementById("freezeReasonSelect").value;
+      if (!reason) {
+        document.getElementById("freezeReasonError").textContent = t("pleaseSelectReason");
+        document.getElementById("freezeReasonError").classList.add("show");
+        return;
+      }
+      cleanup();
+      resolve(reason);
+    };
+    const onCancel = () => {
+      cleanup();
+      resolve(null);
+    };
+    confirmBtn.addEventListener("click", onConfirm);
+    cancelBtn.addEventListener("click", onCancel);
+  });
+}
+
+async function freezeEmployee(id, employee) {
+  const reason = await showFreezePrompt();
+  if (!reason) return;
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "freeze_employee", target_id: id, reason }
+  });
+
+  if (error || (data && data.error)) {
+    showToast((data && data.error) ? data.error : t("couldNotFreezeToast"));
+    return;
+  }
+
+  showToast(t("accountFrozenToast"));
+  await Promise.all([loadDirectory(), loadBalances()]);
+}
+
+async function unfreezeEmployee(id, employee) {
+  const ok = await showConfirm(
+    t("unfreezeConfirmTitle"),
+    tv("unfreezeConfirmMsg", { name: employee.full_name }),
+    t("unfreezeBtn")
+  );
+  if (!ok) return;
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "unfreeze_employee", target_id: id }
+  });
+
+  if (error || (data && data.error)) {
+    showToast((data && data.error) ? data.error : t("couldNotUnfreezeToast"));
+    return;
+  }
+
+  showToast(t("accountUnfrozenToast"));
+  await Promise.all([loadDirectory(), loadBalances()]);
 }
 
 async function resetPassword(id, employee) {
@@ -504,7 +590,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
 
   const rows = source.map(e => {
     const bal = BALANCES_BY_ID[e.id] || {};
-    return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, String(bal.annual_entitlement ?? "—"), String(bal.taken ?? "—"), String(bal.remaining ?? "—"), String(bal.sick_entitlement ?? "—"), String(bal.sick_taken ?? "—"), String(bal.sick_remaining ?? "—")];
+    return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, String(e.carryover_balance ?? 0), String(bal.annual_entitlement ?? "—"), String(bal.taken ?? "—"), String(bal.remaining ?? "—"), String(bal.sick_entitlement ?? "—"), String(bal.sick_taken ?? "—"), String(bal.sick_remaining ?? "—")];
   });
   const scope = COMPANY_FILTER ? `${COMPANY_FILTER} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
@@ -513,7 +599,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   downloadPDF(
     title,
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
-    ["Employee Name", "ID #", "Company", "Department", "Role", "Annual", "Ann. Taken", "Ann. Left", "Sick", "Sick Taken", "Sick Left"],
+    ["Employee Name", "ID #", "Company", "Department", "Role", "Prev. Balance", "Annual", "Ann. Taken", "Ann. Left", "Sick", "Sick Taken", "Sick Left"],
     rows,
     `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report.pdf`
   );

@@ -237,7 +237,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   downloadPDF(
     "My Team — Leave Report",
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
-    ["Employee Name", "ID #", "Annual", "Taken", "Remaining", "Pending", "Sick", "Sick Taken", "Sick Remaining"],
+    ["Employee Name", "ID #", "Annual", "Taken", "Available Balance", "Pending", "Sick", "Sick Taken", "Sick Remaining"],
     rows,
     "my_team_leave_report.pdf"
   );

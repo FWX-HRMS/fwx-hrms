@@ -19,6 +19,12 @@ async function requireSession(requiredRole) {
     return null;
   }
 
+  if (me.frozen) {
+    await db.auth.signOut();
+    window.location.href = "index.html?frozen=1";
+    return null;
+  }
+
   if (requiredRole === "supervisor" && me.role === "staff") {
     window.location.href = "staff.html";
     return null;
