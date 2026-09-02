@@ -114,6 +114,12 @@ function renderPending() {
   for (const r of pageItems) {
     const emp = TEAM_BY_ID[r.employee_id];
     const tr = document.createElement("tr");
+    const actionsCell = ME.role === "admin"
+      ? `<td>${badgeFor(r.status)}</td>`
+      : `<td class="row-actions">
+          <button class="btn btn-primary btn-sm" data-action="approved" data-id="${r.id}">${t("approveBtn")}</button>
+          <button class="btn btn-danger btn-sm" data-action="rejected" data-id="${r.id}">${t("rejectBtn")}</button>
+        </td>`;
     tr.innerHTML = `
       <td>${emp.full_name}</td>
       <td>${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}</td>
@@ -121,10 +127,7 @@ function renderPending() {
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${r.reason ? r.reason : "—"}</td>
       <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">${t("view")}</button>` : "—"}</td>
-      <td class="row-actions">
-        <button class="btn btn-primary btn-sm" data-action="approved" data-id="${r.id}">${t("approveBtn")}</button>
-        <button class="btn btn-danger btn-sm" data-action="rejected" data-id="${r.id}">${t("rejectBtn")}</button>
-      </td>
+      ${actionsCell}
     `;
     pendingBody.appendChild(tr);
   }
@@ -310,5 +313,6 @@ async function refreshAll() {
   document.getElementById("whoami").innerHTML = `${ME.full_name} · #${ME.file_number}<br><span style="opacity:.7">${ME.client_company || ""}</span>`;
   if (ME.role === "admin") document.getElementById("adminLink").style.display = "";
   if (ME.role === "admin") document.getElementById("clientsLink").style.display = "";
+  document.getElementById("pendingActionsHeader").textContent = ME.role === "admin" ? t("colStatus") : "";
   await refreshAll();
 })();
