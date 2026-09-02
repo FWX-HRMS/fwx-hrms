@@ -300,7 +300,34 @@ function renderDirectory() {
       const menu = document.getElementById(`actionMenu-${btn.dataset.actionToggle}`);
       const wasOpen = menu.classList.contains("open");
       document.querySelectorAll(".action-menu.open").forEach(m => m.classList.remove("open"));
-      if (!wasOpen) menu.classList.add("open");
+      if (wasOpen) return;
+
+      const rect = btn.getBoundingClientRect();
+      const menuWidth = Math.max(190, rect.width);
+      menu.style.minWidth = `${menuWidth}px`;
+      menu.classList.add("open");
+
+      // Measure after making visible so offsetHeight is accurate.
+      const menuHeight = menu.offsetHeight;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const openUpward = spaceBelow < menuHeight + 12 && spaceAbove > spaceBelow;
+
+      let top = openUpward ? rect.top - menuHeight - 6 : rect.bottom + 6;
+      // Always clamp fully inside the viewport, even if neither side has
+      // perfect room — this guarantees the menu is never cut off.
+      if (top + menuHeight > window.innerHeight - 8) top = window.innerHeight - menuHeight - 8;
+      if (top < 8) top = 8;
+      menu.style.bottom = "auto";
+      menu.style.top = `${top}px`;
+
+      // Keep it on-screen horizontally: align to the button's right edge by
+      // default (matches LTR reading), but flip to the left edge if that
+      // would push the menu off the right side of the viewport.
+      let left = document.documentElement.dir === "rtl" ? rect.left : rect.right - menuWidth;
+      if (left + menuWidth > window.innerWidth - 8) left = window.innerWidth - menuWidth - 8;
+      if (left < 8) left = 8;
+      menu.style.left = `${left}px`;
     });
   });
 
