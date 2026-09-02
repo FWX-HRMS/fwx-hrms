@@ -53,6 +53,18 @@ function applyTab(tab) {
   ACTIVE_TAB = tab;
   document.getElementById("tabAllBtn").classList.toggle("active", tab === "all");
   document.getElementById("tabSupervisorsBtn").classList.toggle("active", tab === "supervisors");
+  document.getElementById("tabLeaveBtn").classList.toggle("active", tab === "leave");
+
+  const isLeave = tab === "leave";
+  document.getElementById("directoryPanel").style.display = isLeave ? "none" : "";
+  document.getElementById("addPanel").style.display = "none";
+  document.getElementById("leavePanel").style.display = isLeave ? "" : "none";
+
+  if (isLeave) {
+    loadLeaveRequests();
+    return;
+  }
+
   document.getElementById("tableTitle").textContent = tab === "supervisors" ? "Supervisors" : "Employees";
   document.getElementById("showAddFormBtn").textContent = tab === "supervisors" ? "+ Add new supervisor" : "+ Add new employee";
   document.getElementById("addPanelTitle").textContent = tab === "supervisors" ? "New supervisor details" : "New employee details";
@@ -60,6 +72,63 @@ function applyTab(tab) {
 }
 document.getElementById("tabAllBtn").addEventListener("click", () => applyTab("all"));
 document.getElementById("tabSupervisorsBtn").addEventListener("click", () => applyTab("supervisors"));
+document.getElementById("tabLeaveBtn").addEventListener("click", () => applyTab("leave"));
+
+function badgeFor(status) {
+  return `<span class="badge badge-${status}">${status[0].toUpperCase()}${status.slice(1)}</span>`;
+}
+
+async function loadLeaveRequests() {
+  const body = document.getElementById("leaveRequestsBody");
+  const empty = document.getElementById("noLeaveRequests");
+  body.innerHTML = "";
+
+  const { data, error } = await db
+    .from("leave_requests")
+    .select("*")
+    .order("requested_at", { ascending: false });
+
+  if (error || !data) {
+    empty.style.display = "block";
+    return;
+  }
+
+  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  let rows = data;
+  if (COMPANY_FILTER) {
+    rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].client_company === COMPANY_FILTER);
+  }
+
+  if (rows.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  for (const r of rows) {
+    const emp = byId[r.employee_id];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${emp ? emp.full_name : "—"}</td>
+      <td>${emp ? (emp.client_company || "—") : "—"}</td>
+      <td>${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}</td>
+      <td>${r.days_requested}</td>
+      <td style="text-transform:capitalize">${r.leave_type}</td>
+      <td>${r.reason ? r.reason : "—"}</td>
+      <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">View</button>` : "—"}</td>
+      <td>${badgeFor(r.status)}</td>
+    `;
+    body.appendChild(tr);
+  }
+
+  body.querySelectorAll("button[data-doc]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const { data, error } = await db.storage.from("leave-documents").createSignedUrl(btn.dataset.doc, 60);
+      if (error || !data) { showToast("Could not open that document."); return; }
+      window.open(data.signedUrl, "_blank");
+    });
+  });
+}
 
 function toggleSupervisorField() {
   const role = document.getElementById("role").value;
