@@ -68,11 +68,18 @@ function applyTab(tab) {
   document.getElementById("tableTitle").textContent = tab === "supervisors" ? t("tabSupervisors") : t("tabEmployees");
   document.getElementById("showAddFormBtn").textContent = tab === "supervisors" ? t("addNewSupervisorBtn") : t("addNewEmployeeBtn");
   document.getElementById("addPanelTitle").textContent = tab === "supervisors" ? t("newSupervisorDetailsTitle") : t("newEmployeeDetailsTitle");
+  document.getElementById("hiringDateRow").style.display = tab === "supervisors" ? "none" : "";
   renderDirectory();
 }
 document.getElementById("tabAllBtn").addEventListener("click", () => applyTab("all"));
 document.getElementById("tabSupervisorsBtn").addEventListener("click", () => applyTab("supervisors"));
 document.getElementById("tabLeaveBtn").addEventListener("click", () => applyTab("leave"));
+
+function roleLabel(role) {
+  if (role === "supervisor") return t("roleSupervisor");
+  if (role === "staff") return t("roleStaff");
+  return role;
+}
 
 function badgeFor(status) {
   const key = "status" + status[0].toUpperCase() + status.slice(1);
@@ -264,11 +271,10 @@ function renderDirectory() {
     tr.innerHTML = `
       <td>${e.full_name}${e.frozen ? ` <span class="badge badge-rejected">${t("statusFrozenBadge")} - ${e.frozen_reason === "termination" ? "T" : e.frozen_reason === "resignation" ? "R" : e.frozen_reason === "end_of_contract" ? "E" : "?"}</span>` : ""}</td>
       <td>${e.file_number}</td>
-      <td style="text-transform:capitalize">${e.role}</td>
+      <td>${roleLabel(e.role)}</td>
       <td>${e.client_company || "—"}</td>
       <td>${e.department || "—"}</td>
       <td>${supervisorName}</td>
-      <td style="white-space:nowrap">${fmtDate(e.hiring_date)}</td>
       <td style="white-space:nowrap">${e.frozen ? fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null) : "—"}</td>
       <td>${e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0}</td>
       <td>${bal ? bal.annual_entitlement : "—"}</td>
@@ -363,7 +369,7 @@ async function showDetails(id) {
   document.getElementById("detailsBody").innerHTML = `
     <div class="detail-row"><span class="label">${t("colFileNumber")}</span><span class="value">${e.file_number}</span></div>
     <div class="detail-row"><span class="label">${t("colEmail")}</span><span class="value">${e.email || "—"}</span></div>
-    <div class="detail-row"><span class="label">${t("colRole")}</span><span class="value" style="text-transform:capitalize">${e.role}</span></div>
+    <div class="detail-row"><span class="label">${t("colRole")}</span><span class="value">${roleLabel(e.role)}</span></div>
     <div class="detail-row"><span class="label">${t("companyClientLabel")}</span><span class="value">${e.client_company || "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colDepartment")}</span><span class="value">${e.department || "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colSupervisor")}</span><span class="value">${sup ? sup.full_name : "—"}</span></div>
@@ -543,6 +549,9 @@ function showDateRangePrompt(title) {
     document.getElementById("rangeToInput").value = "";
     document.getElementById("rangeEmployeeIdInput").value = "";
     document.getElementById("rangeIncludeFrozen").checked = false;
+    document.getElementById("rangeFormatPdf").checked = true;
+    document.getElementById("rangeFormatExcel").checked = false;
+    document.getElementById("rangeFormatError").classList.remove("show");
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
     const generateBtn = document.getElementById("rangeGenerateBtn");
@@ -554,12 +563,19 @@ function showDateRangePrompt(title) {
       cancelBtn.removeEventListener("click", onCancel);
     };
     const onGenerate = () => {
+      const wantPdf = document.getElementById("rangeFormatPdf").checked;
+      const wantExcel = document.getElementById("rangeFormatExcel").checked;
+      if (!wantPdf && !wantExcel) {
+        document.getElementById("rangeFormatError").textContent = t("pleaseSelectFormat");
+        document.getElementById("rangeFormatError").classList.add("show");
+        return;
+      }
       const from = document.getElementById("rangeFromInput").value || null;
       const to = document.getElementById("rangeToInput").value || null;
       const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
       const includeFrozen = document.getElementById("rangeIncludeFrozen").checked;
       cleanup();
-      resolve({ from, to, employeeId, includeFrozen });
+      resolve({ from, to, employeeId, includeFrozen, wantPdf, wantExcel });
     };
     const onCancel = () => {
       cleanup();
@@ -626,6 +642,14 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
   doc.save(filename);
 }
 
+function downloadExcel(sheetName, columns, rows, filename) {
+  const wsData = [columns, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+  XLSX.writeFile(wb, filename);
+}
+
 document.getElementById("downloadReportBtn").addEventListener("click", async () => {
   const range = await showDateRangePrompt(t("selectReportPeriodTitle"));
   if (!range) return;
@@ -655,14 +679,22 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
   const filenamePrefix = COMPANY_FILTER ? `${COMPANY_FILTER.toLowerCase()}_` : "";
   const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
-  downloadPDF(
-    title,
-    `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
-    ["Employee Name", "ID #", "Company", "Department", "Role", "Hiring Date", "Frozen Date", "Prev. Balance", "Annual", "Ann. Taken", "Available Balance", "Sick", "Sick Taken", "Sick Left"],
-    rows,
-    `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report.pdf`,
-    redRowIndices
-  );
+  const columns = ["Employee Name", "ID #", "Company", "Department", "Role", "Hiring Date", "Frozen Date", "Prev. Balance", "Annual", "Ann. Taken", "Available Balance", "Sick", "Sick Taken", "Sick Left"];
+  const baseFilename = `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report`;
+
+  if (range.wantPdf) {
+    downloadPDF(
+      title,
+      `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
+      columns,
+      rows,
+      `${baseFilename}.pdf`,
+      redRowIndices
+    );
+  }
+  if (range.wantExcel) {
+    downloadExcel(title, columns, rows, `${baseFilename}.xlsx`);
+  }
 });
 
 document.getElementById("downloadLeaveReportBtn").addEventListener("click", async () => {
@@ -704,14 +736,22 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
 
   const scope = COMPANY_FILTER ? `${COMPANY_FILTER} — ` : "";
   const rangeNote = (range.from || range.to) ? ` — ${range.from || "…"} to ${range.to || "…"}` : "";
-  downloadPDF(
-    `${scope}Leave Requests`,
-    `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
-    ["Employee Name", "Company", "Dates", "Days", "Type", "Status"],
-    pdfRows,
-    `${COMPANY_FILTER ? COMPANY_FILTER.toLowerCase() + "_" : ""}leave_requests_report.pdf`,
-    redRowIndices
-  );
+  const columns = ["Employee Name", "Company", "Dates", "Days", "Type", "Status"];
+  const baseFilename = `${COMPANY_FILTER ? COMPANY_FILTER.toLowerCase() + "_" : ""}leave_requests_report`;
+
+  if (range.wantPdf) {
+    downloadPDF(
+      `${scope}Leave Requests`,
+      `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
+      columns,
+      pdfRows,
+      `${baseFilename}.pdf`,
+      redRowIndices
+    );
+  }
+  if (range.wantExcel) {
+    downloadExcel(`${scope}Leave Requests`, columns, pdfRows, `${baseFilename}.xlsx`);
+  }
 });
 
 document.getElementById("addForm").addEventListener("submit", async (e) => {

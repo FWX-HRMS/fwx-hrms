@@ -5,7 +5,6 @@ let PENDING_REQUESTS = [];
 let HISTORY_REQUESTS = [];
 let PENDING_PAGE = 0;
 let HISTORY_PAGE = 0;
-let BALANCES_PAGE = 0;
 const PAGE_SIZE = 10;
 
 function updatePaginationControls(prefix, page, totalCount) {
@@ -54,36 +53,10 @@ async function loadTeam() {
 
 async function loadBalances() {
   const { data, error } = await db.from("leave_balances").select("*");
-  if (error || !data) { TEAM_BALANCE_ROWS = []; renderBalances(); return; }
+  if (error || !data) { TEAM_BALANCE_ROWS = []; return; }
 
   // leave_balances RLS already restricts this to "my team + me"
   TEAM_BALANCE_ROWS = data.filter(r => TEAM_BY_ID[r.employee_id]);
-  BALANCES_PAGE = 0;
-  renderBalances();
-}
-
-function renderBalances() {
-  const body = document.getElementById("teamBody");
-  body.innerHTML = "";
-
-  const start = BALANCES_PAGE * PAGE_SIZE;
-  const pageItems = TEAM_BALANCE_ROWS.slice(start, start + PAGE_SIZE);
-  for (const r of pageItems) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${r.full_name}</td>
-      <td>${r.file_number}</td>
-      <td>${r.annual_entitlement}</td>
-      <td>${r.taken}</td>
-      <td>${r.remaining}</td>
-      <td>${r.pending}</td>
-      <td>${r.sick_entitlement}</td>
-      <td>${r.sick_taken}</td>
-      <td>${r.sick_remaining}</td>
-    `;
-    body.appendChild(tr);
-  }
-  updatePaginationControls("balances", BALANCES_PAGE, TEAM_BALANCE_ROWS.length);
 }
 
 async function loadRequests() {
@@ -190,8 +163,6 @@ document.getElementById("pendingPrevBtn").addEventListener("click", () => { if (
 document.getElementById("pendingNextBtn").addEventListener("click", () => { if ((PENDING_PAGE + 1) * PAGE_SIZE < PENDING_REQUESTS.length) { PENDING_PAGE++; renderPending(); } });
 document.getElementById("historyPrevBtn").addEventListener("click", () => { if (HISTORY_PAGE > 0) { HISTORY_PAGE--; renderHistory(); } });
 document.getElementById("historyNextBtn").addEventListener("click", () => { if ((HISTORY_PAGE + 1) * PAGE_SIZE < HISTORY_REQUESTS.length) { HISTORY_PAGE++; renderHistory(); } });
-document.getElementById("balancesPrevBtn").addEventListener("click", () => { if (BALANCES_PAGE > 0) { BALANCES_PAGE--; renderBalances(); } });
-document.getElementById("balancesNextBtn").addEventListener("click", () => { if ((BALANCES_PAGE + 1) * PAGE_SIZE < TEAM_BALANCE_ROWS.length) { BALANCES_PAGE++; renderBalances(); } });
 
 function showDateRangePrompt(title) {
   return new Promise((resolve) => {
@@ -199,6 +170,9 @@ function showDateRangePrompt(title) {
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
     document.getElementById("rangeEmployeeIdInput").value = "";
+    document.getElementById("rangeFormatPdf").checked = true;
+    document.getElementById("rangeFormatExcel").checked = false;
+    document.getElementById("rangeFormatError").classList.remove("show");
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
     const generateBtn = document.getElementById("rangeGenerateBtn");
@@ -210,11 +184,18 @@ function showDateRangePrompt(title) {
       cancelBtn.removeEventListener("click", onCancel);
     };
     const onGenerate = () => {
+      const wantPdf = document.getElementById("rangeFormatPdf").checked;
+      const wantExcel = document.getElementById("rangeFormatExcel").checked;
+      if (!wantPdf && !wantExcel) {
+        document.getElementById("rangeFormatError").textContent = t("pleaseSelectFormat");
+        document.getElementById("rangeFormatError").classList.add("show");
+        return;
+      }
       const from = document.getElementById("rangeFromInput").value || null;
       const to = document.getElementById("rangeToInput").value || null;
       const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
       cleanup();
-      resolve({ from, to, employeeId });
+      resolve({ from, to, employeeId, wantPdf, wantExcel });
     };
     const onCancel = () => {
       cleanup();
@@ -276,6 +257,14 @@ async function downloadPDF(title, subtitle, columns, rows, filename) {
   doc.save(filename);
 }
 
+function downloadExcel(sheetName, columns, rows, filename) {
+  const wsData = [columns, ...rows];
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+  XLSX.writeFile(wb, filename);
+}
+
 document.getElementById("downloadReportBtn").addEventListener("click", async () => {
   const range = await showDateRangePrompt(t("selectReportPeriodTitle"));
   if (!range) return;
@@ -293,13 +282,20 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
 
   const rows = source.map(r => [r.full_name, r.file_number, String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
   const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
-  downloadPDF(
-    "My Team — Leave Report",
-    `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
-    ["Employee Name", "ID #", "Annual", "Taken", "Available Balance", "Pending", "Sick", "Sick Taken", "Sick Remaining"],
-    rows,
-    "my_team_leave_report.pdf"
-  );
+  const columns = ["Employee Name", "ID #", "Annual", "Taken", "Available Balance", "Pending", "Sick", "Sick Taken", "Sick Remaining"];
+
+  if (range.wantPdf) {
+    downloadPDF(
+      "My Team — Leave Report",
+      `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
+      columns,
+      rows,
+      "my_team_leave_report.pdf"
+    );
+  }
+  if (range.wantExcel) {
+    downloadExcel("My Team — Leave Report", columns, rows, "my_team_leave_report.xlsx");
+  }
 });
 
 async function refreshAll() {
