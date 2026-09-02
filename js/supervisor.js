@@ -133,6 +133,36 @@ async function loadRequests() {
   }
 }
 
+function showDateRangePrompt(title) {
+  return new Promise((resolve) => {
+    document.getElementById("dateRangeTitle").textContent = title;
+    document.getElementById("rangeFromInput").value = "";
+    document.getElementById("rangeToInput").value = "";
+    document.getElementById("dateRangeOverlay").style.display = "flex";
+
+    const generateBtn = document.getElementById("rangeGenerateBtn");
+    const cancelBtn = document.getElementById("rangeCancelBtn");
+
+    const cleanup = () => {
+      document.getElementById("dateRangeOverlay").style.display = "none";
+      generateBtn.removeEventListener("click", onGenerate);
+      cancelBtn.removeEventListener("click", onCancel);
+    };
+    const onGenerate = () => {
+      const from = document.getElementById("rangeFromInput").value || null;
+      const to = document.getElementById("rangeToInput").value || null;
+      cleanup();
+      resolve({ from, to });
+    };
+    const onCancel = () => {
+      cleanup();
+      resolve(null);
+    };
+    generateBtn.addEventListener("click", onGenerate);
+    cancelBtn.addEventListener("click", onCancel);
+  });
+}
+
 function loadLogoDataURL() {
   return new Promise((resolve) => {
     const img = new Image();
@@ -184,11 +214,19 @@ async function downloadPDF(title, subtitle, columns, rows, filename) {
   doc.save(filename);
 }
 
-document.getElementById("downloadReportBtn").addEventListener("click", () => {
-  const rows = TEAM_BALANCE_ROWS.map(r => [r.full_name, r.file_number, String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
+document.getElementById("downloadReportBtn").addEventListener("click", async () => {
+  const range = await showDateRangePrompt("Filter by hiring date");
+  if (!range) return;
+
+  let source = TEAM_BALANCE_ROWS;
+  if (range.from) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date >= range.from; });
+  if (range.to) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date <= range.to; });
+
+  const rows = source.map(r => [r.full_name, r.file_number, String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
+  const rangeNote = (range.from || range.to) ? ` — Hired ${range.from || "…"} to ${range.to || "…"}` : "";
   downloadPDF(
     "My Team — Leave Report",
-    `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}`,
+    `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
     ["Name", "File #", "Annual", "Taken", "Remaining", "Pending", "Sick", "Sick Taken", "Sick Remaining"],
     rows,
     "my_team_leave_report.pdf"

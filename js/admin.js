@@ -385,6 +385,36 @@ async function deleteEmployee(id, employee) {
   await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
 }
 
+function showDateRangePrompt(title) {
+  return new Promise((resolve) => {
+    document.getElementById("dateRangeTitle").textContent = title;
+    document.getElementById("rangeFromInput").value = "";
+    document.getElementById("rangeToInput").value = "";
+    document.getElementById("dateRangeOverlay").style.display = "flex";
+
+    const generateBtn = document.getElementById("rangeGenerateBtn");
+    const cancelBtn = document.getElementById("rangeCancelBtn");
+
+    const cleanup = () => {
+      document.getElementById("dateRangeOverlay").style.display = "none";
+      generateBtn.removeEventListener("click", onGenerate);
+      cancelBtn.removeEventListener("click", onCancel);
+    };
+    const onGenerate = () => {
+      const from = document.getElementById("rangeFromInput").value || null;
+      const to = document.getElementById("rangeToInput").value || null;
+      cleanup();
+      resolve({ from, to });
+    };
+    const onCancel = () => {
+      cleanup();
+      resolve(null);
+    };
+    generateBtn.addEventListener("click", onGenerate);
+    cancelBtn.addEventListener("click", onCancel);
+  });
+}
+
 function loadLogoDataURL() {
   return new Promise((resolve) => {
     const img = new Image();
@@ -436,11 +466,17 @@ async function downloadPDF(title, subtitle, columns, rows, filename) {
   doc.save(filename);
 }
 
-document.getElementById("downloadReportBtn").addEventListener("click", () => {
+document.getElementById("downloadReportBtn").addEventListener("click", async () => {
+  const range = await showDateRangePrompt("Filter by hiring date");
+  if (!range) return;
+
   let source = ACTIVE_TAB === "supervisors"
     ? DIRECTORY.filter(e => e.role === "supervisor")
     : DIRECTORY.filter(e => e.role !== "admin");
   if (COMPANY_FILTER) source = source.filter(e => e.client_company === COMPANY_FILTER);
+  if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
+  if (range.to) source = source.filter(e => e.hiring_date && e.hiring_date <= range.to);
+
   const rows = source.map(e => {
     const bal = BALANCES_BY_ID[e.id] || {};
     return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, String(bal.annual_entitlement ?? "—"), String(bal.taken ?? "—"), String(bal.remaining ?? "—"), String(bal.sick_entitlement ?? "—"), String(bal.sick_taken ?? "—"), String(bal.sick_remaining ?? "—")];
@@ -448,12 +484,49 @@ document.getElementById("downloadReportBtn").addEventListener("click", () => {
   const scope = COMPANY_FILTER ? `${COMPANY_FILTER} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
   const filenamePrefix = COMPANY_FILTER ? `${COMPANY_FILTER.toLowerCase()}_` : "";
+  const rangeNote = (range.from || range.to) ? ` — Hired ${range.from || "…"} to ${range.to || "…"}` : "";
   downloadPDF(
     title,
-    `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}`,
+    `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
     ["Name", "File #", "Company", "Department", "Role", "Annual", "Ann. Taken", "Ann. Left", "Sick", "Sick Taken", "Sick Left"],
     rows,
     `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report.pdf`
+  );
+});
+
+document.getElementById("downloadLeaveReportBtn").addEventListener("click", async () => {
+  const range = await showDateRangePrompt("Filter by leave dates");
+  if (!range) return;
+
+  const { data, error } = await db.from("leave_requests").select("*").order("requested_at", { ascending: false });
+  if (error || !data) { showToast("Could not load leave requests."); return; }
+
+  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  let rows = data;
+  if (COMPANY_FILTER) rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].client_company === COMPANY_FILTER);
+  if (range.from) rows = rows.filter(r => r.end_date >= range.from);
+  if (range.to) rows = rows.filter(r => r.start_date <= range.to);
+
+  const pdfRows = rows.map(r => {
+    const emp = byId[r.employee_id];
+    return [
+      emp ? emp.full_name : "—",
+      emp ? (emp.client_company || "—") : "—",
+      `${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`,
+      String(r.days_requested),
+      r.leave_type,
+      r.status
+    ];
+  });
+
+  const scope = COMPANY_FILTER ? `${COMPANY_FILTER} — ` : "";
+  const rangeNote = (range.from || range.to) ? ` — ${range.from || "…"} to ${range.to || "…"}` : "";
+  downloadPDF(
+    `${scope}Leave Requests`,
+    `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
+    ["Employee", "Company", "Dates", "Days", "Type", "Status"],
+    pdfRows,
+    `${COMPANY_FILTER ? COMPANY_FILTER.toLowerCase() + "_" : ""}leave_requests_report.pdf`
   );
 });
 
