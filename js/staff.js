@@ -91,10 +91,28 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   btn.disabled = true;
   btn.textContent = "Submitting…";
 
+  const fileInput = document.getElementById("document");
+  const file = fileInput.files[0];
+  let document_path = null;
+
+  if (file) {
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+    document_path = `${ME.id}/${Date.now()}_${safeName}`;
+    const { error: uploadError } = await db.storage.from("leave-documents").upload(document_path, file);
+    if (uploadError) {
+      btn.disabled = false;
+      btn.textContent = "Submit request";
+      errBox.textContent = "Could not upload the attached document. Please try again.";
+      errBox.classList.add("show");
+      return;
+    }
+  }
+
   const { data: inserted, error } = await db.from("leave_requests").insert({
     employee_id: ME.id,
     start_date, end_date, leave_type,
-    reason: reason || null
+    reason: reason || null,
+    document_path
   }).select().single();
 
   btn.disabled = false;
@@ -112,6 +130,7 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   }).catch(() => {});
 
   document.getElementById("leaveForm").reset();
+  fileInput.value = "";
   showToast("Leave request submitted.");
   await Promise.all([loadRequests(), loadBalance()]);
 });

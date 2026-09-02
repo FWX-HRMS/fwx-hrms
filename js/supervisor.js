@@ -83,6 +83,7 @@ async function loadRequests() {
       <td>${r.days_requested}</td>
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${r.reason ? r.reason : "—"}</td>
+      <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">View</button>` : "—"}</td>
       <td class="row-actions">
         <button class="btn btn-primary btn-sm" data-action="approved" data-id="${r.id}">Approve</button>
         <button class="btn btn-danger btn-sm" data-action="rejected" data-id="${r.id}">Reject</button>
@@ -90,6 +91,14 @@ async function loadRequests() {
     `;
     pendingBody.appendChild(tr);
   }
+
+  pendingBody.querySelectorAll("button[data-doc]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const { data, error } = await db.storage.from("leave-documents").createSignedUrl(btn.dataset.doc, 60);
+      if (error || !data) { showToast("Could not open that document."); return; }
+      window.open(data.signedUrl, "_blank");
+    });
+  });
 
   pendingBody.querySelectorAll("button[data-id]").forEach(btn => {
     btn.addEventListener("click", async () => {
