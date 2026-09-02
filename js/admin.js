@@ -390,6 +390,7 @@ function showDateRangePrompt(title) {
     document.getElementById("dateRangeTitle").textContent = title;
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
+    document.getElementById("rangeEmployeeIdInput").value = "";
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
     const generateBtn = document.getElementById("rangeGenerateBtn");
@@ -403,8 +404,9 @@ function showDateRangePrompt(title) {
     const onGenerate = () => {
       const from = document.getElementById("rangeFromInput").value || null;
       const to = document.getElementById("rangeToInput").value || null;
+      const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
       cleanup();
-      resolve({ from, to });
+      resolve({ from, to, employeeId });
     };
     const onCancel = () => {
       cleanup();
@@ -470,12 +472,19 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const range = await showDateRangePrompt("Select report period");
   if (!range) return;
 
-  let source = ACTIVE_TAB === "supervisors"
-    ? DIRECTORY.filter(e => e.role === "supervisor")
-    : DIRECTORY.filter(e => e.role !== "admin");
-  if (COMPANY_FILTER) source = source.filter(e => e.client_company === COMPANY_FILTER);
+  let source = range.employeeId
+    ? DIRECTORY.filter(e => e.file_number === range.employeeId)
+    : (ACTIVE_TAB === "supervisors"
+        ? DIRECTORY.filter(e => e.role === "supervisor")
+        : DIRECTORY.filter(e => e.role !== "admin"));
+  if (!range.employeeId && COMPANY_FILTER) source = source.filter(e => e.client_company === COMPANY_FILTER);
   if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
   if (range.to) source = source.filter(e => e.hiring_date && e.hiring_date <= range.to);
+
+  if (source.length === 0) {
+    showToast("No matching employee found for that ID.");
+    return;
+  }
 
   const rows = source.map(e => {
     const bal = BALANCES_BY_ID[e.id] || {};
@@ -503,9 +512,18 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
   let rows = data;
-  if (COMPANY_FILTER) rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].client_company === COMPANY_FILTER);
+  if (range.employeeId) {
+    rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].file_number === range.employeeId);
+  } else if (COMPANY_FILTER) {
+    rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].client_company === COMPANY_FILTER);
+  }
   if (range.from) rows = rows.filter(r => r.end_date >= range.from);
   if (range.to) rows = rows.filter(r => r.start_date <= range.to);
+
+  if (rows.length === 0) {
+    showToast("No matching leave requests found.");
+    return;
+  }
 
   const pdfRows = rows.map(r => {
     const emp = byId[r.employee_id];

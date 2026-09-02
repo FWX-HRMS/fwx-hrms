@@ -138,6 +138,7 @@ function showDateRangePrompt(title) {
     document.getElementById("dateRangeTitle").textContent = title;
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
+    document.getElementById("rangeEmployeeIdInput").value = "";
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
     const generateBtn = document.getElementById("rangeGenerateBtn");
@@ -151,8 +152,9 @@ function showDateRangePrompt(title) {
     const onGenerate = () => {
       const from = document.getElementById("rangeFromInput").value || null;
       const to = document.getElementById("rangeToInput").value || null;
+      const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
       cleanup();
-      resolve({ from, to });
+      resolve({ from, to, employeeId });
     };
     const onCancel = () => {
       cleanup();
@@ -218,9 +220,16 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const range = await showDateRangePrompt("Select report period");
   if (!range) return;
 
-  let source = TEAM_BALANCE_ROWS;
+  let source = range.employeeId
+    ? TEAM_BALANCE_ROWS.filter(r => r.file_number === range.employeeId)
+    : TEAM_BALANCE_ROWS;
   if (range.from) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date >= range.from; });
   if (range.to) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date <= range.to; });
+
+  if (source.length === 0) {
+    showToast("No matching employee found for that ID.");
+    return;
+  }
 
   const rows = source.map(r => [r.full_name, r.file_number, String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
   const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
