@@ -37,6 +37,13 @@
         <tbody id="pendingBody"></tbody>
       </table>
       <div class="empty-state" id="noPending" style="display:none" data-i18n="noPendingRequests">No pending requests.</div>
+      <div id="pendingPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="pendingPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-blue btn-sm" id="pendingPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-blue btn-sm" id="pendingNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
     </div>
 
     <div class="panel">
@@ -50,6 +57,13 @@
         </thead>
         <tbody id="teamBody"></tbody>
       </table>
+      <div id="balancesPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="balancesPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-blue btn-sm" id="balancesPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-blue btn-sm" id="balancesNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
     </div>
 
     <div class="panel">
@@ -61,6 +75,13 @@
         <tbody id="historyBody"></tbody>
       </table>
       <div class="empty-state" id="noHistory" style="display:none" data-i18n="noDecidedRequests">No decided requests yet.</div>
+      <div id="historyPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="historyPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-blue btn-sm" id="historyPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-blue btn-sm" id="historyNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
     </div>
   </main>
 </div>
