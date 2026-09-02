@@ -351,15 +351,13 @@ tr:last-child td{ border-bottom:none; }
 .action-menu-wrap{ position:relative; display:inline-block; }
 .action-menu{
   display:none;
-  position:absolute;
-  right:0;
-  top:calc(100% + 6px);
+  position:fixed;
   background:var(--surface);
   border:1px solid var(--border);
   border-radius:8px;
   box-shadow:0 6px 20px rgba(27,36,48,0.15);
   min-width:190px;
-  z-index:60;
+  z-index:200;
   overflow:hidden;
 }
 .action-menu.open{ display:block; }
@@ -379,7 +377,6 @@ tr:last-child td{ border-bottom:none; }
 .action-menu button:last-child{ border-bottom:none; }
 .action-menu button:hover{ background:#F0F1F3; }
 .action-menu button.danger{ color:var(--brick); }
-html[dir="rtl"] .action-menu{ right:auto; left:0; }
 html[dir="rtl"] .action-menu button{ text-align:right; }
 .btn-sm{ padding:0 12px; height:44px; font-size:13px; border-radius:6px; }
 
