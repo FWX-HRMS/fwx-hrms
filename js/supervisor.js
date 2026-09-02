@@ -5,6 +5,8 @@ let PENDING_REQUESTS = [];
 let HISTORY_REQUESTS = [];
 let PENDING_PAGE = 0;
 let HISTORY_PAGE = 0;
+let USERS_PAGE = 0;
+let TEAM_LIST = [];
 const PAGE_SIZE = 10;
 
 function updatePaginationControls(prefix, page, totalCount) {
@@ -45,10 +47,35 @@ async function loadTeam() {
 
   if (error || !data) return [];
   TEAM_BY_ID = Object.fromEntries(data.map(e => [e.id, e]));
+  TEAM_LIST = data;
+  USERS_PAGE = 0;
   document.getElementById("teamCount").textContent = ME.role === "admin"
     ? `${data.length} ${data.length === 1 ? t("employeeCountSuffix") : t("employeeCountSuffixPlural")}`
     : `${data.length} ${data.length === 1 ? t("directReportsSuffix") : t("directReportsSuffixPlural")}`;
+  renderUsers();
   return data;
+}
+
+function renderUsers() {
+  const body = document.getElementById("usersBody");
+  const empty = document.getElementById("noUsers");
+  body.innerHTML = "";
+  empty.style.display = TEAM_LIST.length ? "none" : "block";
+
+  const start = USERS_PAGE * PAGE_SIZE;
+  const pageItems = TEAM_LIST.slice(start, start + PAGE_SIZE);
+  for (const e of pageItems) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${e.full_name}</td>
+      <td>${e.file_number}</td>
+      <td style="text-transform:capitalize">${e.role}</td>
+      <td>${e.client_company || "—"}</td>
+      <td>${e.department || "—"}</td>
+    `;
+    body.appendChild(tr);
+  }
+  updatePaginationControls("users", USERS_PAGE, TEAM_LIST.length);
 }
 
 async function loadBalances() {
@@ -163,6 +190,8 @@ document.getElementById("pendingPrevBtn").addEventListener("click", () => { if (
 document.getElementById("pendingNextBtn").addEventListener("click", () => { if ((PENDING_PAGE + 1) * PAGE_SIZE < PENDING_REQUESTS.length) { PENDING_PAGE++; renderPending(); } });
 document.getElementById("historyPrevBtn").addEventListener("click", () => { if (HISTORY_PAGE > 0) { HISTORY_PAGE--; renderHistory(); } });
 document.getElementById("historyNextBtn").addEventListener("click", () => { if ((HISTORY_PAGE + 1) * PAGE_SIZE < HISTORY_REQUESTS.length) { HISTORY_PAGE++; renderHistory(); } });
+document.getElementById("usersPrevBtn").addEventListener("click", () => { if (USERS_PAGE > 0) { USERS_PAGE--; renderUsers(); } });
+document.getElementById("usersNextBtn").addEventListener("click", () => { if ((USERS_PAGE + 1) * PAGE_SIZE < TEAM_LIST.length) { USERS_PAGE++; renderUsers(); } });
 
 function showDateRangePrompt(title) {
   return new Promise((resolve) => {
