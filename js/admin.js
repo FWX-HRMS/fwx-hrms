@@ -621,7 +621,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   downloadPDF(
     title,
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
-    ["Employee Name", "ID #", "Company", "Department", "Role", "Hiring Date", "Frozen Date", "Prev. Balance", "Annual", "Ann. Taken", "Ann. Left", "Sick", "Sick Taken", "Sick Left"],
+    ["Employee Name", "ID #", "Company", "Department", "Role", "Hiring Date", "Frozen Date", "Prev. Balance", "Annual", "Ann. Taken", "Available Balance", "Sick", "Sick Taken", "Sick Left"],
     rows,
     `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report.pdf`
   );
