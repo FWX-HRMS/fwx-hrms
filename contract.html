@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Contract — HR Portal</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <button type="button" class="lang-toggle" id="langToggleBtn">العربية</button>
+    <div class="brand"><a href="https://www.fwxperts.com/" target="_blank" rel="noopener noreferrer" style="line-height:0"><img src="images/logo.png" alt="FWX" class="brand-logo"></a> <span data-i18n="brandStaffPortal">Staff Portal</span></div>
+    <div class="whoami" id="whoami">Loading…</div>
+    <nav>
+      <a href="staff.html" data-i18n="navMyLeave">My leave</a>
+      <a href="contract.html" class="active" data-i18n="navMyContract">My Contract</a>
+    </nav>
+    <a href="settings.html" class="settings-link" data-i18n="settingsLink">⚙ Settings</a>
+    <button class="logout" onclick="logout()" data-i18n="logout">Log out</button>
+  </aside>
+
+  <main>
+    <h1 class="page-title" data-i18n="myContractTitle">My Contract</h1>
+    <p class="page-sub" id="contractSub"></p>
+
+    <div class="panel" id="noContractPanel" style="display:none">
+      <p class="empty-state" data-i18n="noContractYet">No contract has been shared with you yet. Please check back later or contact HR.</p>
+    </div>
+
+    <div class="panel" id="contractPanel" style="display:none">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+        <h2 style="margin:0" data-i18n="myContractTitle">My Contract</h2>
+        <span class="badge" id="contractStatusBadge"></span>
+      </div>
+      <div id="contractTextDisplay" style="white-space:pre-wrap; font-family:monospace; font-size:12.5px; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:16px; max-height:500px; overflow-y:auto; margin-bottom:16px"></div>
+
+      <div id="signedBox" style="display:none" class="success-msg"></div>
+
+      <div id="actionArea">
+        <div class="panel" style="margin-bottom:16px">
+          <h2 data-i18n="sendCommentsTitle">Send comments to admin</h2>
+          <label for="commentText" data-i18n="commentTextLabel">If you have questions or requested changes, describe them here</label>
+          <textarea id="commentText" rows="3"></textarea>
+          <button type="button" class="btn btn-blue" id="submitCommentBtn" style="margin-top:10px; max-width:220px" data-i18n="sendCommentsBtn">Send Comments</button>
+          <div class="error-msg" id="commentError"></div>
+        </div>
+
+        <div class="panel">
+          <h2 data-i18n="signContractTitle">Sign this contract</h2>
+          <p class="help-text" style="margin-bottom:14px" data-i18n="signContractNote">By typing your full name below and clicking Sign, you confirm that you have read, understood, and agree to the terms of this contract.</p>
+          <label for="signatureName" data-i18n="typeFullNameLabel">Type your full name to sign</label>
+          <input type="text" id="signatureName">
+          <button type="button" class="btn btn-primary" id="signContractBtn" style="margin-top:10px; max-width:220px" data-i18n="signContractBtn">Sign Contract</button>
+          <div class="error-msg" id="signError"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/i18n.js"></script>
+<script>initLangToggle();</script>
+<script src="js/contract.js"></script>
+</body>
+</html>
