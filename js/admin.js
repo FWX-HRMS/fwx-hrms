@@ -316,15 +316,45 @@ async function deleteEmployee(id, employee) {
   await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
 }
 
-function downloadPDF(title, subtitle, columns, rows, filename) {
+function loadLogoDataURL() {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext("2d").drawImage(img, 0, 0);
+      try {
+        resolve({ dataUrl: canvas.toDataURL("image/png"), w: img.naturalWidth, h: img.naturalHeight });
+      } catch (e) {
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = "images/logo.png";
+  });
+}
+
+async function downloadPDF(title, subtitle, columns, rows, filename) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape" });
+
+  let textStartX = 14;
+  const logo = await loadLogoDataURL();
+  if (logo) {
+    const logoHeight = 14;
+    const logoWidth = (logo.w / logo.h) * logoHeight;
+    doc.addImage(logo.dataUrl, "PNG", 14, 8, logoWidth, logoHeight);
+    textStartX = 14 + logoWidth + 6;
+  }
+
   doc.setFontSize(16);
   doc.setTextColor(27, 36, 48);
-  doc.text(title, 14, 18);
+  doc.text(title, textStartX, 18);
   doc.setFontSize(10);
   doc.setTextColor(75, 87, 104);
-  doc.text(subtitle, 14, 25);
+  doc.text(subtitle, textStartX, 25);
   doc.autoTable({
     head: [columns],
     body: rows,
