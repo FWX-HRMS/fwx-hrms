@@ -1,4 +1,40 @@
 let ME = null;
+let LAST_LOCATION_PUSH = 0;
+const LOCATION_PUSH_INTERVAL_MS = 25000;
+
+function setLocationBadge(text, statusClass) {
+  const badge = document.getElementById("locationStatusBadge");
+  badge.textContent = text;
+  badge.className = `badge ${statusClass}`;
+}
+
+function startLocationSharing() {
+  if (!navigator.geolocation) {
+    setLocationBadge(t("locationUnsupported"), "badge-cancelled");
+    return;
+  }
+  setLocationBadge(t("locationRequesting"), "badge-pending");
+
+  navigator.geolocation.watchPosition(
+    async (pos) => {
+      setLocationBadge(t("locationActive"), "badge-approved");
+      const now = Date.now();
+      if (now - LAST_LOCATION_PUSH < LOCATION_PUSH_INTERVAL_MS) return;
+      LAST_LOCATION_PUSH = now;
+      await db.from("employee_locations").upsert({
+        employee_id: ME.id,
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        accuracy: pos.coords.accuracy,
+        updated_at: new Date().toISOString()
+      });
+    },
+    () => {
+      setLocationBadge(t("locationDenied"), "badge-rejected");
+    },
+    { enableHighAccuracy: true, maximumAge: 20000, timeout: 20000 }
+  );
+}
 
 function showToast(msg) {
   const t = document.getElementById("toast");
@@ -165,5 +201,6 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
     <span style="opacity:.7">${t("colSupervisor")}: ${supervisorName}</span>
   `;
   document.getElementById("deptLine").textContent = ME.department ? `${ME.department}` : "";
+  startLocationSharing();
   await Promise.all([loadBalance(), loadRequests()]);
 })();

@@ -28,6 +28,7 @@ const translations = {
     navTeamOverview: "Team overview",
     navUsers: "Users",
     navClientCompanies: "Client Companies",
+    navStaffLocations: "Staff Locations",
     navMyLeave: "My leave",
 
     // Login (index.html)
@@ -261,6 +262,25 @@ const translations = {
     somethingWrongUpdatingPassword: "Something went wrong updating your password.",
     passwordUpdatedToast: "Password updated.",
 
+    // Staff Locations
+    staffLocationsTitle: "Staff Locations",
+    staffLocationsSubSupervisor: "Live locations of your direct reports.",
+    staffLocationsSubAdmin: "Live locations of everyone in the system.",
+    staffLocationsListTitle: "Last known locations",
+    colLastUpdated: "Last updated",
+    noLocationsShared: "No location data shared yet.",
+    couldNotLoadLocations: "Could not load staff locations.",
+    justNow: "Just now",
+    minutesAgo: "%n% min ago",
+    hoursAgo: "%n% hr ago",
+    daysAgo: "%n% days ago",
+    locationSharingTitle: "Location sharing",
+    locationSharingNote: "As agreed in your employment contract, your location is shared live with your supervisor during work hours.",
+    locationRequesting: "Requesting…",
+    locationActive: "Active",
+    locationDenied: "Blocked — enable location access in your browser",
+    locationUnsupported: "Not supported on this device",
+
     // Extra keys for admin.js dynamic content
     okBtn: "OK",
     confirmBtn: "Confirm",
@@ -309,6 +329,7 @@ const translations = {
     navTeamOverview: "نظرة عامة على الفريق",
     navUsers: "المستخدمون",
     navClientCompanies: "الشركات العميلة",
+    navStaffLocations: "مواقع الموظفين",
     navMyLeave: "إجازتي",
 
     // Login (index.html)
@@ -541,6 +562,25 @@ const translations = {
     changePasswordTitle: "تغيير كلمة المرور",
     somethingWrongUpdatingPassword: "حدث خطأ أثناء تحديث كلمة المرور.",
     passwordUpdatedToast: "تم تحديث كلمة المرور.",
+
+    // Staff Locations
+    staffLocationsTitle: "مواقع الموظفين",
+    staffLocationsSubSupervisor: "المواقع الحية لتابعيك المباشرين.",
+    staffLocationsSubAdmin: "المواقع الحية لجميع أفراد النظام.",
+    staffLocationsListTitle: "آخر المواقع المعروفة",
+    colLastUpdated: "آخر تحديث",
+    noLocationsShared: "لم تتم مشاركة أي بيانات موقع بعد.",
+    couldNotLoadLocations: "تعذر تحميل مواقع الموظفين.",
+    justNow: "الآن",
+    minutesAgo: "منذ %n% دقيقة",
+    hoursAgo: "منذ %n% ساعة",
+    daysAgo: "منذ %n% يوم",
+    locationSharingTitle: "مشاركة الموقع",
+    locationSharingNote: "وفقًا لما تم الاتفاق عليه في عقد عملك، تتم مشاركة موقعك مباشرة مع مشرفك خلال ساعات العمل.",
+    locationRequesting: "جارٍ الطلب…",
+    locationActive: "نشط",
+    locationDenied: "محظور — فعّل الوصول إلى الموقع في متصفحك",
+    locationUnsupported: "غير مدعوم على هذا الجهاز",
 
     // Extra keys for admin.js dynamic content
     okBtn: "موافق",
