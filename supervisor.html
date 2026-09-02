@@ -12,54 +12,55 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="brand"><a href="https://www.fwxperts.com/" target="_blank" rel="noopener noreferrer" style="line-height:0"><img src="images/logo.png" alt="FWX" class="brand-logo"></a> Supervisor Portal</div>
+    <button type="button" class="lang-toggle" id="langToggleBtn">العربية</button>
+    <div class="brand"><a href="https://www.fwxperts.com/" target="_blank" rel="noopener noreferrer" style="line-height:0"><img src="images/logo.png" alt="FWX" class="brand-logo"></a> <span data-i18n="brandSupervisorPortal">Supervisor Portal</span></div>
     <div class="whoami" id="whoami">Loading…</div>
     <nav>
-      <a href="supervisor.html" class="active">Team overview</a>
-      <a href="admin.html" id="adminLink" style="display:none">Users</a>
-      <a href="clients.html" id="clientsLink" style="display:none">Client Companies</a>
+      <a href="supervisor.html" class="active" data-i18n="navTeamOverview">Team overview</a>
+      <a href="admin.html" id="adminLink" style="display:none" data-i18n="navUsers">Users</a>
+      <a href="clients.html" id="clientsLink" style="display:none" data-i18n="navClientCompanies">Client Companies</a>
     </nav>
-    <a href="settings.html" class="settings-link">⚙ Settings</a>
-    <button class="logout" onclick="logout()">Log out</button>
+    <a href="settings.html" class="settings-link" data-i18n="settingsLink">⚙ Settings</a>
+    <button class="logout" onclick="logout()" data-i18n="logout">Log out</button>
   </aside>
 
   <main>
-    <h1 class="page-title">Team overview</h1>
+    <h1 class="page-title" data-i18n="teamOverviewTitle">Team overview</h1>
     <p class="page-sub" id="teamCount"></p>
 
     <div class="panel">
-      <h2>Pending requests</h2>
+      <h2 data-i18n="pendingRequestsTitle">Pending requests</h2>
       <table>
         <thead>
-          <tr><th>Employee Name</th><th>Dates</th><th>Days</th><th>Type</th><th>Reason</th><th>Document</th><th></th></tr>
+          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colDates">Dates</th><th data-i18n="colDays">Days</th><th data-i18n="colType">Type</th><th data-i18n="colReason">Reason</th><th data-i18n="colDocument">Document</th><th></th></tr>
         </thead>
         <tbody id="pendingBody"></tbody>
       </table>
-      <div class="empty-state" id="noPending" style="display:none">No pending requests.</div>
+      <div class="empty-state" id="noPending" style="display:none" data-i18n="noPendingRequests">No pending requests.</div>
     </div>
 
     <div class="panel">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
-        <h2 style="margin:0">Team balances</h2>
-        <button type="button" class="btn btn-blue btn-sm" id="downloadReportBtn" style="width:180px">Download report (PDF)</button>
+        <h2 style="margin:0" data-i18n="teamBalancesTitle">Team balances</h2>
+        <button type="button" class="btn btn-blue btn-sm" id="downloadReportBtn" style="width:180px" data-i18n="downloadReportBtn">Download report (PDF)</button>
       </div>
       <table>
         <thead>
-          <tr><th>Employee Name</th><th>ID #</th><th>Annual</th><th>Taken</th><th>Remaining</th><th>Pending</th><th>Sick</th><th>Sick Taken</th><th>Sick Remaining</th></tr>
+          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colIdNum">ID #</th><th data-i18n="colAnnual">Annual</th><th data-i18n="colTaken">Taken</th><th data-i18n="colRemaining">Remaining</th><th data-i18n="colPending">Pending</th><th data-i18n="colSick">Sick</th><th data-i18n="colSickTaken">Sick Taken</th><th data-i18n="colSickRemaining">Sick Remaining</th></tr>
         </thead>
         <tbody id="teamBody"></tbody>
       </table>
     </div>
 
     <div class="panel">
-      <h2>Request history</h2>
+      <h2 data-i18n="requestHistoryTitle">Request history</h2>
       <table>
         <thead>
-          <tr><th>Employee Name</th><th>Dates</th><th>Days</th><th>Type</th><th>Status</th></tr>
+          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colDates">Dates</th><th data-i18n="colDays">Days</th><th data-i18n="colType">Type</th><th data-i18n="colStatus">Status</th></tr>
         </thead>
         <tbody id="historyBody"></tbody>
       </table>
-      <div class="empty-state" id="noHistory" style="display:none">No decided requests yet.</div>
+      <div class="empty-state" id="noHistory" style="display:none" data-i18n="noDecidedRequests">No decided requests yet.</div>
     </div>
   </main>
 </div>
@@ -68,22 +69,22 @@
 <div id="dateRangeOverlay" class="modal-overlay" style="display:none">
   <div class="modal-box" style="max-width:380px">
     <h2 id="dateRangeTitle" style="margin:0 0 6px"></h2>
-    <p style="margin:0 0 16px; color:var(--ink-soft); font-size:14.5px">Optional — leave blank to include everyone.</p>
-    <label for="rangeEmployeeIdInput">Employee ID (optional — leave blank for all)</label>
+    <p style="margin:0 0 16px; color:var(--ink-soft); font-size:14.5px" data-i18n="optionalLeaveBlank">Optional — leave blank to include everyone.</p>
+    <label for="rangeEmployeeIdInput" data-i18n="employeeIdOptionalLabel">Employee ID (optional — leave blank for all)</label>
     <input type="text" id="rangeEmployeeIdInput" placeholder="e.g. 1003" style="margin-bottom:14px">
     <div class="field-row">
       <div>
-        <label for="rangeFromInput">From</label>
+        <label for="rangeFromInput" data-i18n="fromLabel">From</label>
         <input type="date" id="rangeFromInput">
       </div>
       <div>
-        <label for="rangeToInput">To</label>
+        <label for="rangeToInput" data-i18n="toLabel">To</label>
         <input type="date" id="rangeToInput">
       </div>
     </div>
     <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:18px">
-      <button type="button" class="btn btn-danger btn-sm" id="rangeCancelBtn">Cancel</button>
-      <button type="button" class="btn btn-primary btn-sm" id="rangeGenerateBtn">Generate PDF</button>
+      <button type="button" class="btn btn-danger btn-sm" id="rangeCancelBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-primary btn-sm" id="rangeGenerateBtn" data-i18n="generatePdfBtn">Generate PDF</button>
     </div>
   </div>
 </div>
@@ -92,6 +93,8 @@
 
 <script src="js/supabaseClient.js"></script>
 <script src="js/auth-guard.js"></script>
+<script src="js/i18n.js"></script>
+<script>initLangToggle();</script>
 <script src="js/supervisor.js"></script>
 </body>
 </html>

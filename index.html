@@ -10,24 +10,29 @@
 <body>
   <div class="login-wrap">
     <form class="login-card" id="loginForm">
+      <button type="button" class="lang-toggle" id="langToggleBtn">العربية</button>
       <img src="images/logo.png" alt="FWX" class="login-logo">
-      <h1>Sign in</h1>
-      <p class="sub">Use your employee file number and password.</p>
+      <h1 data-i18n="signInTitle">Sign in</h1>
+      <p class="sub" data-i18n="signInSub">Use your employee file number and password.</p>
 
-      <label for="fileNumber">File number</label>
+      <label for="fileNumber" data-i18n="fileNumberLabel">File number</label>
       <input type="text" id="fileNumber" autocomplete="username" required>
 
-      <label for="password">Password</label>
+      <label for="password" data-i18n="passwordLabel">Password</label>
       <input type="password" id="password" autocomplete="current-password" required>
 
-      <button type="submit" class="btn btn-primary" id="submitBtn">Sign in</button>
+      <button type="submit" class="btn btn-primary" id="submitBtn" data-i18n="signInBtn">Sign in</button>
       <div class="error-msg" id="errorMsg"></div>
-      <p class="forgot-link"><a href="forgot-password.html">Forgot your password?</a></p>
+      <p class="forgot-link"><a href="forgot-password.html" data-i18n="forgotPasswordLink">Forgot your password?</a></p>
     </form>
   </div>
 
   <script src="js/supabaseClient.js"></script>
+  <script src="js/i18n.js"></script>
   <script>
+    document.getElementById("langToggleBtn").classList.add("lang-toggle");
+    initLangToggle();
+
     const form = document.getElementById("loginForm");
     const errorMsg = document.getElementById("errorMsg");
     const submitBtn = document.getElementById("submitBtn");
@@ -45,17 +50,17 @@
       e.preventDefault();
       errorMsg.classList.remove("show");
       submitBtn.disabled = true;
-      submitBtn.textContent = "Signing in…";
+      submitBtn.textContent = t("signingIn");
 
       const fileNumber = document.getElementById("fileNumber").value.trim();
       const password = document.getElementById("password").value;
 
       const email = await lookupEmailForFileNumber(fileNumber);
       if (!email) {
-        errorMsg.textContent = "Incorrect file number or password.";
+        errorMsg.textContent = t("incorrectCreds");
         errorMsg.classList.add("show");
         submitBtn.disabled = false;
-        submitBtn.textContent = "Sign in";
+        submitBtn.textContent = t("signInBtn");
         return;
       }
 
@@ -65,10 +70,10 @@
       });
 
       if (error) {
-        errorMsg.textContent = "Incorrect file number or password.";
+        errorMsg.textContent = t("incorrectCreds");
         errorMsg.classList.add("show");
         submitBtn.disabled = false;
-        submitBtn.textContent = "Sign in";
+        submitBtn.textContent = t("signInBtn");
         return;
       }
 

@@ -10,55 +10,56 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="brand"><a href="https://www.fwxperts.com/" target="_blank" rel="noopener noreferrer" style="line-height:0"><img src="images/logo.png" alt="FWX" class="brand-logo"></a> HR Portal</div>
+    <button type="button" class="lang-toggle" id="langToggleBtn">العربية</button>
+    <div class="brand"><a href="https://www.fwxperts.com/" target="_blank" rel="noopener noreferrer" style="line-height:0"><img src="images/logo.png" alt="FWX" class="brand-logo"></a> <span data-i18n="brandHrPortal">HR Portal</span></div>
     <div class="whoami" id="whoami">Loading…</div>
     <nav>
-      <a href="#" id="backLink">← Back</a>
+      <a href="#" id="backLink" data-i18n="back">← Back</a>
     </nav>
-    <button class="logout" onclick="logout()">Log out</button>
+    <button class="logout" onclick="logout()" data-i18n="logout">Log out</button>
   </aside>
 
   <main>
-    <h1 class="page-title">Settings</h1>
-    <p class="page-sub">Update your name, email, or password.</p>
+    <h1 class="page-title" data-i18n="settingsTitle">Settings</h1>
+    <p class="page-sub" data-i18n="settingsSub">Update your name, email, or password.</p>
 
     <div class="panel">
-      <h2>Your name</h2>
+      <h2 data-i18n="yourNameTitle">Your name</h2>
       <form id="nameForm">
-        <label for="fullName">Full name</label>
+        <label for="fullName" data-i18n="fullNameLabel">Full name</label>
         <input type="text" id="fullName" required>
-        <button type="submit" class="btn btn-primary btn-sm" style="max-width:180px; margin-top:14px">Save name</button>
+        <button type="submit" class="btn btn-primary btn-sm" style="max-width:180px; margin-top:14px" data-i18n="saveNameBtn">Save name</button>
         <div class="error-msg" id="nameError"></div>
-        <div class="success-msg" id="nameSuccess">Name updated.</div>
+        <div class="success-msg" id="nameSuccess" data-i18n="nameUpdatedMsg">Name updated.</div>
       </form>
     </div>
 
     <div class="panel">
-      <h2>Your email</h2>
-      <p class="help-text" style="margin-bottom:14px">Current: <strong id="currentEmail">—</strong></p>
+      <h2 data-i18n="yourEmailTitle">Your email</h2>
+      <p class="help-text" style="margin-bottom:14px"><span data-i18n="currentLabel">Current:</span> <strong id="currentEmail">—</strong></p>
       <form id="emailForm">
-        <label for="newEmail">New email address</label>
+        <label for="newEmail" data-i18n="newEmailLabel">New email address</label>
         <input type="email" id="newEmail" required>
-        <button type="submit" class="btn btn-primary btn-sm" style="max-width:180px; margin-top:14px">Update email</button>
+        <button type="submit" class="btn btn-primary btn-sm" style="max-width:180px; margin-top:14px" data-i18n="updateEmailBtn">Update email</button>
         <div class="error-msg" id="emailError"></div>
-        <div class="success-msg" id="emailSuccess">A confirmation link was sent to your new email. Please check your inbox and confirm it — your login will use the new address once confirmed.</div>
+        <div class="success-msg" id="emailSuccess" data-i18n="emailChangeConfirmMsg">A confirmation link was sent to your new email. Please check your inbox and confirm it — your login will use the new address once confirmed.</div>
       </form>
     </div>
 
     <div class="panel">
-      <h2>Change password</h2>
+      <h2 data-i18n="changePasswordTitle">Change password</h2>
       <form id="passwordForm">
         <div class="field-row">
           <div>
-            <label for="newPassword">New password</label>
+            <label for="newPassword" data-i18n="newPasswordLabel">New password</label>
             <input type="password" id="newPassword" autocomplete="new-password" minlength="8" required>
           </div>
           <div>
-            <label for="confirmPassword">Confirm new password</label>
+            <label for="confirmPassword" data-i18n="confirmNewPasswordLabel">Confirm new password</label>
             <input type="password" id="confirmPassword" autocomplete="new-password" minlength="8" required>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-sm" style="max-width:200px; margin-top:6px">Update password</button>
+        <button type="submit" class="btn btn-primary btn-sm" style="max-width:200px; margin-top:6px" data-i18n="updatePasswordBtn">Update password</button>
         <div class="error-msg" id="pwError"></div>
       </form>
     </div>
@@ -69,6 +70,8 @@
 
 <script src="js/supabaseClient.js"></script>
 <script src="js/auth-guard.js"></script>
+<script src="js/i18n.js"></script>
+<script>initLangToggle();</script>
 <script src="js/settings.js"></script>
 </body>
 </html>
