@@ -25,7 +25,7 @@ async function loadWarnings() {
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
         <strong>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</strong>
       </div>
-      <div style="white-space:pre-wrap; font-family:monospace; font-size:12.5px;">${w.warning_text || w.reason}</div>
+      <div dir="rtl" style="white-space:pre-wrap; font-family:inherit; font-size:14px; text-align:right; line-height:1.8;">${w.warning_text || w.reason}</div>
     `;
     list.appendChild(box);
   }
