@@ -35,6 +35,7 @@
       <button type="button" class="tab-btn" id="tabSupervisorsBtn" data-i18n="tabSupervisors">Supervisors</button>
       <button type="button" class="tab-btn" id="tabLeaveBtn" data-i18n="tabLeaveRequests">Leave Requests</button>
       <button type="button" class="tab-btn" id="tabContractsBtn" data-i18n="tabContracts">Contracts</button>
+      <button type="button" class="tab-btn" id="tabWarningsBtn" data-i18n="tabWarnings">Warnings</button>
     </div>
 
     <div class="panel" id="directoryPanel">
@@ -168,7 +169,52 @@
       </table>
       <div class="empty-state" id="noContracts" style="display:none" data-i18n="noContractsFound">No contracts found.</div>
     </div>
+
+    <div class="panel" id="warningsPanel" style="display:none">
+      <h2 style="margin:0 0 16px" data-i18n="warningsTitle">Warnings</h2>
+      <table>
+        <thead>
+          <tr><th data-i18n="contractNameCol">Warning Name</th><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="warningReasonCol">Reason</th><th data-i18n="colStatus">Status</th><th data-i18n="colCreatedDate">Created</th><th></th></tr>
+        </thead>
+        <tbody id="warningsBody"></tbody>
+      </table>
+      <div class="empty-state" id="noWarnings" style="display:none" data-i18n="noWarningsFound">No warnings found.</div>
+    </div>
   </main>
+</div>
+
+<!-- Create warning modal -->
+<div id="warningCreateOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <h2 style="margin:0 0 16px" data-i18n="createWarningTitle">Give employee a warning</h2>
+    <form id="warningCreateForm">
+      <label for="warningReason" data-i18n="warningReasonLabel">Reason for this warning</label>
+      <textarea id="warningReason" rows="4" required></textarea>
+      <div style="display:flex; gap:10px; margin-top:14px">
+        <button type="submit" class="btn btn-primary" id="warningCreateBtn" style="width:220px" data-i18n="prepareWarningBtn">Prepare Warning</button>
+        <button type="button" class="btn btn-danger" id="warningCreateCancelBtn" style="width:220px" data-i18n="cancel">Cancel</button>
+      </div>
+      <div class="error-msg" id="warningCreateError"></div>
+    </form>
+  </div>
+</div>
+
+<!-- View / edit warning modal -->
+<div id="warningViewOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:760px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+      <h2 style="margin:0" id="warningViewTitle" data-i18n="warningDetailsTitle">Warning</h2>
+      <button type="button" class="btn btn-blue btn-sm" id="closeWarningViewBtn" data-i18n="close">Close</button>
+    </div>
+    <p class="help-text" id="warningStatusLine" style="margin:0 0 12px"></p>
+    <textarea id="warningTextArea" rows="16" style="width:100%; font-family:monospace; font-size:12.5px; padding:12px;"></textarea>
+    <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap">
+      <button type="button" class="btn btn-primary" id="warningSaveBtn" style="width:200px" data-i18n="saveChangesBtn">Save Changes</button>
+      <button type="button" class="btn btn-blue" id="warningSendBtn" style="width:220px" data-i18n="sendToEmployeeBtn">Send to Employee</button>
+      <button type="button" class="btn btn-blue" id="warningDownloadBtn" style="width:200px" data-i18n="downloadReportPdfBtn">Download Report</button>
+    </div>
+    <div class="error-msg" id="warningViewError"></div>
+  </div>
 </div>
 
 <!-- Create contract modal -->

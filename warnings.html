@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Warnings — HR Portal</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <button type="button" class="lang-toggle" id="langToggleBtn">العربية</button>
+    <div class="brand"><a href="https://www.fwxperts.com/" target="_blank" rel="noopener noreferrer" style="line-height:0"><img src="images/logo.png" alt="FWX" class="brand-logo"></a> <span data-i18n="brandStaffPortal">Staff Portal</span></div>
+    <div class="whoami" id="whoami">Loading…</div>
+    <nav>
+      <a href="staff.html" data-i18n="navMyLeave">My leave</a>
+      <a href="contract.html" data-i18n="navMyContract">My Contract</a>
+      <a href="warnings.html" class="active" data-i18n="navMyWarnings">My Warnings</a>
+    </nav>
+    <a href="settings.html" class="settings-link" data-i18n="settingsLink">⚙ Settings</a>
+    <button class="logout" onclick="logout()" data-i18n="logout">Log out</button>
+  </aside>
+
+  <main>
+    <h1 class="page-title" data-i18n="myWarningsTitle">My Warnings</h1>
+    <p class="page-sub" id="warningsSub"></p>
+
+    <div class="panel">
+      <div id="warningsList"></div>
+      <div class="empty-state" id="noWarningsMsg" style="display:none" data-i18n="noWarningsForYou">You have no warnings on file.</div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/i18n.js"></script>
+<script>initLangToggle();</script>
+<script src="js/warnings-staff.js"></script>
+</body>
+</html>
