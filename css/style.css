@@ -437,6 +437,12 @@ html[dir="rtl"] .sidebar nav button{ text-align:right; }
 html[dir="rtl"] th{ text-align:right; }
 html[dir="rtl"] .detail-row{ flex-direction:row-reverse; }
 html[dir="rtl"] .row-actions{ flex-direction:row-reverse; justify-content:flex-end; }
+html[dir="rtl"] .row-actions .btn{
+  width:auto;
+  min-width:0;
+  padding:0 12px;
+  font-size:12.5px;
+}
 html[dir="rtl"] .forgot-link{ text-align:center; }
 html[dir="rtl"] .toast{ right:auto; left:20px; }
 html[dir="rtl"] .sidebar .settings-link{ text-align:center; }
