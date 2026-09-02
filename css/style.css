@@ -64,7 +64,7 @@ a{ color:var(--accent); }
 label{
   display:block;
   font-size:13px;
-  font-weight:600;
+  font-weight:700;
   color:var(--ink-soft);
   margin:16px 0 6px;
 }
