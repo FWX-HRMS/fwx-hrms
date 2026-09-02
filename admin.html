@@ -30,9 +30,10 @@
     <div class="tab-row">
       <button type="button" class="tab-btn active" id="tabAllBtn">Employees</button>
       <button type="button" class="tab-btn" id="tabSupervisorsBtn">Supervisors</button>
+      <button type="button" class="tab-btn" id="tabLeaveBtn">Leave Requests</button>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="directoryPanel">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
         <h2 style="margin:0" id="tableTitle">Employees</h2>
         <div style="display:flex; gap:8px">
@@ -129,6 +130,17 @@
         <p style="margin:0">Initial password: <strong id="credPassword"></strong></p>
         <p style="margin:8px 0 0"><button type="button" class="btn btn-blue btn-sm" id="copyCredsBtn">Copy details</button></p>
       </div>
+    </div>
+
+    <div class="panel" id="leavePanel" style="display:none">
+      <h2 style="margin:0 0 16px">Leave Requests</h2>
+      <table>
+        <thead>
+          <tr><th>Employee</th><th>Company</th><th>Dates</th><th>Days</th><th>Type</th><th>Reason</th><th>Document</th><th>Status</th></tr>
+        </thead>
+        <tbody id="leaveRequestsBody"></tbody>
+      </table>
+      <div class="empty-state" id="noLeaveRequests" style="display:none">No leave requests found.</div>
     </div>
   </main>
 </div>
