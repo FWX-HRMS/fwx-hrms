@@ -318,7 +318,7 @@ async function deleteEmployee(id, employee) {
 
 function downloadPDF(title, subtitle, columns, rows, filename) {
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+  const doc = new jsPDF({ orientation: "landscape" });
   doc.setFontSize(16);
   doc.setTextColor(27, 36, 48);
   doc.text(title, 14, 18);
