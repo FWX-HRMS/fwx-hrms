@@ -1,6 +1,30 @@
 let ME = null;
 let TEAM_BY_ID = {};
 let TEAM_BALANCE_ROWS = [];
+let PENDING_REQUESTS = [];
+let HISTORY_REQUESTS = [];
+let PENDING_PAGE = 0;
+let HISTORY_PAGE = 0;
+let BALANCES_PAGE = 0;
+const PAGE_SIZE = 10;
+
+function updatePaginationControls(prefix, page, totalCount) {
+  const wrap = document.getElementById(`${prefix}Pagination`);
+  const info = document.getElementById(`${prefix}PageInfo`);
+  const prevBtn = document.getElementById(`${prefix}PrevBtn`);
+  const nextBtn = document.getElementById(`${prefix}NextBtn`);
+
+  if (totalCount <= PAGE_SIZE) {
+    wrap.style.display = "none";
+    return;
+  }
+  wrap.style.display = "flex";
+  const start = page * PAGE_SIZE + 1;
+  const end = Math.min((page + 1) * PAGE_SIZE, totalCount);
+  info.textContent = tv("showingRangeLabel", { start, end, total: totalCount });
+  prevBtn.disabled = page === 0;
+  nextBtn.disabled = end >= totalCount;
+}
 
 function showToast(msg) {
   const t = document.getElementById("toast");
@@ -30,14 +54,21 @@ async function loadTeam() {
 
 async function loadBalances() {
   const { data, error } = await db.from("leave_balances").select("*");
-  const body = document.getElementById("teamBody");
-  body.innerHTML = "";
-  if (error || !data) return;
+  if (error || !data) { TEAM_BALANCE_ROWS = []; renderBalances(); return; }
 
   // leave_balances RLS already restricts this to "my team + me"
-  const rows = data.filter(r => TEAM_BY_ID[r.employee_id]);
-  TEAM_BALANCE_ROWS = rows;
-  for (const r of rows) {
+  TEAM_BALANCE_ROWS = data.filter(r => TEAM_BY_ID[r.employee_id]);
+  BALANCES_PAGE = 0;
+  renderBalances();
+}
+
+function renderBalances() {
+  const body = document.getElementById("teamBody");
+  body.innerHTML = "";
+
+  const start = BALANCES_PAGE * PAGE_SIZE;
+  const pageItems = TEAM_BALANCE_ROWS.slice(start, start + PAGE_SIZE);
+  for (const r of pageItems) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${r.full_name}</td>
@@ -52,6 +83,7 @@ async function loadBalances() {
     `;
     body.appendChild(tr);
   }
+  updatePaginationControls("balances", BALANCES_PAGE, TEAM_BALANCE_ROWS.length);
 }
 
 async function loadRequests() {
@@ -60,24 +92,27 @@ async function loadRequests() {
     .select("*")
     .order("requested_at", { ascending: false });
 
+  if (error || !data) { PENDING_REQUESTS = []; HISTORY_REQUESTS = []; renderPending(); renderHistory(); return; }
+
+  PENDING_REQUESTS = data.filter(r => r.status === "pending" && TEAM_BY_ID[r.employee_id]);
+  HISTORY_REQUESTS = data.filter(r => r.status !== "pending" && TEAM_BY_ID[r.employee_id]);
+  PENDING_PAGE = 0;
+  HISTORY_PAGE = 0;
+  renderPending();
+  renderHistory();
+}
+
+function renderPending() {
   const pendingBody = document.getElementById("pendingBody");
   const noPending = document.getElementById("noPending");
-  const historyBody = document.getElementById("historyBody");
-  const noHistory = document.getElementById("noHistory");
   pendingBody.innerHTML = "";
-  historyBody.innerHTML = "";
+  noPending.style.display = PENDING_REQUESTS.length ? "none" : "block";
 
-  if (error || !data) return;
+  const start = PENDING_PAGE * PAGE_SIZE;
+  const pageItems = PENDING_REQUESTS.slice(start, start + PAGE_SIZE);
 
-  const pending = data.filter(r => r.status === "pending");
-  const history = data.filter(r => r.status !== "pending");
-
-  noPending.style.display = pending.length ? "none" : "block";
-  noHistory.style.display = history.length ? "none" : "block";
-
-  for (const r of pending) {
+  for (const r of pageItems) {
     const emp = TEAM_BY_ID[r.employee_id];
-    if (!emp) continue;
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${emp.full_name}</td>
@@ -120,9 +155,20 @@ async function loadRequests() {
     });
   });
 
-  for (const r of history.slice(0, 50)) {
+  updatePaginationControls("pending", PENDING_PAGE, PENDING_REQUESTS.length);
+}
+
+function renderHistory() {
+  const historyBody = document.getElementById("historyBody");
+  const noHistory = document.getElementById("noHistory");
+  historyBody.innerHTML = "";
+  noHistory.style.display = HISTORY_REQUESTS.length ? "none" : "block";
+
+  const start = HISTORY_PAGE * PAGE_SIZE;
+  const pageItems = HISTORY_REQUESTS.slice(start, start + PAGE_SIZE);
+
+  for (const r of pageItems) {
     const emp = TEAM_BY_ID[r.employee_id];
-    if (!emp) continue;
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${emp.full_name}</td>
@@ -133,7 +179,16 @@ async function loadRequests() {
     `;
     historyBody.appendChild(tr);
   }
+
+  updatePaginationControls("history", HISTORY_PAGE, HISTORY_REQUESTS.length);
 }
+
+document.getElementById("pendingPrevBtn").addEventListener("click", () => { if (PENDING_PAGE > 0) { PENDING_PAGE--; renderPending(); } });
+document.getElementById("pendingNextBtn").addEventListener("click", () => { if ((PENDING_PAGE + 1) * PAGE_SIZE < PENDING_REQUESTS.length) { PENDING_PAGE++; renderPending(); } });
+document.getElementById("historyPrevBtn").addEventListener("click", () => { if (HISTORY_PAGE > 0) { HISTORY_PAGE--; renderHistory(); } });
+document.getElementById("historyNextBtn").addEventListener("click", () => { if ((HISTORY_PAGE + 1) * PAGE_SIZE < HISTORY_REQUESTS.length) { HISTORY_PAGE++; renderHistory(); } });
+document.getElementById("balancesPrevBtn").addEventListener("click", () => { if (BALANCES_PAGE > 0) { BALANCES_PAGE--; renderBalances(); } });
+document.getElementById("balancesNextBtn").addEventListener("click", () => { if ((BALANCES_PAGE + 1) * PAGE_SIZE < TEAM_BALANCE_ROWS.length) { BALANCES_PAGE++; renderBalances(); } });
 
 function showDateRangePrompt(title) {
   return new Promise((resolve) => {
