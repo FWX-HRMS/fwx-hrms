@@ -515,6 +515,7 @@ function showDateRangePrompt(title) {
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
     document.getElementById("rangeEmployeeIdInput").value = "";
+    document.getElementById("rangeIncludeFrozen").checked = true;
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
     const generateBtn = document.getElementById("rangeGenerateBtn");
@@ -529,8 +530,9 @@ function showDateRangePrompt(title) {
       const from = document.getElementById("rangeFromInput").value || null;
       const to = document.getElementById("rangeToInput").value || null;
       const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
+      const includeFrozen = document.getElementById("rangeIncludeFrozen").checked;
       cleanup();
-      resolve({ from, to, employeeId });
+      resolve({ from, to, employeeId, includeFrozen });
     };
     const onCancel = () => {
       cleanup();
@@ -561,7 +563,7 @@ function loadLogoDataURL() {
   });
 }
 
-async function downloadPDF(title, subtitle, columns, rows, filename) {
+async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndices) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape" });
 
@@ -588,6 +590,11 @@ async function downloadPDF(title, subtitle, columns, rows, filename) {
     headStyles: { fillColor: [47, 111, 94] },
     styles: { fontSize: 9, cellPadding: 4 },
     margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      if (redRowIndices && data.section === "body" && redRowIndices.has(data.row.index)) {
+        data.cell.styles.textColor = [165, 64, 43];
+      }
+    },
   });
   doc.save(filename);
 }
@@ -604,13 +611,16 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   if (!range.employeeId && COMPANY_FILTER) source = source.filter(e => e.client_company === COMPANY_FILTER);
   if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
   if (range.to) source = source.filter(e => e.hiring_date && e.hiring_date <= range.to);
+  if (!range.includeFrozen) source = source.filter(e => !e.frozen);
 
   if (source.length === 0) {
     showToast(t("noMatchingEmployeeToast"));
     return;
   }
 
-  const rows = source.map(e => {
+  const redRowIndices = new Set();
+  const rows = source.map((e, i) => {
+    if (e.frozen) redRowIndices.add(i);
     const bal = BALANCES_BY_ID[e.id] || {};
     return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, fmtDate(e.hiring_date), e.frozen ? fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null) : "—", String(e.carryover_balance ?? 0), String(bal.annual_entitlement ?? "—"), String(bal.taken ?? "—"), String(bal.remaining ?? "—"), String(bal.sick_entitlement ?? "—"), String(bal.sick_taken ?? "—"), String(bal.sick_remaining ?? "—")];
   });
@@ -623,7 +633,8 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
     ["Employee Name", "ID #", "Company", "Department", "Role", "Hiring Date", "Frozen Date", "Prev. Balance", "Annual", "Ann. Taken", "Available Balance", "Sick", "Sick Taken", "Sick Left"],
     rows,
-    `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report.pdf`
+    `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report.pdf`,
+    redRowIndices
   );
 });
 
@@ -643,14 +654,17 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   }
   if (range.from) rows = rows.filter(r => r.end_date >= range.from);
   if (range.to) rows = rows.filter(r => r.start_date <= range.to);
+  if (!range.includeFrozen) rows = rows.filter(r => !(byId[r.employee_id] && byId[r.employee_id].frozen));
 
   if (rows.length === 0) {
     showToast(t("noMatchingRequestsToast"));
     return;
   }
 
-  const pdfRows = rows.map(r => {
+  const redRowIndices = new Set();
+  const pdfRows = rows.map((r, i) => {
     const emp = byId[r.employee_id];
+    if (emp && emp.frozen) redRowIndices.add(i);
     return [
       emp ? emp.full_name : "—",
       emp ? (emp.client_company || "—") : "—",
@@ -668,7 +682,8 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
     ["Employee Name", "Company", "Dates", "Days", "Type", "Status"],
     pdfRows,
-    `${COMPANY_FILTER ? COMPANY_FILTER.toLowerCase() + "_" : ""}leave_requests_report.pdf`
+    `${COMPANY_FILTER ? COMPANY_FILTER.toLowerCase() + "_" : ""}leave_requests_report.pdf`,
+    redRowIndices
   );
 });
 

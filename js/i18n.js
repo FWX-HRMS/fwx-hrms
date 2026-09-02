@@ -133,6 +133,7 @@ const translations = {
     fromLabel: "From",
     toLabel: "To",
     generatePdfBtn: "Generate PDF",
+    includeFrozenLabel: "Include frozen staff",
     noMatchingEmployeeToast: "No matching employee found for that ID.",
     noMatchingRequestsToast: "No matching leave requests found.",
 
@@ -408,6 +409,7 @@ const translations = {
     fromLabel: "من",
     toLabel: "إلى",
     generatePdfBtn: "إنشاء PDF",
+    includeFrozenLabel: "تضمين الموظفين المجمّدين",
     noMatchingEmployeeToast: "لم يتم العثور على موظف مطابق لهذا الرقم.",
     noMatchingRequestsToast: "لم يتم العثور على طلبات إجازة مطابقة.",
 
