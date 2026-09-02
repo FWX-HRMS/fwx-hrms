@@ -215,7 +215,7 @@ async function downloadPDF(title, subtitle, columns, rows, filename) {
 }
 
 document.getElementById("downloadReportBtn").addEventListener("click", async () => {
-  const range = await showDateRangePrompt("Filter by hiring date");
+  const range = await showDateRangePrompt("Select report period");
   if (!range) return;
 
   let source = TEAM_BALANCE_ROWS;
@@ -223,11 +223,11 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   if (range.to) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date <= range.to; });
 
   const rows = source.map(r => [r.full_name, r.file_number, String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
-  const rangeNote = (range.from || range.to) ? ` — Hired ${range.from || "…"} to ${range.to || "…"}` : "";
+  const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
   downloadPDF(
     "My Team — Leave Report",
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
-    ["Name", "File #", "Annual", "Taken", "Remaining", "Pending", "Sick", "Sick Taken", "Sick Remaining"],
+    ["Employee Name", "ID #", "Annual", "Taken", "Remaining", "Pending", "Sick", "Sick Taken", "Sick Remaining"],
     rows,
     "my_team_leave_report.pdf"
   );

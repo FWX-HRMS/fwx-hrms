@@ -467,7 +467,7 @@ async function downloadPDF(title, subtitle, columns, rows, filename) {
 }
 
 document.getElementById("downloadReportBtn").addEventListener("click", async () => {
-  const range = await showDateRangePrompt("Filter by hiring date");
+  const range = await showDateRangePrompt("Select report period");
   if (!range) return;
 
   let source = ACTIVE_TAB === "supervisors"
@@ -484,18 +484,18 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const scope = COMPANY_FILTER ? `${COMPANY_FILTER} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
   const filenamePrefix = COMPANY_FILTER ? `${COMPANY_FILTER.toLowerCase()}_` : "";
-  const rangeNote = (range.from || range.to) ? ` — Hired ${range.from || "…"} to ${range.to || "…"}` : "";
+  const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
   downloadPDF(
     title,
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
-    ["Name", "File #", "Company", "Department", "Role", "Annual", "Ann. Taken", "Ann. Left", "Sick", "Sick Taken", "Sick Left"],
+    ["Employee Name", "ID #", "Company", "Department", "Role", "Annual", "Ann. Taken", "Ann. Left", "Sick", "Sick Taken", "Sick Left"],
     rows,
     `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report.pdf`
   );
 });
 
 document.getElementById("downloadLeaveReportBtn").addEventListener("click", async () => {
-  const range = await showDateRangePrompt("Filter by leave dates");
+  const range = await showDateRangePrompt("Select report period");
   if (!range) return;
 
   const { data, error } = await db.from("leave_requests").select("*").order("requested_at", { ascending: false });
@@ -524,7 +524,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   downloadPDF(
     `${scope}Leave Requests`,
     `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
-    ["Employee", "Company", "Dates", "Days", "Type", "Status"],
+    ["Employee Name", "Company", "Dates", "Days", "Type", "Status"],
     pdfRows,
     `${COMPANY_FILTER ? COMPANY_FILTER.toLowerCase() + "_" : ""}leave_requests_report.pdf`
   );
