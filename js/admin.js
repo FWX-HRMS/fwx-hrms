@@ -515,7 +515,7 @@ function showDateRangePrompt(title) {
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
     document.getElementById("rangeEmployeeIdInput").value = "";
-    document.getElementById("rangeIncludeFrozen").checked = true;
+    document.getElementById("rangeIncludeFrozen").checked = false;
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
     const generateBtn = document.getElementById("rangeGenerateBtn");
