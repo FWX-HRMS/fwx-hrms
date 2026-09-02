@@ -571,10 +571,7 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   errBox.classList.remove("show");
   credBox.classList.remove("show");
 
-  const first = document.getElementById("firstName").value.trim();
-  const middle = document.getElementById("middleName").value.trim();
-  const family = document.getElementById("familyName").value.trim();
-  const full_name = [first, middle, family].filter(Boolean).join(" ");
+  const full_name = document.getElementById("fullName").value.trim();
 
   const email = document.getElementById("email").value.trim();
   const hiring_date = document.getElementById("hiringDate").value || null;
