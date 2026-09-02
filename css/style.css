@@ -398,6 +398,20 @@ html[dir="rtl"] .action-menu button{ text-align:right; }
 }
 .toast.show{ opacity:1; transform:translateY(0); }
 
+.location-footer{
+  position:fixed;
+  bottom:0; left:0; right:0;
+  background:var(--ink);
+  color:#EDEFF2;
+  padding:10px 24px;
+  font-size:13px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:16px;
+  z-index:80;
+}
+
 @media (max-width: 800px){
   .app{ grid-template-columns:1fr; }
   .sidebar{ flex-direction:row; align-items:center; padding:14px 18px; }
