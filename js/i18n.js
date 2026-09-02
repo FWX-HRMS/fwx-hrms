@@ -280,6 +280,8 @@ const translations = {
     locationActive: "Active",
     locationDenied: "Blocked — enable location access in your browser",
     locationUnsupported: "Not supported on this device",
+    mapStreetLabel: "Street",
+    mapSatelliteLabel: "Satellite",
 
     // Extra keys for admin.js dynamic content
     okBtn: "OK",
@@ -581,6 +583,8 @@ const translations = {
     locationActive: "نشط",
     locationDenied: "محظور — فعّل الوصول إلى الموقع في متصفحك",
     locationUnsupported: "غير مدعوم على هذا الجهاز",
+    mapStreetLabel: "خريطة الشوارع",
+    mapSatelliteLabel: "قمر صناعي",
 
     // Extra keys for admin.js dynamic content
     okBtn: "موافق",

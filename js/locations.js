@@ -102,9 +102,20 @@ async function refreshLocations() {
     : t("staffLocationsSubSupervisor");
 
   MAP = L.map("map").setView([31.9539, 35.9106], 8); // Amman, Jordan — sane default center
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+
+  const streetLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "&copy; OpenStreetMap contributors",
     maxZoom: 19
+  }).addTo(MAP);
+
+  const satelliteLayer = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+    attribution: "Tiles &copy; Esri",
+    maxZoom: 19
+  });
+
+  L.control.layers({
+    [t("mapStreetLabel")]: streetLayer,
+    [t("mapSatelliteLabel")]: satelliteLayer
   }).addTo(MAP);
 
   await refreshLocations();
