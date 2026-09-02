@@ -552,6 +552,8 @@ function toggleEditLeaveFields() {
   document.getElementById("editHiringDateRow").style.display = isSupervisor ? "none" : "";
   document.getElementById("editEntitlementRow").style.display = isSupervisor ? "none" : "";
   if (isSupervisor) document.getElementById("editTakenThisYearRow").style.display = "none";
+  document.getElementById("editDobField").style.display = isSupervisor ? "none" : "";
+  document.getElementById("editEmployeeTitle").textContent = isSupervisor ? t("editSupervisorInfoTitle") : t("editEmployeeTitle");
 }
 
 function toggleEditSupervisorField() {
