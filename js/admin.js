@@ -174,6 +174,7 @@ document.getElementById("showAddFormBtn").addEventListener("click", () => {
   }
   toggleSupervisorField();
   populateSupervisorOptions();
+  populateDepartmentOptions(document.getElementById("department"), companySelect.value, null);
   document.getElementById("annualEntitlement").value = computeAnnualEntitlementClientSide(document.getElementById("hiringDate").value);
   document.getElementById("carryoverBalance").value = 0;
   document.getElementById("addPanel").scrollIntoView({ behavior: "smooth" });
@@ -235,7 +236,24 @@ function populateSupervisorOptions() {
     select.appendChild(opt);
   }
 }
+const DEPARTMENTS_BY_COMPANY = {
+  "Umniah": ["Battery Rescue Power Planning", "Transmission & OMC", "Network Maintenance", "Network- Power & Energy Planning", "RA Network", "Transport Planning", "Transmission", "Rent Site", "Civil", "TDD Visit", "Wherhouse", "Tele Sales", "Direct Sales", "Preventive Maintenance", "N.W Rollout Acceptance", "Network Planning & Maintenance", "Drive Test", "MDS", "Selection", "Quality", "Data Centre", "Office"],
+  "Zain": ["Fiber acceptance", "Fiber Support", "FiberTech", "Power", "Bunker", "Tele Sales", "Direct Sales", "Shop Maintenance", "IBS", "TXM", "Network Maintenance", "Preventive Maintenance", "Data Centre", "Office"],
+  "Fiber-Tech": ["Field", "Rollout and Acceptance", "Fiber"],
+};
+const DEFAULT_DEPARTMENTS = ["Technical", "Sales", "Marketing", "HR", "Finance", "IT", "Administration"];
+
+function populateDepartmentOptions(selectEl, companyName, selectedValue) {
+  const list = DEPARTMENTS_BY_COMPANY[companyName] || DEFAULT_DEPARTMENTS;
+  const current = selectedValue !== undefined ? selectedValue : selectEl.value;
+  selectEl.innerHTML = list.map(d => `<option value="${d}">${d}</option>`).join("");
+  if (current && list.includes(current)) selectEl.value = current;
+}
+
 document.getElementById("clientCompany").addEventListener("change", populateSupervisorOptions);
+document.getElementById("clientCompany").addEventListener("change", () => {
+  populateDepartmentOptions(document.getElementById("department"), document.getElementById("clientCompany").value, null);
+});
 
 async function loadBalances() {
   const { data, error } = await db.from("leave_balances").select("*");
@@ -507,6 +525,7 @@ function toggleEditSupervisorField() {
 document.getElementById("editRole").addEventListener("change", toggleEditSupervisorField);
 document.getElementById("editClientCompany").addEventListener("change", () => {
   populateEditSupervisorOptions(document.getElementById("editClientCompany").value, null);
+  populateDepartmentOptions(document.getElementById("editDepartment"), document.getElementById("editClientCompany").value, null);
 });
 
 async function populateEditCompanyOptions(selected) {
@@ -542,7 +561,7 @@ async function openEditModal(id) {
   document.getElementById("editHiringDate").value = e.hiring_date || "";
   document.getElementById("editAnnualEntitlement").value = bal ? bal.annual_entitlement : (e.annual_entitlement ?? "");
   document.getElementById("editCarryoverBalance").value = e.carryover_balance ?? 0;
-  document.getElementById("editDepartment").value = e.department || "Technical";
+  populateDepartmentOptions(document.getElementById("editDepartment"), e.client_company, e.department);
   document.getElementById("editDob").value = e.dob || "";
   document.getElementById("editNationality").value = e.nationality || "";
   document.getElementById("editEducation").value = e.education || "";
