@@ -15,15 +15,16 @@ function badgeFor(status) {
 }
 
 async function loadTeam() {
-  const { data, error } = await db
-    .from("employees")
-    .select("*")
-    .eq("supervisor_id", ME.id)
-    .order("full_name");
+  const query = db.from("employees").select("*").order("full_name");
+  const { data, error } = ME.role === "admin"
+    ? await query.neq("role", "admin")
+    : await query.eq("supervisor_id", ME.id);
 
   if (error || !data) return [];
   TEAM_BY_ID = Object.fromEntries(data.map(e => [e.id, e]));
-  document.getElementById("teamCount").textContent = `${data.length} ${data.length === 1 ? t("directReportsSuffix") : t("directReportsSuffixPlural")}`;
+  document.getElementById("teamCount").textContent = ME.role === "admin"
+    ? `${data.length} ${data.length === 1 ? t("employeeCountSuffix") : t("employeeCountSuffixPlural")}`
+    : `${data.length} ${data.length === 1 ? t("directReportsSuffix") : t("directReportsSuffixPlural")}`;
   return data;
 }
 
