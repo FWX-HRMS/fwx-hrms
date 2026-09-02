@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -26,8 +27,13 @@
   </aside>
 
   <main>
-    <h1 class="page-title" data-i18n="teamOverviewTitle">Team overview</h1>
-    <p class="page-sub" id="teamCount"></p>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px">
+      <div>
+        <h1 class="page-title" style="margin-bottom:4px" data-i18n="teamOverviewTitle">Team overview</h1>
+        <p class="page-sub" id="teamCount" style="margin-bottom:0"></p>
+      </div>
+      <button type="button" class="btn btn-blue" id="downloadReportBtn" style="width:200px; height:44px" data-i18n="downloadReportBtn">Download Report</button>
+    </div>
 
     <div class="panel">
       <h2 data-i18n="pendingRequestsTitle">Pending requests</h2>
@@ -43,26 +49,6 @@
         <div style="display:flex; gap:8px">
           <button type="button" class="btn btn-blue btn-sm" id="pendingPrevBtn" data-i18n="prevBtn">‹ Prev</button>
           <button type="button" class="btn btn-blue btn-sm" id="pendingNextBtn" data-i18n="nextBtn">Next ›</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
-        <h2 style="margin:0" data-i18n="teamBalancesTitle">Team balances</h2>
-        <button type="button" class="btn btn-blue btn-sm" id="downloadReportBtn" style="width:180px" data-i18n="downloadReportBtn">Download report (PDF)</button>
-      </div>
-      <table>
-        <thead>
-          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colIdNum">ID #</th><th data-i18n="colAnnual">Annual</th><th data-i18n="colTaken">Taken</th><th data-i18n="colRemaining">Remaining</th><th data-i18n="colPending">Pending</th><th data-i18n="colSick">Sick</th><th data-i18n="colSickTaken">Sick Taken</th><th data-i18n="colSickRemaining">Sick Remaining</th></tr>
-        </thead>
-        <tbody id="teamBody"></tbody>
-      </table>
-      <div id="balancesPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
-        <span id="balancesPageInfo"></span>
-        <div style="display:flex; gap:8px">
-          <button type="button" class="btn btn-blue btn-sm" id="balancesPrevBtn" data-i18n="prevBtn">‹ Prev</button>
-          <button type="button" class="btn btn-blue btn-sm" id="balancesNextBtn" data-i18n="nextBtn">Next ›</button>
         </div>
       </div>
     </div>
@@ -104,9 +90,18 @@
         <input type="date" id="rangeToInput">
       </div>
     </div>
+    <label style="display:flex; align-items:center; gap:16px; margin-top:16px">
+      <span style="display:flex; align-items:center; gap:8px; font-weight:500; color:var(--ink)">
+        <input type="checkbox" id="rangeFormatPdf" checked style="width:auto"><span data-i18n="formatPdfLabel">PDF</span>
+      </span>
+      <span style="display:flex; align-items:center; gap:8px; font-weight:500; color:var(--ink)">
+        <input type="checkbox" id="rangeFormatExcel" style="width:auto"><span data-i18n="formatExcelLabel">Excel</span>
+      </span>
+    </label>
+    <div class="error-msg" id="rangeFormatError"></div>
     <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:18px">
       <button type="button" class="btn btn-danger btn-sm" id="rangeCancelBtn" data-i18n="cancel">Cancel</button>
-      <button type="button" class="btn btn-primary btn-sm" id="rangeGenerateBtn" data-i18n="generatePdfBtn">Generate PDF</button>
+      <button type="button" class="btn btn-primary btn-sm" id="rangeGenerateBtn" data-i18n="generateBtnLabel">Generate</button>
     </div>
   </div>
 </div>

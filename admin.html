@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -39,13 +40,13 @@
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
         <h2 style="margin:0" id="tableTitle" data-i18n="tabEmployees">Employees</h2>
         <div style="display:flex; gap:8px">
-          <button type="button" class="btn btn-blue" id="downloadReportBtn" style="width:220px; height:44px" data-i18n="downloadReportPdfBtn">Download report (PDF)</button>
+          <button type="button" class="btn btn-blue" id="downloadReportBtn" style="width:220px; height:44px" data-i18n="downloadReportPdfBtn">Download Report</button>
           <button type="button" class="btn btn-primary" id="showAddFormBtn" style="width:220px; height:44px" data-i18n="addNewEmployeeBtn">+ Add new employee</button>
         </div>
       </div>
       <table>
         <thead>
-          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colIdNum">ID #</th><th data-i18n="colRole">Role</th><th data-i18n="colCompany">Company</th><th data-i18n="colDepartment">Department</th><th data-i18n="colSupervisor">Supervisor</th><th data-i18n="colHiringDate">Hiring date</th><th data-i18n="frozenSinceLabel">Frozen since</th><th data-i18n="colPrevYearBalance">Prev. Year Balance</th><th data-i18n="colAnnual">Annual</th><th data-i18n="colTaken">Taken</th><th data-i18n="colRemaining">Remaining</th><th data-i18n="colSick">Sick</th><th data-i18n="colSickTaken">Sick Taken</th><th data-i18n="colSickRemaining">Sick Remaining</th><th></th></tr>
+          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colIdNum">ID #</th><th data-i18n="colRole">Role</th><th data-i18n="colCompany">Company</th><th data-i18n="colDepartment">Department</th><th data-i18n="colSupervisor">Supervisor</th><th data-i18n="frozenSinceLabel">Frozen since</th><th data-i18n="colPrevYearBalance">Prev. Year Balance</th><th data-i18n="colAnnual">Annual</th><th data-i18n="colTaken">Taken</th><th data-i18n="colRemaining">Remaining</th><th data-i18n="colSick">Sick</th><th data-i18n="colSickTaken">Sick Taken</th><th data-i18n="colSickRemaining">Sick Remaining</th><th></th></tr>
         </thead>
         <tbody id="directoryBody"></tbody>
       </table>
@@ -68,7 +69,7 @@
           </div>
           <div></div>
         </div>
-        <div class="field-row">
+        <div class="field-row" id="hiringDateRow">
           <div>
             <label for="hiringDate" data-i18n="hiringDateLabel">Hiring date</label>
             <input type="date" id="hiringDate">
@@ -145,7 +146,7 @@
     <div class="panel" id="leavePanel" style="display:none">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
         <h2 style="margin:0" data-i18n="leaveRequestsTitle">Leave Requests</h2>
-        <button type="button" class="btn btn-blue" id="downloadLeaveReportBtn" style="width:220px; height:44px" data-i18n="downloadReportPdfBtn">Download report (PDF)</button>
+        <button type="button" class="btn btn-blue" id="downloadLeaveReportBtn" style="width:220px; height:44px" data-i18n="downloadReportPdfBtn">Download Report</button>
       </div>
       <table>
         <thead>
@@ -201,9 +202,18 @@
       <input type="checkbox" id="rangeIncludeFrozen" style="width:auto">
       <span data-i18n="includeFrozenLabel">Include frozen staff</span>
     </label>
+    <label style="display:flex; align-items:center; gap:16px; margin-top:12px">
+      <span style="display:flex; align-items:center; gap:8px; font-weight:500; color:var(--ink)">
+        <input type="checkbox" id="rangeFormatPdf" checked style="width:auto"><span data-i18n="formatPdfLabel">PDF</span>
+      </span>
+      <span style="display:flex; align-items:center; gap:8px; font-weight:500; color:var(--ink)">
+        <input type="checkbox" id="rangeFormatExcel" style="width:auto"><span data-i18n="formatExcelLabel">Excel</span>
+      </span>
+    </label>
+    <div class="error-msg" id="rangeFormatError"></div>
     <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:18px">
       <button type="button" class="btn btn-danger btn-sm" id="rangeCancelBtn" data-i18n="cancel">Cancel</button>
-      <button type="button" class="btn btn-primary btn-sm" id="rangeGenerateBtn" data-i18n="generatePdfBtn">Generate PDF</button>
+      <button type="button" class="btn btn-primary btn-sm" id="rangeGenerateBtn" data-i18n="generateBtnLabel">Generate</button>
     </div>
   </div>
 </div>
