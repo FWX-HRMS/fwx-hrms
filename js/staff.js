@@ -151,7 +151,19 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
 (async () => {
   ME = await requireSession("staff");
   if (!ME) return;
-  document.getElementById("whoami").innerHTML = `${ME.full_name} · #${ME.file_number}<br><span style="opacity:.7">${ME.client_company || ""}</span>`;
+
+  let supervisorName = "—";
+  if (ME.supervisor_id) {
+    const { data: sup } = await db.from("employees").select("full_name").eq("id", ME.supervisor_id).maybeSingle();
+    if (sup) supervisorName = sup.full_name;
+  }
+
+  document.getElementById("whoami").innerHTML = `
+    ${ME.full_name} · #${ME.file_number}<br>
+    <span style="opacity:.7">${ME.client_company || ""}</span><br>
+    <span style="opacity:.7">${t("colHiringDate")}: ${fmtDate(ME.hiring_date)}</span><br>
+    <span style="opacity:.7">${t("colSupervisor")}: ${supervisorName}</span>
+  `;
   document.getElementById("deptLine").textContent = ME.department ? `${ME.department}` : "";
   await Promise.all([loadBalance(), loadRequests()]);
 })();
