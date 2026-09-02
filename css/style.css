@@ -321,7 +321,7 @@ table{ width:100%; border-collapse:collapse; font-size:14px; }
 th{
   text-align:left;
   font-size:12px;
-  font-weight:600;
+  font-weight:700;
   color:var(--ink-soft);
   padding:8px 10px;
   border-bottom:1px solid var(--border);
