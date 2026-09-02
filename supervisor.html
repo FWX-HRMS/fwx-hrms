@@ -54,6 +54,24 @@
     </div>
 
     <div class="panel">
+      <h2 data-i18n="usersListTitle">Users</h2>
+      <table>
+        <thead>
+          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colIdNum">ID #</th><th data-i18n="colRole">Role</th><th data-i18n="colCompany">Company</th><th data-i18n="colDepartment">Department</th></tr>
+        </thead>
+        <tbody id="usersBody"></tbody>
+      </table>
+      <div class="empty-state" id="noUsers" style="display:none" data-i18n="noUsersFound">No users found.</div>
+      <div id="usersPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="usersPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-blue btn-sm" id="usersPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-blue btn-sm" id="usersNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
       <h2 data-i18n="requestHistoryTitle">Request history</h2>
       <table>
         <thead>
