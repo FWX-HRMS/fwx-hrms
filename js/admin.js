@@ -288,6 +288,7 @@ function renderDirectory() {
           <button type="button" class="btn btn-blue btn-sm" data-action-toggle="${e.id}">${t("actionsBtn")} ▾</button>
           <div class="action-menu" id="actionMenu-${e.id}">
             <button type="button" data-view="${e.id}">${t("view")}</button>
+            <button type="button" data-edit="${e.id}">${t("editBtn")}</button>
             <button type="button" data-reset="${e.id}">${t("resetPasswordBtn")}</button>
             ${!isSelf ? (e.frozen
               ? `<button type="button" data-unfreeze="${e.id}">${t("unfreezeBtn")}</button>`
@@ -339,6 +340,9 @@ function renderDirectory() {
 
   body.querySelectorAll("button[data-view]").forEach(btn => {
     btn.addEventListener("click", () => { closeActionMenus(); showDetails(btn.dataset.view); });
+  });
+  body.querySelectorAll("button[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => { closeActionMenus(); openEditModal(btn.dataset.edit); });
   });
   body.querySelectorAll("button[data-reset]").forEach(btn => {
     btn.addEventListener("click", () => { closeActionMenus(); resetPassword(btn.dataset.reset, byId[btn.dataset.reset]); });
@@ -496,6 +500,137 @@ async function unfreezeEmployee(id, employee) {
   showToast(t("accountUnfrozenToast"));
   await Promise.all([loadDirectory(), loadBalances()]);
 }
+
+function toggleEditSupervisorField() {
+  document.getElementById("editSupervisorField").style.display = document.getElementById("editRole").value === "staff" ? "" : "none";
+}
+document.getElementById("editRole").addEventListener("change", toggleEditSupervisorField);
+document.getElementById("editClientCompany").addEventListener("change", () => {
+  populateEditSupervisorOptions(document.getElementById("editClientCompany").value, null);
+});
+
+async function populateEditCompanyOptions(selected) {
+  const { data, error } = await db.from("client_companies").select("name").order("name");
+  const select = document.getElementById("editClientCompany");
+  select.innerHTML = "";
+  if (!error && data) {
+    for (const c of data) {
+      const opt = document.createElement("option");
+      opt.value = c.name;
+      opt.textContent = c.name;
+      select.appendChild(opt);
+    }
+  }
+  select.value = selected || "";
+}
+
+function populateEditSupervisorOptions(companyFilter, selectedFileNumber) {
+  const select = document.getElementById("editSupervisor");
+  const matches = SUPERVISORS.filter(s => s.client_company === companyFilter);
+  select.innerHTML = `<option value="">${t("selectSupervisorPlaceholder")}</option>` +
+    matches.map(s => `<option value="${s.file_number}">${s.full_name} (#${s.file_number})</option>`).join("");
+  if (selectedFileNumber) select.value = selectedFileNumber;
+}
+
+async function openEditModal(id) {
+  const e = DIRECTORY.find(x => x.id === id);
+  if (!e) return;
+  const bal = BALANCES_BY_ID[e.id];
+
+  document.getElementById("editFullName").value = e.full_name || "";
+  document.getElementById("editEmail").value = e.email || "";
+  document.getElementById("editHiringDate").value = e.hiring_date || "";
+  document.getElementById("editAnnualEntitlement").value = bal ? bal.annual_entitlement : (e.annual_entitlement ?? "");
+  document.getElementById("editCarryoverBalance").value = e.carryover_balance ?? 0;
+  document.getElementById("editDepartment").value = e.department || "Technical";
+  document.getElementById("editDob").value = e.dob || "";
+  document.getElementById("editNationality").value = e.nationality || "";
+  document.getElementById("editEducation").value = e.education || "";
+  document.getElementById("editSalary").value = e.salary ?? "";
+  document.getElementById("editError").classList.remove("show");
+
+  const roleSelect = document.getElementById("editRole");
+  roleSelect.querySelectorAll('option[value="admin"]').forEach(o => o.remove());
+  if (e.role === "admin") {
+    const opt = document.createElement("option");
+    opt.value = "admin";
+    opt.textContent = "Admin";
+    roleSelect.appendChild(opt);
+  }
+  roleSelect.value = e.role;
+
+  await populateEditCompanyOptions(e.client_company);
+  let supFileNumber = null;
+  if (e.supervisor_id) {
+    const sup = DIRECTORY.find(x => x.id === e.supervisor_id);
+    if (sup) supFileNumber = sup.file_number;
+  }
+  populateEditSupervisorOptions(e.client_company, supFileNumber);
+  toggleEditSupervisorField();
+
+  document.getElementById("editOverlay").dataset.targetId = id;
+  document.getElementById("editOverlay").style.display = "flex";
+}
+
+document.getElementById("closeEditBtn").addEventListener("click", () => {
+  document.getElementById("editOverlay").style.display = "none";
+});
+document.getElementById("cancelEditBtn").addEventListener("click", () => {
+  document.getElementById("editOverlay").style.display = "none";
+});
+
+document.getElementById("editForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const errBox = document.getElementById("editError");
+  errBox.classList.remove("show");
+
+  const target_id = document.getElementById("editOverlay").dataset.targetId;
+  const full_name = document.getElementById("editFullName").value.trim();
+  const email = document.getElementById("editEmail").value.trim();
+  const hiring_date = document.getElementById("editHiringDate").value || null;
+  const department = document.getElementById("editDepartment").value;
+  const client_company = document.getElementById("editClientCompany").value;
+  const role = document.getElementById("editRole").value;
+  const supervisor_file_number = role === "staff" ? document.getElementById("editSupervisor").value : null;
+  const annual_entitlement_override = document.getElementById("editAnnualEntitlement").value !== "" ? Number(document.getElementById("editAnnualEntitlement").value) : null;
+  const carryover_balance = document.getElementById("editCarryoverBalance").value !== "" ? Number(document.getElementById("editCarryoverBalance").value) : 0;
+  const dob = document.getElementById("editDob").value || null;
+  const nationality = document.getElementById("editNationality").value.trim() || null;
+  const education = document.getElementById("editEducation").value.trim() || null;
+  const salary = document.getElementById("editSalary").value !== "" ? Number(document.getElementById("editSalary").value) : null;
+
+  if (!client_company) {
+    errBox.textContent = t("pleaseSelectCompany");
+    errBox.classList.add("show");
+    return;
+  }
+  if (role === "staff" && !supervisor_file_number) {
+    errBox.textContent = t("pleaseAssignSupervisor");
+    errBox.classList.add("show");
+    return;
+  }
+
+  const btn = document.getElementById("editSaveBtn");
+  btn.disabled = true;
+  btn.textContent = t("saving");
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "update_employee", target_id, full_name, email, hiring_date, department, client_company, role, supervisor_file_number, annual_entitlement_override, carryover_balance, dob, nationality, education, salary }
+  });
+
+  btn.disabled = false;
+  btn.textContent = t("save");
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongUpdatingEmployee");
+    errBox.classList.add("show");
+    return;
+  }
+
+  document.getElementById("editOverlay").style.display = "none";
+  showToast(t("employeeUpdatedToast"));
+  await Promise.all([loadDirectory(), loadBalances(), loadSupervisors()]);
+});
 
 async function resetPassword(id, employee) {
   const ok = await showConfirm(
