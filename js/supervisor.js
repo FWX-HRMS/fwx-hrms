@@ -10,7 +10,8 @@ function showToast(msg) {
 }
 
 function badgeFor(status) {
-  return `<span class="badge badge-${status}">${status[0].toUpperCase()}${status.slice(1)}</span>`;
+  const key = "status" + status[0].toUpperCase() + status.slice(1);
+  return `<span class="badge badge-${status}">${t(key)}</span>`;
 }
 
 async function loadTeam() {
@@ -22,7 +23,7 @@ async function loadTeam() {
 
   if (error || !data) return [];
   TEAM_BY_ID = Object.fromEntries(data.map(e => [e.id, e]));
-  document.getElementById("teamCount").textContent = `${data.length} direct report${data.length === 1 ? "" : "s"}`;
+  document.getElementById("teamCount").textContent = `${data.length} ${data.length === 1 ? t("directReportsSuffix") : t("directReportsSuffixPlural")}`;
   return data;
 }
 
@@ -83,10 +84,10 @@ async function loadRequests() {
       <td>${r.days_requested}</td>
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${r.reason ? r.reason : "—"}</td>
-      <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">View</button>` : "—"}</td>
+      <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">${t("view")}</button>` : "—"}</td>
       <td class="row-actions">
-        <button class="btn btn-primary btn-sm" data-action="approved" data-id="${r.id}">Approve</button>
-        <button class="btn btn-danger btn-sm" data-action="rejected" data-id="${r.id}">Reject</button>
+        <button class="btn btn-primary btn-sm" data-action="approved" data-id="${r.id}">${t("approveBtn")}</button>
+        <button class="btn btn-danger btn-sm" data-action="rejected" data-id="${r.id}">${t("rejectBtn")}</button>
       </td>
     `;
     pendingBody.appendChild(tr);
@@ -95,7 +96,7 @@ async function loadRequests() {
   pendingBody.querySelectorAll("button[data-doc]").forEach(btn => {
     btn.addEventListener("click", async () => {
       const { data, error } = await db.storage.from("leave-documents").createSignedUrl(btn.dataset.doc, 60);
-      if (error || !data) { showToast("Could not open that document."); return; }
+      if (error || !data) { showToast(t("couldNotOpenDoc")); return; }
       window.open(data.signedUrl, "_blank");
     });
   });
@@ -107,9 +108,9 @@ async function loadRequests() {
         .from("leave_requests")
         .update({ status: btn.dataset.action, decided_by: ME.id, decided_at: new Date().toISOString() })
         .eq("id", btn.dataset.id);
-      if (error) { showToast("Could not update that request."); }
+      if (error) { showToast(t("couldNotUpdateRequest")); }
       else {
-        showToast(`Request ${btn.dataset.action}.`);
+        showToast(t(btn.dataset.action === "approved" ? "statusApproved" : "statusRejected"));
         db.functions.invoke("clever-api", {
           body: { leave_request_id: btn.dataset.id, type: "decided" }
         }).catch(() => {});
@@ -217,7 +218,7 @@ async function downloadPDF(title, subtitle, columns, rows, filename) {
 }
 
 document.getElementById("downloadReportBtn").addEventListener("click", async () => {
-  const range = await showDateRangePrompt("Select report period");
+  const range = await showDateRangePrompt(t("selectReportPeriodTitle"));
   if (!range) return;
 
   let source = range.employeeId
@@ -227,7 +228,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   if (range.to) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date <= range.to; });
 
   if (source.length === 0) {
-    showToast("No matching employee found for that ID.");
+    showToast(t("noMatchingEmployeeToast"));
     return;
   }
 

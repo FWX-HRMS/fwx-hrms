@@ -24,7 +24,8 @@ async function loadBalance() {
 }
 
 function badgeFor(status) {
-  return `<span class="badge badge-${status}">${status[0].toUpperCase()}${status.slice(1)}</span>`;
+  const key = "status" + status[0].toUpperCase() + status.slice(1);
+  return `<span class="badge badge-${status}">${t(key)}</span>`;
 }
 
 async function loadRequests() {
@@ -52,7 +53,7 @@ async function loadRequests() {
       <td>${r.days_requested}</td>
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${badgeFor(r.status)}</td>
-      <td>${canCancel ? `<button class="btn btn-danger btn-sm" data-id="${r.id}">Cancel</button>` : ""}</td>
+      <td>${canCancel ? `<button class="btn btn-danger btn-sm" data-id="${r.id}">${t("cancelBtn")}</button>` : ""}</td>
     `;
     body.appendChild(tr);
   }
@@ -64,8 +65,8 @@ async function loadRequests() {
         .from("leave_requests")
         .update({ status: "cancelled" })
         .eq("id", btn.dataset.id);
-      if (error) { showToast("Could not cancel that request."); btn.disabled = false; return; }
-      showToast("Request cancelled.");
+      if (error) { showToast(t("couldNotCancelToast")); btn.disabled = false; return; }
+      showToast(t("requestCancelledToast"));
       await Promise.all([loadRequests(), loadBalance()]);
     });
   });
@@ -82,14 +83,14 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   const reason = document.getElementById("reason").value.trim();
 
   if (end_date < start_date) {
-    errBox.textContent = "End date can't be before the start date.";
+    errBox.textContent = t("endDateBeforeStart");
     errBox.classList.add("show");
     return;
   }
 
   const btn = document.getElementById("applyBtn");
   btn.disabled = true;
-  btn.textContent = "Submitting…";
+  btn.textContent = t("submitting");
 
   const fileInput = document.getElementById("document");
   const file = fileInput.files[0];
@@ -101,8 +102,8 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
     const { error: uploadError } = await db.storage.from("leave-documents").upload(document_path, file);
     if (uploadError) {
       btn.disabled = false;
-      btn.textContent = "Submit request";
-      errBox.textContent = "Could not upload the attached document. Please try again.";
+      btn.textContent = t("submitRequestBtn");
+      errBox.textContent = t("couldNotUploadDoc");
       errBox.classList.add("show");
       return;
     }
@@ -116,10 +117,10 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   }).select().single();
 
   btn.disabled = false;
-  btn.textContent = "Submit request";
+  btn.textContent = t("submitRequestBtn");
 
   if (error) {
-    errBox.textContent = "Something went wrong submitting your request.";
+    errBox.textContent = t("somethingWrongSubmitting");
     errBox.classList.add("show");
     return;
   }
@@ -131,7 +132,7 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
 
   document.getElementById("leaveForm").reset();
   fileInput.value = "";
-  showToast("Leave request submitted.");
+  showToast(t("leaveRequestSubmittedToast"));
   await Promise.all([loadRequests(), loadBalance()]);
 });
 

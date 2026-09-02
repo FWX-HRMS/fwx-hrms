@@ -20,14 +20,14 @@ document.getElementById("nameForm").addEventListener("submit", async (e) => {
   const { error } = await db.from("employees").update({ full_name }).eq("id", ME.id);
 
   if (error) {
-    errBox.textContent = "Something went wrong updating your name.";
+    errBox.textContent = t("somethingWrongUpdatingName");
     errBox.classList.add("show");
     return;
   }
 
   okBox.classList.add("show");
   document.getElementById("whoami").textContent = `${full_name} · #${ME.file_number}`;
-  showToast("Name updated.");
+  showToast(t("nameUpdatedMsg"));
 });
 
 document.getElementById("emailForm").addEventListener("submit", async (e) => {
@@ -53,6 +53,7 @@ document.getElementById("emailForm").addEventListener("submit", async (e) => {
   await db.from("employees").update({ email: newEmail }).eq("id", ME.id);
 
   okBox.classList.add("show");
+  okBox.textContent = t("emailChangeConfirmMsg");
   document.getElementById("emailForm").reset();
   document.getElementById("currentEmail").textContent = newEmail;
 });
@@ -66,7 +67,7 @@ document.getElementById("passwordForm").addEventListener("submit", async (e) => 
   const confirmPassword = document.getElementById("confirmPassword").value;
 
   if (newPassword !== confirmPassword) {
-    errBox.textContent = "Passwords don't match.";
+    errBox.textContent = t("passwordsDontMatch");
     errBox.classList.add("show");
     return;
   }
@@ -74,13 +75,13 @@ document.getElementById("passwordForm").addEventListener("submit", async (e) => 
   const { error } = await db.auth.updateUser({ password: newPassword });
 
   if (error) {
-    errBox.textContent = "Something went wrong updating your password.";
+    errBox.textContent = t("somethingWrongUpdatingPassword");
     errBox.classList.add("show");
     return;
   }
 
   document.getElementById("passwordForm").reset();
-  showToast("Password updated.");
+  showToast(t("passwordUpdatedToast"));
 });
 
 (async () => {

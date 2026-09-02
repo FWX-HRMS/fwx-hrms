@@ -1,0 +1,557 @@
+// ============================================================
+// Shared English/Arabic translation dictionary + helpers.
+// Include this script on every page BEFORE any page-specific
+// script that calls t() or applyTranslations().
+// ============================================================
+const translations = {
+  en: {
+    // Common
+    logout: "Log out",
+    settingsLink: "⚙ Settings",
+    back: "← Back",
+    cancel: "Cancel",
+    close: "Close",
+    view: "View",
+    edit: "Edit",
+    save: "Save",
+    yes: "Yes",
+    no: "No",
+    langToggleToAr: "العربية",
+    langToggleToEn: "English",
+
+    // Brand
+    brandStaffPortal: "Staff Portal",
+    brandSupervisorPortal: "Supervisor Portal",
+    brandHrPortal: "HR Portal",
+
+    // Nav
+    navTeamOverview: "Team overview",
+    navUsers: "Users",
+    navClientCompanies: "Client Companies",
+    navMyLeave: "My leave",
+
+    // Login (index.html)
+    signInTitle: "Sign in",
+    signInSub: "Use your employee file number and password.",
+    fileNumberLabel: "File number",
+    passwordLabel: "Password",
+    signInBtn: "Sign in",
+    signingIn: "Signing in…",
+    forgotPasswordLink: "Forgot your password?",
+    incorrectCreds: "Incorrect file number or password.",
+
+    // Forgot password
+    resetPasswordTitle: "Reset password",
+    resetPasswordSub: "Enter your file number and we'll email you a reset link.",
+    sendResetLinkBtn: "Send reset link",
+    sending: "Sending…",
+    resetLinkSentMsg: "If that file number has an account, a reset link has been sent to the email on file. Check your inbox (and spam folder).",
+    backToSignIn: "Back to sign in",
+
+    // Reset password
+    setNewPasswordTitle: "Set a new password",
+    setNewPasswordSub: "Choose a new password for your account.",
+    newPasswordLabel: "New password",
+    confirmNewPasswordLabel: "Confirm new password",
+    updatePasswordBtn: "Update password",
+    updating: "Updating…",
+    passwordsDontMatch: "Passwords don't match.",
+    resetLinkExpired: "This reset link may have expired. Request a new one from the sign-in page.",
+    passwordUpdatedRedirect: "Password updated. Redirecting to sign in…",
+
+    // Staff — My leave
+    myLeaveTitle: "My leave",
+    statAnnualEntitlement: "Annual entitlement",
+    statTakenThisYear: "Taken this year",
+    statRemaining: "Remaining",
+    statPendingApproval: "Pending approval",
+    statSickEntitlement: "Sick entitlement",
+    statSickRemaining: "Sick remaining",
+    applyForLeaveTitle: "Apply for leave",
+    startDateLabel: "Start date",
+    endDateLabel: "End date",
+    typeLabel: "Type",
+    typeAnnual: "Annual",
+    typeSick: "Sick",
+    typeUnpaid: "Unpaid",
+    typeOther: "Other",
+    reasonOptionalLabel: "Reason (optional)",
+    attachDocOptionalLabel: "Attach supporting document (optional)",
+    submitRequestBtn: "Submit request",
+    submitting: "Submitting…",
+    myRequestsTitle: "My requests",
+    colDates: "Dates",
+    colDays: "Days",
+    colType: "Type",
+    colStatus: "Status",
+    noRequestsYet: "No leave requests yet.",
+    cancelBtn: "Cancel",
+    endDateBeforeStart: "End date can't be before the start date.",
+    somethingWrongSubmitting: "Something went wrong submitting your request.",
+    couldNotUploadDoc: "Could not upload the attached document. Please try again.",
+    leaveRequestSubmittedToast: "Leave request submitted.",
+    requestCancelledToast: "Request cancelled.",
+    couldNotCancelToast: "Could not cancel that request.",
+
+    // Supervisor — Team overview
+    teamOverviewTitle: "Team overview",
+    directReportsSuffix: "direct report",
+    directReportsSuffixPlural: "direct reports",
+    pendingRequestsTitle: "Pending requests",
+    colEmployeeName: "Employee Name",
+    colReason: "Reason",
+    colDocument: "Document",
+    noPendingRequests: "No pending requests.",
+    approveBtn: "Approve",
+    rejectBtn: "Reject",
+    teamBalancesTitle: "Team balances",
+    downloadReportBtn: "Download report (PDF)",
+    colIdNum: "ID #",
+    colAnnual: "Annual",
+    colTaken: "Taken",
+    colRemaining: "Remaining",
+    colPending: "Pending",
+    colSick: "Sick",
+    colSickTaken: "Sick Taken",
+    colSickRemaining: "Sick Remaining",
+    requestHistoryTitle: "Request history",
+    noDecidedRequests: "No decided requests yet.",
+    couldNotUpdateRequest: "Could not update that request.",
+    couldNotOpenDoc: "Could not open that document.",
+    statusApproved: "Approved",
+    statusRejected: "Rejected",
+    statusPending: "Pending",
+    statusCancelled: "Cancelled",
+
+    // Date range / report prompt
+    selectReportPeriodTitle: "Select report period",
+    optionalLeaveBlank: "Optional — leave blank to include everyone.",
+    employeeIdOptionalLabel: "Employee ID (optional — leave blank for all)",
+    fromLabel: "From",
+    toLabel: "To",
+    generatePdfBtn: "Generate PDF",
+    noMatchingEmployeeToast: "No matching employee found for that ID.",
+    noMatchingRequestsToast: "No matching leave requests found.",
+
+    // Admin — Employees / Supervisors / Leave Requests
+    employeesTitle: "Employees",
+    employeesSub: "Add, manage, and report on everyone in the system.",
+    tabEmployees: "Employees",
+    tabSupervisors: "Supervisors",
+    tabLeaveRequests: "Leave Requests",
+    colRole: "Role",
+    colCompany: "Company",
+    colDepartment: "Department",
+    colSupervisor: "Supervisor",
+    addNewEmployeeBtn: "+ Add new employee",
+    addNewSupervisorBtn: "+ Add new supervisor",
+    newEmployeeDetailsTitle: "New employee details",
+    newSupervisorDetailsTitle: "New supervisor details",
+    firstNameLabel: "First name",
+    middleNameLabel: "Middle name",
+    familyNameLabel: "Family name",
+    emailLabel: "Email",
+    hiringDateLabel: "Hiring date",
+    companyClientLabel: "Company client",
+    selectCompanyPlaceholder: "Select a company…",
+    departmentLabel: "Department",
+    departmentTechnical: "Technical",
+    departmentSales: "Sales",
+    departmentMarketing: "Marketing",
+    departmentHR: "HR",
+    departmentFinance: "Finance",
+    departmentIT: "IT",
+    departmentAdministration: "Administration",
+    roleLabel: "Role",
+    roleStaff: "Staff",
+    roleSupervisor: "Supervisor",
+    assignSupervisorLabel: "Assign to supervisor",
+    selectSupervisorPlaceholder: "Select a supervisor…",
+    selectCompanyFirstPlaceholder: "Select a company first…",
+    noSupervisorsYetPlaceholder: "No supervisors yet in this company",
+    createBtn: "Create",
+    creating: "Creating…",
+    entitlementHelpText: "Leave entitlement is calculated automatically from hiring date: 14 annual + 14 sick days for 5 years of service or less, 21 annual + 14 sick days for more than 5 years.",
+    pleaseSelectCompany: "Please select a company client.",
+    pleaseAssignSupervisor: "Please assign this staff member to a supervisor.",
+    somethingWrongCreating: "Something went wrong creating this employee.",
+    employeeCreatedMsg: "Employee created. Share these with them — they can change the password after logging in.",
+    fileNumColonLabel: "File number:",
+    initialPasswordColonLabel: "Initial password:",
+    copyDetailsBtn: "Copy details",
+    copiedToast: "Copied.",
+    resetPasswordBtn: "Reset password",
+    deleteBtn: "Delete",
+    resetPasswordConfirmTitle: "Reset password?",
+    couldNotResetPassword: "Could not reset that password.",
+    newPasswordGeneratedTitle: "New password generated",
+    shareSecurelyNote: "Share this with them securely.",
+    deleteEmployeeConfirmTitle: "Delete employee?",
+    couldNotDeleteEmployee: "Could not delete that employee.",
+    employeeDeletedToast: "Employee deleted.",
+    employeeDetailsTitle: "Employee details",
+    leaveHistoryTitle: "Leave history",
+    noLeaveHistoryOnFile: "No leave requests on file.",
+    leaveRequestsTitle: "Leave Requests",
+    noLeaveRequestsFound: "No leave requests found.",
+    downloadReportPdfBtn: "Download report (PDF)",
+
+    // Client Companies
+    clientCompaniesTitle: "Client Companies",
+    clientCompaniesSub: "Pick a company to manage its staff and supervisors.",
+    addNewClientCompanyBtn: "+ Add new client company",
+    newClientCompanyTitle: "New client company",
+    companyNameLabel: "Company name",
+    companyNamePlaceholder: "e.g. Vodafone",
+    addBtn: "Add",
+    adding: "Adding…",
+    enterCompanyName: "Enter a company name.",
+    companyAlreadyExists: "That company already exists.",
+    somethingWrongAddingCompany: "Something went wrong adding it.",
+    companyAddedToast: "Company added.",
+    peopleSuffix: "people",
+
+    // Settings
+    settingsTitle: "Settings",
+    settingsSub: "Update your name, email, or password.",
+    yourNameTitle: "Your name",
+    fullNameLabel: "Full name",
+    saveNameBtn: "Save name",
+    somethingWrongUpdatingName: "Something went wrong updating your name.",
+    nameUpdatedMsg: "Name updated.",
+    yourEmailTitle: "Your email",
+    currentLabel: "Current:",
+    newEmailLabel: "New email address",
+    updateEmailBtn: "Update email",
+    emailChangeConfirmMsg: "A confirmation link was sent to your new email. Please check your inbox and confirm it — your login will use the new address once confirmed.",
+    changePasswordTitle: "Change password",
+    somethingWrongUpdatingPassword: "Something went wrong updating your password.",
+    passwordUpdatedToast: "Password updated.",
+
+    // Extra keys for admin.js dynamic content
+    okBtn: "OK",
+    confirmBtn: "Confirm",
+    loadingText: "Loading…",
+    couldNotLoadLeaveRequests: "Could not load leave requests.",
+    colFileNumber: "File number",
+    colEmail: "Email",
+    colHiringDate: "Hiring date",
+    colDob: "Date of birth",
+    colNationality: "Nationality",
+    colEducation: "Education",
+    colSalary: "Salary",
+    colAnnualLeaveDays: "Annual leave days",
+    colTakenThisYear: "Taken this year",
+    colSickLeaveDays: "Sick leave days",
+    colSickTakenThisYear: "Sick taken this year",
+    resetPasswordConfirmMsg: "Generate a new password for %name%? Their current password will stop working.",
+    couldNotResetPasswordToast: "Could not reset that password.",
+    newPasswordGeneratedMsg: "%name% (#%fileNumber%) — new password: <strong>%password%</strong><br><br>Share this with them securely.",
+    deleteEmployeeConfirmMsg: "Delete %name% (#%fileNumber%)? This permanently removes their login and records. This can't be undone.",
+    companyScopedTitleSuffix: "Employees",
+    companyScopedSub: "Add, manage, and report on %company% staff and supervisors only.",
+  },
+
+  ar: {
+    // Common
+    logout: "تسجيل الخروج",
+    settingsLink: "⚙ الإعدادات",
+    back: "→ رجوع",
+    cancel: "إلغاء",
+    close: "إغلاق",
+    view: "عرض",
+    edit: "تعديل",
+    save: "حفظ",
+    yes: "نعم",
+    no: "لا",
+    langToggleToAr: "العربية",
+    langToggleToEn: "English",
+
+    // Brand
+    brandStaffPortal: "بوابة الموظف",
+    brandSupervisorPortal: "بوابة المشرف",
+    brandHrPortal: "بوابة الموارد البشرية",
+
+    // Nav
+    navTeamOverview: "نظرة عامة على الفريق",
+    navUsers: "المستخدمون",
+    navClientCompanies: "الشركات العميلة",
+    navMyLeave: "إجازتي",
+
+    // Login (index.html)
+    signInTitle: "تسجيل الدخول",
+    signInSub: "استخدم رقم ملفك الوظيفي وكلمة المرور.",
+    fileNumberLabel: "رقم الملف",
+    passwordLabel: "كلمة المرور",
+    signInBtn: "تسجيل الدخول",
+    signingIn: "جارٍ تسجيل الدخول…",
+    forgotPasswordLink: "نسيت كلمة المرور؟",
+    incorrectCreds: "رقم الملف أو كلمة المرور غير صحيحة.",
+
+    // Forgot password
+    resetPasswordTitle: "إعادة تعيين كلمة المرور",
+    resetPasswordSub: "أدخل رقم ملفك الوظيفي وسنرسل لك رابط إعادة التعيين عبر البريد الإلكتروني.",
+    sendResetLinkBtn: "إرسال رابط إعادة التعيين",
+    sending: "جارٍ الإرسال…",
+    resetLinkSentMsg: "إذا كان لهذا الرقم الوظيفي حساب، فقد تم إرسال رابط إعادة التعيين إلى البريد الإلكتروني المسجل. تحقق من بريدك الوارد (ومجلد الرسائل غير المرغوب فيها).",
+    backToSignIn: "العودة إلى تسجيل الدخول",
+
+    // Reset password
+    setNewPasswordTitle: "تعيين كلمة مرور جديدة",
+    setNewPasswordSub: "اختر كلمة مرور جديدة لحسابك.",
+    newPasswordLabel: "كلمة المرور الجديدة",
+    confirmNewPasswordLabel: "تأكيد كلمة المرور الجديدة",
+    updatePasswordBtn: "تحديث كلمة المرور",
+    updating: "جارٍ التحديث…",
+    passwordsDontMatch: "كلمتا المرور غير متطابقتين.",
+    resetLinkExpired: "قد يكون رابط إعادة التعيين هذا منتهي الصلاحية. اطلب رابطًا جديدًا من صفحة تسجيل الدخول.",
+    passwordUpdatedRedirect: "تم تحديث كلمة المرور. جارٍ التحويل إلى تسجيل الدخول…",
+
+    // Staff — My leave
+    myLeaveTitle: "إجازتي",
+    statAnnualEntitlement: "رصيد الإجازة السنوية",
+    statTakenThisYear: "المستخدم هذا العام",
+    statRemaining: "المتبقي",
+    statPendingApproval: "بانتظار الموافقة",
+    statSickEntitlement: "رصيد الإجازة المرضية",
+    statSickRemaining: "المرضي المتبقي",
+    applyForLeaveTitle: "تقديم طلب إجازة",
+    startDateLabel: "تاريخ البدء",
+    endDateLabel: "تاريخ الانتهاء",
+    typeLabel: "النوع",
+    typeAnnual: "سنوية",
+    typeSick: "مرضية",
+    typeUnpaid: "بدون راتب",
+    typeOther: "أخرى",
+    reasonOptionalLabel: "السبب (اختياري)",
+    attachDocOptionalLabel: "إرفاق مستند داعم (اختياري)",
+    submitRequestBtn: "إرسال الطلب",
+    submitting: "جارٍ الإرسال…",
+    myRequestsTitle: "طلباتي",
+    colDates: "التواريخ",
+    colDays: "الأيام",
+    colType: "النوع",
+    colStatus: "الحالة",
+    noRequestsYet: "لا توجد طلبات إجازة بعد.",
+    cancelBtn: "إلغاء",
+    endDateBeforeStart: "لا يمكن أن يكون تاريخ الانتهاء قبل تاريخ البدء.",
+    somethingWrongSubmitting: "حدث خطأ أثناء إرسال طلبك.",
+    couldNotUploadDoc: "تعذر رفع المستند المرفق. حاول مرة أخرى.",
+    leaveRequestSubmittedToast: "تم إرسال طلب الإجازة.",
+    requestCancelledToast: "تم إلغاء الطلب.",
+    couldNotCancelToast: "تعذر إلغاء هذا الطلب.",
+
+    // Supervisor — Team overview
+    teamOverviewTitle: "نظرة عامة على الفريق",
+    directReportsSuffix: "تابع مباشر",
+    directReportsSuffixPlural: "تابعين مباشرين",
+    pendingRequestsTitle: "الطلبات المعلقة",
+    colEmployeeName: "اسم الموظف",
+    colReason: "السبب",
+    colDocument: "المستند",
+    noPendingRequests: "لا توجد طلبات معلقة.",
+    approveBtn: "موافقة",
+    rejectBtn: "رفض",
+    teamBalancesTitle: "أرصدة الفريق",
+    downloadReportBtn: "تنزيل التقرير (PDF)",
+    colIdNum: "الرقم الوظيفي",
+    colAnnual: "سنوية",
+    colTaken: "مستخدم",
+    colRemaining: "متبقي",
+    colPending: "معلق",
+    colSick: "مرضية",
+    colSickTaken: "مرضية مستخدمة",
+    colSickRemaining: "مرضية متبقية",
+    requestHistoryTitle: "سجل الطلبات",
+    noDecidedRequests: "لا توجد طلبات تم البت فيها بعد.",
+    couldNotUpdateRequest: "تعذر تحديث هذا الطلب.",
+    couldNotOpenDoc: "تعذر فتح هذا المستند.",
+    statusApproved: "موافق عليه",
+    statusRejected: "مرفوض",
+    statusPending: "معلق",
+    statusCancelled: "ملغى",
+
+    // Date range / report prompt
+    selectReportPeriodTitle: "اختر فترة التقرير",
+    optionalLeaveBlank: "اختياري — اتركه فارغًا ليشمل الجميع.",
+    employeeIdOptionalLabel: "الرقم الوظيفي (اختياري — اتركه فارغًا للجميع)",
+    fromLabel: "من",
+    toLabel: "إلى",
+    generatePdfBtn: "إنشاء PDF",
+    noMatchingEmployeeToast: "لم يتم العثور على موظف مطابق لهذا الرقم.",
+    noMatchingRequestsToast: "لم يتم العثور على طلبات إجازة مطابقة.",
+
+    // Admin — Employees / Supervisors / Leave Requests
+    employeesTitle: "الموظفون",
+    employeesSub: "أضف الجميع في النظام وأدرهم وأصدر تقاريرهم.",
+    tabEmployees: "الموظفون",
+    tabSupervisors: "المشرفون",
+    tabLeaveRequests: "طلبات الإجازة",
+    colRole: "الدور",
+    colCompany: "الشركة",
+    colDepartment: "القسم",
+    colSupervisor: "المشرف",
+    addNewEmployeeBtn: "+ إضافة موظف جديد",
+    addNewSupervisorBtn: "+ إضافة مشرف جديد",
+    newEmployeeDetailsTitle: "بيانات الموظف الجديد",
+    newSupervisorDetailsTitle: "بيانات المشرف الجديد",
+    firstNameLabel: "الاسم الأول",
+    middleNameLabel: "الاسم الأوسط",
+    familyNameLabel: "اسم العائلة",
+    emailLabel: "البريد الإلكتروني",
+    hiringDateLabel: "تاريخ التعيين",
+    companyClientLabel: "الشركة العميلة",
+    selectCompanyPlaceholder: "اختر شركة…",
+    departmentLabel: "القسم",
+    departmentTechnical: "تقني",
+    departmentSales: "مبيعات",
+    departmentMarketing: "تسويق",
+    departmentHR: "موارد بشرية",
+    departmentFinance: "مالية",
+    departmentIT: "تقنية المعلومات",
+    departmentAdministration: "إدارة",
+    roleLabel: "الدور",
+    roleStaff: "موظف",
+    roleSupervisor: "مشرف",
+    assignSupervisorLabel: "تعيين مشرف",
+    selectSupervisorPlaceholder: "اختر مشرفًا…",
+    selectCompanyFirstPlaceholder: "اختر شركة أولاً…",
+    noSupervisorsYetPlaceholder: "لا يوجد مشرفون بعد في هذه الشركة",
+    createBtn: "إنشاء",
+    creating: "جارٍ الإنشاء…",
+    entitlementHelpText: "يُحسب رصيد الإجازة تلقائيًا من تاريخ التعيين: 14 يومًا سنويًا + 14 يومًا مرضيًا لمن لديهم 5 سنوات خدمة أو أقل، و21 يومًا سنويًا + 14 يومًا مرضيًا لمن لديهم أكثر من 5 سنوات.",
+    pleaseSelectCompany: "الرجاء اختيار شركة عميلة.",
+    pleaseAssignSupervisor: "الرجاء تعيين مشرف لهذا الموظف.",
+    somethingWrongCreating: "حدث خطأ أثناء إنشاء هذا الموظف.",
+    employeeCreatedMsg: "تم إنشاء الموظف. شارك هذه البيانات معه — يمكنه تغيير كلمة المرور بعد تسجيل الدخول.",
+    fileNumColonLabel: "الرقم الوظيفي:",
+    initialPasswordColonLabel: "كلمة المرور الأولية:",
+    copyDetailsBtn: "نسخ البيانات",
+    copiedToast: "تم النسخ.",
+    resetPasswordBtn: "إعادة تعيين كلمة المرور",
+    deleteBtn: "حذف",
+    resetPasswordConfirmTitle: "إعادة تعيين كلمة المرور؟",
+    couldNotResetPassword: "تعذر إعادة تعيين كلمة المرور.",
+    newPasswordGeneratedTitle: "تم إنشاء كلمة مرور جديدة",
+    shareSecurelyNote: "شارك هذه البيانات معه بطريقة آمنة.",
+    deleteEmployeeConfirmTitle: "حذف الموظف؟",
+    couldNotDeleteEmployee: "تعذر حذف هذا الموظف.",
+    employeeDeletedToast: "تم حذف الموظف.",
+    employeeDetailsTitle: "بيانات الموظف",
+    leaveHistoryTitle: "سجل الإجازات",
+    noLeaveHistoryOnFile: "لا توجد طلبات إجازة مسجلة.",
+    leaveRequestsTitle: "طلبات الإجازة",
+    noLeaveRequestsFound: "لم يتم العثور على طلبات إجازة.",
+    downloadReportPdfBtn: "تنزيل التقرير (PDF)",
+
+    // Client Companies
+    clientCompaniesTitle: "الشركات العميلة",
+    clientCompaniesSub: "اختر شركة لإدارة موظفيها ومشرفيها.",
+    addNewClientCompanyBtn: "+ إضافة شركة عميلة جديدة",
+    newClientCompanyTitle: "شركة عميلة جديدة",
+    companyNameLabel: "اسم الشركة",
+    companyNamePlaceholder: "مثال: Vodafone",
+    addBtn: "إضافة",
+    adding: "جارٍ الإضافة…",
+    enterCompanyName: "أدخل اسم الشركة.",
+    companyAlreadyExists: "هذه الشركة موجودة بالفعل.",
+    somethingWrongAddingCompany: "حدث خطأ أثناء إضافتها.",
+    companyAddedToast: "تمت إضافة الشركة.",
+    peopleSuffix: "أشخاص",
+
+    // Settings
+    settingsTitle: "الإعدادات",
+    settingsSub: "حدّث اسمك أو بريدك الإلكتروني أو كلمة المرور.",
+    yourNameTitle: "اسمك",
+    fullNameLabel: "الاسم الكامل",
+    saveNameBtn: "حفظ الاسم",
+    somethingWrongUpdatingName: "حدث خطأ أثناء تحديث اسمك.",
+    nameUpdatedMsg: "تم تحديث الاسم.",
+    yourEmailTitle: "بريدك الإلكتروني",
+    currentLabel: "الحالي:",
+    newEmailLabel: "البريد الإلكتروني الجديد",
+    updateEmailBtn: "تحديث البريد الإلكتروني",
+    emailChangeConfirmMsg: "تم إرسال رابط تأكيد إلى بريدك الإلكتروني الجديد. يرجى التحقق من بريدك الوارد وتأكيده — سيُستخدم العنوان الجديد لتسجيل الدخول بعد التأكيد.",
+    changePasswordTitle: "تغيير كلمة المرور",
+    somethingWrongUpdatingPassword: "حدث خطأ أثناء تحديث كلمة المرور.",
+    passwordUpdatedToast: "تم تحديث كلمة المرور.",
+
+    // Extra keys for admin.js dynamic content
+    okBtn: "موافق",
+    confirmBtn: "تأكيد",
+    loadingText: "جارٍ التحميل…",
+    couldNotLoadLeaveRequests: "تعذر تحميل طلبات الإجازة.",
+    colFileNumber: "الرقم الوظيفي",
+    colEmail: "البريد الإلكتروني",
+    colHiringDate: "تاريخ التعيين",
+    colDob: "تاريخ الميلاد",
+    colNationality: "الجنسية",
+    colEducation: "المؤهل العلمي",
+    colSalary: "الراتب",
+    colAnnualLeaveDays: "أيام الإجازة السنوية",
+    colTakenThisYear: "المستخدم هذا العام",
+    colSickLeaveDays: "أيام الإجازة المرضية",
+    colSickTakenThisYear: "المرضي المستخدم هذا العام",
+    resetPasswordConfirmMsg: "إنشاء كلمة مرور جديدة لـ %name%؟ ستتوقف كلمة المرور الحالية عن العمل.",
+    couldNotResetPasswordToast: "تعذر إعادة تعيين كلمة المرور.",
+    newPasswordGeneratedMsg: "%name% (رقم %fileNumber%) — كلمة المرور الجديدة: <strong>%password%</strong><br><br>شارك هذه البيانات معه بطريقة آمنة.",
+    deleteEmployeeConfirmMsg: "حذف %name% (رقم %fileNumber%)؟ سيؤدي هذا إلى إزالة تسجيل دخوله وسجلاته نهائيًا. لا يمكن التراجع عن هذا.",
+    companyScopedTitleSuffix: "الموظفون",
+    companyScopedSub: "أضف موظفي ومشرفي %company% وأدرهم وأصدر تقاريرهم فقط.",
+  }
+};
+
+function getLang() {
+  return localStorage.getItem("fwx_lang") || "en";
+}
+
+function setLang(lang) {
+  localStorage.setItem("fwx_lang", lang);
+}
+
+function t(key) {
+  const lang = getLang();
+  return (translations[lang] && translations[lang][key] !== undefined ? translations[lang][key] : translations.en[key]) || key;
+}
+
+// Like t(), but replaces %varName% placeholders with values from `vars`.
+function tv(key, vars) {
+  let str = t(key);
+  for (const k in vars) {
+    str = str.split(`%${k}%`).join(vars[k]);
+  }
+  return str;
+}
+
+function applyTranslations() {
+  const lang = getLang();
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = t(el.getAttribute("data-i18n"));
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    el.setAttribute("placeholder", t(el.getAttribute("data-i18n-placeholder")));
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach(el => {
+    document.title = t(el.getAttribute("data-i18n-title"));
+  });
+  document.querySelectorAll(".lang-toggle").forEach(btn => {
+    btn.textContent = lang === "ar" ? t("langToggleToEn") : t("langToggleToAr");
+  });
+}
+
+function initLangToggle() {
+  applyTranslations();
+  document.querySelectorAll(".lang-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+      setLang(getLang() === "ar" ? "en" : "ar");
+      window.location.reload();
+    });
+  });
+}
+
+// Apply immediately so static markup is translated before the page-specific
+// script runs (which may itself call t() while building dynamic content).
+applyTranslations();
