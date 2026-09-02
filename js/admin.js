@@ -144,6 +144,14 @@ function computeAnnualEntitlementClientSide(hiringDateStr) {
   const years = (Date.now() - hire.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
   return years >= 5 ? 21 : 14;
 }
+function toggleTakenThisYearField() {
+  const carryover = Number(document.getElementById("carryoverBalance").value) || 0;
+  const row = document.getElementById("takenThisYearRow");
+  row.style.display = carryover === 0 ? "" : "none";
+  if (carryover > 0) document.getElementById("takenThisYear").value = 0;
+}
+document.getElementById("carryoverBalance").addEventListener("input", toggleTakenThisYearField);
+
 document.getElementById("hiringDate").addEventListener("change", (e) => {
   document.getElementById("annualEntitlement").value = computeAnnualEntitlementClientSide(e.target.value);
 });
@@ -177,6 +185,8 @@ document.getElementById("showAddFormBtn").addEventListener("click", () => {
   populateDepartmentOptions(document.getElementById("department"), companySelect.value, null);
   document.getElementById("annualEntitlement").value = computeAnnualEntitlementClientSide(document.getElementById("hiringDate").value);
   document.getElementById("carryoverBalance").value = 0;
+  document.getElementById("takenThisYear").value = 0;
+  toggleTakenThisYearField();
   document.getElementById("addPanel").scrollIntoView({ behavior: "smooth" });
 });
 document.getElementById("cancelAddBtn").addEventListener("click", () => {
@@ -921,6 +931,7 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   const hiring_date = document.getElementById("hiringDate").value || null;
   const annual_entitlement_override = document.getElementById("annualEntitlement").value !== "" ? Number(document.getElementById("annualEntitlement").value) : null;
   const carryover_balance = document.getElementById("carryoverBalance").value !== "" ? Number(document.getElementById("carryoverBalance").value) : 0;
+  const taken_this_year = carryover_balance === 0 && document.getElementById("takenThisYear").value !== "" ? Number(document.getElementById("takenThisYear").value) : 0;
   const client_company = document.getElementById("clientCompany").value;
   const department = document.getElementById("department").value;
   const role = document.getElementById("role").value;
@@ -943,7 +954,7 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   btn.textContent = t("creating");
 
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "create_employee", full_name, email, role, hiring_date, department, client_company, supervisor_file_number, annual_entitlement_override, carryover_balance }
+    body: { action: "create_employee", full_name, email, role, hiring_date, department, client_company, supervisor_file_number, annual_entitlement_override, carryover_balance, taken_this_year }
   });
 
   btn.disabled = false;
