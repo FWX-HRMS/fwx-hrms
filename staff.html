@@ -20,17 +20,9 @@
     <button class="logout" onclick="logout()" data-i18n="logout">Log out</button>
   </aside>
 
-  <main>
+  <main style="padding-bottom:64px">
     <h1 class="page-title" data-i18n="myLeaveTitle">My leave</h1>
     <p class="page-sub" id="deptLine"></p>
-
-    <div class="panel" style="display:flex; justify-content:space-between; align-items:center; gap:16px">
-      <div>
-        <strong data-i18n="locationSharingTitle">Location sharing</strong>
-        <p class="help-text" style="margin:4px 0 0" data-i18n="locationSharingNote">As agreed in your employment contract, your location is shared live with your supervisor during work hours.</p>
-      </div>
-      <span class="badge badge-pending" id="locationStatusBadge">…</span>
-    </div>
 
     <div class="stat-row">
       <div class="stat-card"><div class="num" id="statEntitlement">—</div><div class="label" data-i18n="statAnnualEntitlement">Annual entitlement</div></div>
@@ -86,6 +78,11 @@
       <div class="empty-state" id="noRequests" style="display:none" data-i18n="noRequestsYet">No leave requests yet.</div>
     </div>
   </main>
+</div>
+
+<div class="location-footer">
+  <span data-i18n="locationSharingNote">Your location is shared with your management team.</span>
+  <span class="badge badge-pending" id="locationStatusBadge">…</span>
 </div>
 
 <div class="toast" id="toast"></div>
