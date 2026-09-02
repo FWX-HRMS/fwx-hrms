@@ -312,13 +312,13 @@ function renderDirectory() {
       <td>${e.department || "—"}</td>
       <td>${supervisorName}</td>
       <td style="white-space:nowrap">${e.frozen ? fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null) : "—"}</td>
-      <td>${e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0}</td>
-      <td>${bal ? bal.annual_entitlement : "—"}</td>
-      <td>${bal ? bal.taken : "—"}</td>
-      <td>${bal ? bal.remaining : "—"}</td>
-      <td>${bal ? bal.sick_entitlement : "—"}</td>
-      <td>${bal ? bal.sick_taken : "—"}</td>
-      <td>${bal ? bal.sick_remaining : "—"}</td>
+      <td>${e.role === "supervisor" ? "—" : (e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0)}</td>
+      <td>${e.role === "supervisor" ? "—" : (bal ? bal.annual_entitlement : "—")}</td>
+      <td>${e.role === "supervisor" ? "—" : (bal ? bal.taken : "—")}</td>
+      <td>${e.role === "supervisor" ? "—" : (bal ? bal.remaining : "—")}</td>
+      <td>${e.role === "supervisor" ? "—" : (bal ? bal.sick_entitlement : "—")}</td>
+      <td>${e.role === "supervisor" ? "—" : (bal ? bal.sick_taken : "—")}</td>
+      <td>${e.role === "supervisor" ? "—" : (bal ? bal.sick_remaining : "—")}</td>
       <td class="row-actions">
         <div class="action-menu-wrap">
           <button type="button" class="btn btn-blue btn-sm" data-action-toggle="${e.id}">${t("actionsBtn")} ▾</button>
@@ -418,6 +418,7 @@ async function showDetails(id) {
     <div class="detail-row"><span class="label">${t("colNationality")}</span><span class="value">${e.nationality || "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colEducation")}</span><span class="value">${e.education || "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colSalary")}</span><span class="value">${fmtMoney(e.salary)}</span></div>
+    ${e.role !== "supervisor" ? `
     <div class="detail-row"><span class="label">${t("colPrevYearBalance")}</span><span class="value">${e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0}</span></div>
     <div class="detail-row"><span class="label">${t("colAnnualLeaveDays")}</span><span class="value">${bal ? bal.annual_entitlement : "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colTakenThisYear")}</span><span class="value">${bal ? bal.taken : "—"}</span></div>
@@ -425,6 +426,7 @@ async function showDetails(id) {
     <div class="detail-row"><span class="label">${t("colSickLeaveDays")}</span><span class="value">${bal ? bal.sick_entitlement : "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colSickTakenThisYear")}</span><span class="value">${bal ? bal.sick_taken : "—"}</span></div>
     <div class="detail-row"><span class="label">${t("colSickRemaining")}</span><span class="value">${bal ? bal.sick_remaining : "—"}</span></div>
+    ` : ""}
     ${e.frozen ? `
     <div class="detail-row"><span class="label">${t("statusFrozenBadge")}</span><span class="value">${t("reason" + (e.frozen_reason === "resignation" ? "Resignation" : e.frozen_reason === "end_of_contract" ? "EndOfContract" : "Termination"))}</span></div>
     <div class="detail-row"><span class="label">${t("frozenSinceLabel")}</span><span class="value">${fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null)}</span></div>
@@ -545,10 +547,18 @@ function toggleEditTakenThisYearField() {
 }
 document.getElementById("editCarryoverBalance").addEventListener("input", toggleEditTakenThisYearField);
 
+function toggleEditLeaveFields() {
+  const isSupervisor = document.getElementById("editRole").value === "supervisor";
+  document.getElementById("editHiringDateRow").style.display = isSupervisor ? "none" : "";
+  document.getElementById("editEntitlementRow").style.display = isSupervisor ? "none" : "";
+  if (isSupervisor) document.getElementById("editTakenThisYearRow").style.display = "none";
+}
+
 function toggleEditSupervisorField() {
   document.getElementById("editSupervisorField").style.display = document.getElementById("editRole").value === "staff" ? "" : "none";
 }
 document.getElementById("editRole").addEventListener("change", toggleEditSupervisorField);
+document.getElementById("editRole").addEventListener("change", toggleEditLeaveFields);
 document.getElementById("editClientCompany").addEventListener("change", () => {
   populateEditSupervisorOptions(document.getElementById("editClientCompany").value, null);
   populateDepartmentOptions(document.getElementById("editDepartment"), document.getElementById("editClientCompany").value, null);
@@ -614,6 +624,7 @@ async function openEditModal(id) {
   }
   populateEditSupervisorOptions(e.client_company, supFileNumber);
   toggleEditSupervisorField();
+  toggleEditLeaveFields();
 
   document.getElementById("editOverlay").dataset.targetId = id;
   document.getElementById("editOverlay").style.display = "flex";
