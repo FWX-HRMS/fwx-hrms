@@ -202,6 +202,8 @@ document.getElementById("historyPrevBtn").addEventListener("click", () => { if (
 document.getElementById("historyNextBtn").addEventListener("click", () => { if ((HISTORY_PAGE + 1) * PAGE_SIZE < HISTORY_REQUESTS.length) { HISTORY_PAGE++; renderHistory(); } });
 document.getElementById("usersPrevBtn").addEventListener("click", () => { if (USERS_PAGE > 0) { USERS_PAGE--; renderUsers(); } });
 document.getElementById("usersNextBtn").addEventListener("click", () => { if ((USERS_PAGE + 1) * PAGE_SIZE < TEAM_LIST.length) { USERS_PAGE++; renderUsers(); } });
+document.getElementById("teamWarningsPrevBtn").addEventListener("click", () => { if (TEAM_WARNINGS_PAGE > 0) { TEAM_WARNINGS_PAGE--; loadTeamWarnings(); } });
+document.getElementById("teamWarningsNextBtn").addEventListener("click", () => { if ((TEAM_WARNINGS_PAGE + 1) * PAGE_SIZE < TEAM_WARNINGS_LIST.length) { TEAM_WARNINGS_PAGE++; loadTeamWarnings(); } });
 
 function showDateRangePrompt(title) {
   return new Promise((resolve) => {
@@ -338,6 +340,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
 });
 
 let TEAM_WARNINGS_LIST = [];
+let TEAM_WARNINGS_PAGE = 0;
 
 async function loadTeamWarnings() {
   if (ME.role !== "supervisor") { document.getElementById("teamWarningsPanel").style.display = "none"; return; }
@@ -349,12 +352,13 @@ async function loadTeamWarnings() {
   body.innerHTML = "";
 
   if (error || !data) { empty.style.display = "block"; return; }
-  TEAM_WARNINGS_LIST = data;
-  empty.style.display = data.length ? "none" : "block";
+  TEAM_WARNINGS_LIST = data.filter(w => TEAM_BY_ID[w.employee_id]);
+  empty.style.display = TEAM_WARNINGS_LIST.length ? "none" : "block";
 
-  for (const w of data) {
+  const start = TEAM_WARNINGS_PAGE * PAGE_SIZE;
+  const pageItems = TEAM_WARNINGS_LIST.slice(start, start + PAGE_SIZE);
+  for (const w of pageItems) {
     const emp = TEAM_BY_ID[w.employee_id];
-    if (!emp) continue;
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${emp.full_name}</td>
@@ -363,6 +367,7 @@ async function loadTeamWarnings() {
     `;
     body.appendChild(tr);
   }
+  updatePaginationControls("teamWarnings", TEAM_WARNINGS_PAGE, TEAM_WARNINGS_LIST.length);
   body.querySelectorAll("button[data-view-team-warning]").forEach(btn => {
     btn.addEventListener("click", () => {
       const w = TEAM_WARNINGS_LIST.find(x => x.id === btn.dataset.viewTeamWarning);

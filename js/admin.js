@@ -5,6 +5,40 @@ let BALANCES_BY_ID = {};
 let ACTIVE_TAB = "all"; // "all" | "supervisors"
 const COMPANY_FILTER = new URLSearchParams(window.location.search).get("company");
 
+const PAGE_SIZE = 10;
+let DIRECTORY_PAGE = 0;
+let LEAVE_REQUESTS_PAGE = 0;
+let CONTRACTS_PAGE = 0;
+let WARNINGS_PAGE = 0;
+
+function updatePaginationControls(prefix, page, totalCount) {
+  const wrap = document.getElementById(`${prefix}Pagination`);
+  const info = document.getElementById(`${prefix}PageInfo`);
+  const prevBtn = document.getElementById(`${prefix}PrevBtn`);
+  const nextBtn = document.getElementById(`${prefix}NextBtn`);
+  if (!wrap) return;
+
+  if (totalCount <= PAGE_SIZE) {
+    wrap.style.display = "none";
+    return;
+  }
+  wrap.style.display = "flex";
+  const start = page * PAGE_SIZE + 1;
+  const end = Math.min((page + 1) * PAGE_SIZE, totalCount);
+  info.textContent = tv("showingRangeLabel", { start, end, total: totalCount });
+  prevBtn.disabled = page === 0;
+  nextBtn.disabled = end >= totalCount;
+}
+
+document.getElementById("directoryPrevBtn").addEventListener("click", () => { if (DIRECTORY_PAGE > 0) { DIRECTORY_PAGE--; renderDirectory(); } });
+document.getElementById("directoryNextBtn").addEventListener("click", () => { DIRECTORY_PAGE++; renderDirectory(); });
+document.getElementById("leaveRequestsPrevBtn").addEventListener("click", () => { if (LEAVE_REQUESTS_PAGE > 0) { LEAVE_REQUESTS_PAGE--; renderLeaveRequests(); } });
+document.getElementById("leaveRequestsNextBtn").addEventListener("click", () => { LEAVE_REQUESTS_PAGE++; renderLeaveRequests(); });
+document.getElementById("contractsPrevBtn").addEventListener("click", () => { if (CONTRACTS_PAGE > 0) { CONTRACTS_PAGE--; renderContracts(); } });
+document.getElementById("contractsNextBtn").addEventListener("click", () => { CONTRACTS_PAGE++; renderContracts(); });
+document.getElementById("warningsPrevBtn").addEventListener("click", () => { if (WARNINGS_PAGE > 0) { WARNINGS_PAGE--; renderWarnings(); } });
+document.getElementById("warningsNextBtn").addEventListener("click", () => { WARNINGS_PAGE++; renderWarnings(); });
+
 function showToast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -85,6 +119,7 @@ function applyTab(tab) {
   document.getElementById("hiringDateRow").style.display = tab === "supervisors" ? "none" : "";
   document.getElementById("entitlementRow").style.display = tab === "supervisors" ? "none" : "";
   if (tab === "supervisors") document.getElementById("takenThisYearRow").style.display = "none";
+  DIRECTORY_PAGE = 0;
   renderDirectory();
 }
 document.getElementById("tabAllBtn").addEventListener("click", () => applyTab("all"));
@@ -104,18 +139,18 @@ function badgeFor(status) {
   return `<span class="badge badge-${status}">${t(key)}</span>`;
 }
 
-async function loadLeaveRequests() {
-  const body = document.getElementById("leaveRequestsBody");
-  const empty = document.getElementById("noLeaveRequests");
-  body.innerHTML = "";
+let LEAVE_REQUESTS_LIST = [];
 
+async function loadLeaveRequests() {
   const { data, error } = await db
     .from("leave_requests")
     .select("*")
     .order("requested_at", { ascending: false });
 
   if (error || !data) {
-    empty.style.display = "block";
+    LEAVE_REQUESTS_LIST = [];
+    LEAVE_REQUESTS_PAGE = 0;
+    renderLeaveRequests();
     return;
   }
 
@@ -124,12 +159,26 @@ async function loadLeaveRequests() {
   if (COMPANY_FILTER) {
     rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].client_company === COMPANY_FILTER);
   }
+  LEAVE_REQUESTS_LIST = rows;
+  LEAVE_REQUESTS_PAGE = 0;
+  renderLeaveRequests();
+}
 
-  if (rows.length === 0) {
+function renderLeaveRequests() {
+  const body = document.getElementById("leaveRequestsBody");
+  const empty = document.getElementById("noLeaveRequests");
+  body.innerHTML = "";
+
+  if (LEAVE_REQUESTS_LIST.length === 0) {
     empty.style.display = "block";
+    updatePaginationControls("leaveRequests", 0, 0);
     return;
   }
   empty.style.display = "none";
+
+  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  const start = LEAVE_REQUESTS_PAGE * PAGE_SIZE;
+  const rows = LEAVE_REQUESTS_LIST.slice(start, start + PAGE_SIZE);
 
   for (const r of rows) {
     const emp = byId[r.employee_id];
@@ -146,6 +195,8 @@ async function loadLeaveRequests() {
     `;
     body.appendChild(tr);
   }
+
+  updatePaginationControls("leaveRequests", LEAVE_REQUESTS_PAGE, LEAVE_REQUESTS_LIST.length);
 
   body.querySelectorAll("button[data-doc]").forEach(btn => {
     btn.addEventListener("click", async () => {
@@ -310,10 +361,13 @@ function renderDirectory() {
   body.innerHTML = "";
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
-  let rows = ACTIVE_TAB === "supervisors"
+  let allRows = ACTIVE_TAB === "supervisors"
     ? DIRECTORY.filter(e => e.role === "supervisor")
     : DIRECTORY.filter(e => e.role !== "admin");
-  if (COMPANY_FILTER) rows = rows.filter(e => e.client_company === COMPANY_FILTER);
+  if (COMPANY_FILTER) allRows = allRows.filter(e => e.client_company === COMPANY_FILTER);
+
+  const start = DIRECTORY_PAGE * PAGE_SIZE;
+  const rows = allRows.slice(start, start + PAGE_SIZE);
 
   for (const e of rows) {
     const supervisorName = e.supervisor_id && byId[e.supervisor_id] ? byId[e.supervisor_id].full_name : "—";
@@ -354,6 +408,8 @@ function renderDirectory() {
     `;
     body.appendChild(tr);
   }
+
+  updatePaginationControls("directory", DIRECTORY_PAGE, allRows.length);
 
   body.querySelectorAll("button[data-action-toggle]").forEach(btn => {
     btn.addEventListener("click", (ev) => {
@@ -520,16 +576,27 @@ let WARNINGS_LIST = [];
 
 async function loadWarnings() {
   const { data, error } = await db.from("warnings").select("*").order("created_at", { ascending: false });
+  if (error || !data) {
+    WARNINGS_LIST = [];
+    WARNINGS_PAGE = 0;
+    renderWarnings();
+    return;
+  }
+  WARNINGS_LIST = data;
+  WARNINGS_PAGE = 0;
+  renderWarnings();
+}
+
+function renderWarnings() {
   const body = document.getElementById("warningsBody");
   const empty = document.getElementById("noWarnings");
   body.innerHTML = "";
-
-  if (error || !data) { empty.style.display = "block"; return; }
-  WARNINGS_LIST = data;
-  empty.style.display = data.length ? "none" : "block";
+  empty.style.display = WARNINGS_LIST.length ? "none" : "block";
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
-  for (const w of data) {
+  const start = WARNINGS_PAGE * PAGE_SIZE;
+  const pageItems = WARNINGS_LIST.slice(start, start + PAGE_SIZE);
+  for (const w of pageItems) {
     const emp = byId[w.employee_id];
     const warningName = emp ? `${emp.file_number} - ${emp.full_name}` : w.id;
     const tr = document.createElement("tr");
@@ -543,6 +610,7 @@ async function loadWarnings() {
     `;
     body.appendChild(tr);
   }
+  updatePaginationControls("warnings", WARNINGS_PAGE, WARNINGS_LIST.length);
   body.querySelectorAll("button[data-view-warning]").forEach(btn => {
     btn.addEventListener("click", () => openWarningViewModal(btn.dataset.viewWarning));
   });
@@ -669,16 +737,27 @@ let CONTRACTS_LIST = [];
 
 async function loadContracts() {
   const { data, error } = await db.from("contracts").select("*").order("created_at", { ascending: false });
+  if (error || !data) {
+    CONTRACTS_LIST = [];
+    CONTRACTS_PAGE = 0;
+    renderContracts();
+    return;
+  }
+  CONTRACTS_LIST = data;
+  CONTRACTS_PAGE = 0;
+  renderContracts();
+}
+
+function renderContracts() {
   const body = document.getElementById("contractsBody");
   const empty = document.getElementById("noContracts");
   body.innerHTML = "";
-
-  if (error || !data) { empty.style.display = "block"; return; }
-  CONTRACTS_LIST = data;
-  empty.style.display = data.length ? "none" : "block";
+  empty.style.display = CONTRACTS_LIST.length ? "none" : "block";
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
-  for (const c of data) {
+  const start = CONTRACTS_PAGE * PAGE_SIZE;
+  const pageItems = CONTRACTS_LIST.slice(start, start + PAGE_SIZE);
+  for (const c of pageItems) {
     const emp = byId[c.employee_id];
     const contractName = emp ? `${emp.file_number} - ${emp.full_name}` : c.id;
     const tr = document.createElement("tr");
@@ -692,6 +771,7 @@ async function loadContracts() {
     `;
     body.appendChild(tr);
   }
+  updatePaginationControls("contracts", CONTRACTS_PAGE, CONTRACTS_LIST.length);
   body.querySelectorAll("button[data-view-contract]").forEach(btn => {
     btn.addEventListener("click", () => openContractViewModal(btn.dataset.viewContract));
   });
