@@ -153,6 +153,16 @@
   </div>
 </div>
 
+<!-- Centered popup for admin/supervisor document activity notices -->
+<div id="docActivityOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:420px; text-align:center">
+    <div style="font-size:34px; margin-bottom:6px" id="docActivityIcon">📄</div>
+    <h2 style="margin:0 0 10px" id="docActivityTitle" data-i18n="docActivityTitle">Notification</h2>
+    <p class="help-text" id="docActivityText" style="margin-bottom:18px"></p>
+    <button type="button" class="btn btn-primary" id="closeDocActivityBtn" data-i18n="ok">OK</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="js/supabaseClient.js"></script>
