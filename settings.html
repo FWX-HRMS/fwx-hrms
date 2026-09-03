@@ -28,7 +28,7 @@
       <form id="nameForm">
         <label for="fullName" data-i18n="fullNameLabel">Full name</label>
         <input type="text" id="fullName" required>
-        <button type="submit" class="btn btn-primary btn-sm" style="max-width:180px; margin-top:14px" data-i18n="saveNameBtn">Save name</button>
+        <button type="submit" id="saveNameBtn" class="btn btn-primary btn-sm" style="max-width:180px; margin-top:14px" data-i18n="saveNameBtn">Save name</button>
         <div class="error-msg" id="nameError"></div>
         <div class="success-msg" id="nameSuccess" data-i18n="nameUpdatedMsg">Name updated.</div>
       </form>
@@ -40,7 +40,7 @@
       <form id="emailForm">
         <label for="newEmail" data-i18n="newEmailLabel">New email address</label>
         <input type="email" id="newEmail" required>
-        <button type="submit" class="btn btn-primary btn-sm" style="max-width:180px; margin-top:14px" data-i18n="updateEmailBtn">Update email</button>
+        <button type="submit" id="updateEmailBtn" class="btn btn-primary btn-sm" style="max-width:180px; margin-top:14px" data-i18n="updateEmailBtn">Update email</button>
         <div class="error-msg" id="emailError"></div>
         <div class="success-msg" id="emailSuccess" data-i18n="emailChangeConfirmMsg">A confirmation link was sent to your new email. Please check your inbox and confirm it — your login will use the new address once confirmed.</div>
       </form>
@@ -59,7 +59,7 @@
             <input type="password" id="confirmPassword" autocomplete="new-password" minlength="8" required>
           </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-sm" style="max-width:200px; margin-top:6px" data-i18n="updatePasswordBtn">Update password</button>
+        <button type="submit" id="updatePasswordBtn" class="btn btn-primary btn-sm" style="max-width:200px; margin-top:6px" data-i18n="updatePasswordBtn">Update password</button>
         <div class="error-msg" id="pwError"></div>
       </form>
     </div>
