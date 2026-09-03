@@ -31,13 +31,17 @@
     </div>
 
     <div class="panel" id="contractPanel" style="display:none">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px; flex-wrap:wrap">
         <h2 style="margin:0" data-i18n="myContractTitle">My Contract</h2>
-        <span class="badge" id="contractStatusBadge"></span>
+        <div style="display:flex; align-items:center; gap:10px">
+          <button type="button" class="btn btn-blue btn-sm" id="contractConvertBtn"></button>
+          <span class="badge" id="contractStatusBadge"></span>
+        </div>
       </div>
       <div id="contractTextDisplay" dir="rtl" style="white-space:pre-wrap; font-family:inherit; font-size:14px; text-align:right; line-height:1.8; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:16px; max-height:500px; overflow-y:auto; margin-bottom:16px"></div>
 
       <div id="signedBox" style="display:none" class="success-msg"></div>
+      <img id="signatureDisplay" style="display:none; max-width:260px; border:1px solid var(--border); border-radius:8px; margin-top:10px; background:#fff">
 
       <div id="actionArea">
         <div class="panel" style="margin-bottom:16px">
@@ -50,15 +54,38 @@
 
         <div class="panel">
           <h2 data-i18n="signContractTitle">Sign this contract</h2>
-          <p class="help-text" style="margin-bottom:14px" data-i18n="signContractNote">By typing your full name below and clicking Sign, you confirm that you have read, understood, and agree to the terms of this contract.</p>
-          <label for="signatureName" data-i18n="typeFullNameLabel">Type your full name to sign</label>
-          <input type="text" id="signatureName">
-          <button type="button" class="btn btn-primary" id="signContractBtn" style="margin-top:10px; max-width:220px" data-i18n="signContractBtn">Sign Contract</button>
+          <p class="help-text" style="margin-bottom:14px" data-i18n="signContractNote">By providing your signature below and clicking Sign, you confirm that you have read, understood, and agree to the terms of this contract.</p>
+
+          <div style="display:flex; gap:10px; margin-bottom:12px">
+            <button type="button" class="btn btn-blue btn-sm" id="sigModeDrawBtn" data-i18n="drawSignatureBtn">Draw Signature</button>
+            <button type="button" class="btn btn-blue btn-sm" id="sigModeUploadBtn" data-i18n="uploadSignatureBtn">Upload Image</button>
+          </div>
+
+          <div id="sigDrawArea">
+            <canvas id="signatureCanvas" width="500" height="160" style="border:1px solid var(--border); border-radius:8px; width:100%; max-width:500px; height:160px; touch-action:none; background:#fff; display:block"></canvas>
+            <button type="button" class="btn btn-blue btn-sm" id="clearSignatureBtn" style="margin-top:8px" data-i18n="clearSignatureBtn">Clear</button>
+          </div>
+          <div id="sigUploadArea" style="display:none">
+            <input type="file" id="signatureFileInput" accept="image/*">
+            <img id="signaturePreview" style="display:none; max-width:280px; margin-top:10px; border:1px solid var(--border); border-radius:8px;">
+          </div>
+
+          <button type="button" class="btn btn-primary" id="signContractBtn" style="margin-top:14px; max-width:220px" data-i18n="signContractBtn">Sign Contract</button>
           <div class="error-msg" id="signError"></div>
         </div>
       </div>
     </div>
   </main>
+</div>
+
+<!-- Centered notice for an active, unexpired signed contract -->
+<div id="activeContractOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:420px; text-align:center">
+    <div style="font-size:34px; margin-bottom:6px">📄</div>
+    <h2 style="margin:0 0 10px" data-i18n="activeContractTitle">You have an active job contract</h2>
+    <p class="help-text" id="activeContractText" style="margin-bottom:18px"></p>
+    <button type="button" class="btn btn-primary" id="closeActiveContractBtn" data-i18n="ok">OK</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
