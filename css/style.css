@@ -38,134 +38,119 @@ a{ color:var(--accent); }
   padding:24px;
   position:relative;
   overflow:hidden;
-  background:linear-gradient(180deg, #C7CFC9 0%, #A9B4AC 22%, #7C8E7C 48%, #4E6350 72%, #2C4030 100%);
+  background:#12121A;
 }
+.login-mountains{ display:none; }
+.login-foreground{ display:none; }
+.login-fogbank{ display:none; }
+.login-heavyrain{ display:none; }
 .login-orb{ display:none; }
 .login-rain{ display:none; }
 .login-cloud{ display:none; }
 .login-gridfloor{ display:none; }
 
-/* Layered misty mountain ridges, like rain-soaked hills fading into fog */
-.login-mountains{
+/* Flowing spectrum-of-light backdrop, cycling smoothly through hues */
+.login-spectrum{
   position:absolute;
-  bottom:0; left:0; right:0;
-  height:60vh;
-  min-height:320px;
+  inset:-25%;
+  background:linear-gradient(115deg,
+    #5B8CFF 0%,
+    #7AD8FF 16%,
+    #7FF0C8 32%,
+    #C9F27A 48%,
+    #FFD37A 64%,
+    #FF9EC4 80%,
+    #B98CFF 100%
+  );
+  background-size:320% 320%;
+  filter:blur(60px) saturate(1.05);
+  opacity:0.62;
+  animation:fwx-spectrum-flow 11s ease-in-out infinite;
   pointer-events:none;
-  line-height:0;
 }
-.login-mountains svg{
-  position:absolute;
-  bottom:0; left:0;
-  width:100%;
-  height:100%;
+@keyframes fwx-spectrum-flow{
+  0%{ background-position:0% 30%; }
+  25%{ background-position:70% 60%; }
+  50%{ background-position:100% 20%; }
+  75%{ background-position:30% 90%; }
+  100%{ background-position:0% 30%; }
 }
-.ridge-back{ fill:#9AA79C; opacity:.55; }
-.ridge-mid{ fill:#5E7460; opacity:.75; }
-.ridge-front{ fill:#324832; opacity:.92; }
 
-/* Drifting fog banks weaving through the mountains */
-.login-fogbank{
+/* Fast-darting light orbs, each cycling its own hue through the spectrum */
+.login-lightorb{
   position:absolute;
   border-radius:50%;
-  filter:blur(55px);
-  background:rgba(235,240,235,0.35);
+  filter:blur(70px);
+  opacity:0.5;
   pointer-events:none;
-  will-change:transform;
+  will-change:transform, filter;
 }
-.login-fogbank-1{
-  width:520px; height:160px;
-  top:38%; left:-15%;
-  animation:fwx-fog-drift-1 26s ease-in-out infinite;
+.login-lightorb-1{
+  width:380px; height:380px;
+  top:-80px; left:-60px;
+  background:radial-gradient(circle, #6FA8FF, transparent 70%);
+  animation:fwx-light-move-1 8s ease-in-out infinite, fwx-hue-cycle 9s linear infinite;
 }
-.login-fogbank-2{
-  width:600px; height:180px;
-  top:52%; right:-20%;
-  background:rgba(235,240,235,0.28);
-  animation:fwx-fog-drift-2 32s ease-in-out infinite;
+.login-lightorb-2{
+  width:340px; height:340px;
+  bottom:-100px; right:-60px;
+  background:radial-gradient(circle, #7FF0C8, transparent 70%);
+  animation:fwx-light-move-2 9.5s ease-in-out infinite, fwx-hue-cycle 11s linear infinite;
 }
-.login-fogbank-3{
-  width:460px; height:140px;
-  top:62%; left:20%;
-  background:rgba(235,240,235,0.22);
-  animation:fwx-fog-drift-3 22s ease-in-out infinite;
+.login-lightorb-3{
+  width:300px; height:300px;
+  top:32%; left:52%;
+  background:radial-gradient(circle, #FF9EC4, transparent 70%);
+  animation:fwx-light-move-3 7s ease-in-out infinite, fwx-hue-cycle 8s linear infinite;
 }
-@keyframes fwx-fog-drift-1{
-  0%,100%{ transform:translateX(0); }
-  50%{ transform:translateX(45vw); }
+.login-lightorb-4{
+  width:260px; height:260px;
+  bottom:10%; left:4%;
+  background:radial-gradient(circle, #FFD37A, transparent 70%);
+  animation:fwx-light-move-4 6.5s ease-in-out infinite, fwx-hue-cycle 7s linear infinite;
 }
-@keyframes fwx-fog-drift-2{
-  0%,100%{ transform:translateX(0); }
-  50%{ transform:translateX(-40vw); }
+@keyframes fwx-light-move-1{
+  0%{ transform:translate(0,0); }
+  25%{ transform:translate(50vw,15vh); }
+  50%{ transform:translate(25vw,50vh); }
+  75%{ transform:translate(-8vw,25vh); }
+  100%{ transform:translate(0,0); }
 }
-@keyframes fwx-fog-drift-3{
-  0%,100%{ transform:translateX(0); }
-  50%{ transform:translateX(-30vw); }
+@keyframes fwx-light-move-2{
+  0%{ transform:translate(0,0); }
+  25%{ transform:translate(-45vw,-18vh); }
+  50%{ transform:translate(-18vw,-45vh); }
+  75%{ transform:translate(12vw,-12vh); }
+  100%{ transform:translate(0,0); }
 }
-
-/* Heavy, visible rain falling steadily across the whole scene */
-.login-heavyrain{
-  position:absolute;
-  inset:-20% -10% 0 -10%;
-  width:120%;
-  height:140%;
-  pointer-events:none;
-  opacity:.4;
-  background-image:repeating-linear-gradient(
-    100deg,
-    rgba(255,255,255,0.85) 0px,
-    rgba(255,255,255,0.85) 1.5px,
-    transparent 1.5px,
-    transparent 22px
-  );
-  background-size:100% 200px;
-  animation:fwx-heavyrain-fall 0.5s linear infinite;
+@keyframes fwx-light-move-3{
+  0%{ transform:translate(0,0); }
+  33%{ transform:translate(-32vw,22vh); }
+  66%{ transform:translate(14vw,-28vh); }
+  100%{ transform:translate(0,0); }
 }
-.login-heavyrain-2{
-  opacity:.25;
-  background-image:repeating-linear-gradient(
-    98deg,
-    rgba(255,255,255,0.7) 0px,
-    rgba(255,255,255,0.7) 1px,
-    transparent 1px,
-    transparent 16px
-  );
-  background-size:100% 160px;
-  animation-duration:0.35s;
-  filter:blur(0.4px);
+@keyframes fwx-light-move-4{
+  0%{ transform:translate(0,0); }
+  33%{ transform:translate(28vw,-22vh); }
+  66%{ transform:translate(48vw,14vh); }
+  100%{ transform:translate(0,0); }
 }
-@keyframes fwx-heavyrain-fall{
-  0%{ background-position:0 -200px; }
-  100%{ background-position:0 0; }
+@keyframes fwx-hue-cycle{
+  0%{ filter:blur(70px) hue-rotate(0deg); }
+  100%{ filter:blur(70px) hue-rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: reduce){
-  .login-fogbank{ animation:none !important; }
-  .login-heavyrain{ animation:none !important; opacity:.15 !important; }
-}
-
-/* Blurred green foreground foliage, like grass close to the camera */
-.login-foreground{
-  position:absolute;
-  bottom:-40px; left:-10%; right:-10%;
-  height:130px;
-  background:linear-gradient(to top, #17240F 0%, #2C4420 55%, rgba(44,68,32,0) 100%);
-  filter:blur(6px);
-  pointer-events:none;
+  .login-spectrum{ animation:none !important; }
+  .login-lightorb{ animation:none !important; }
 }
 
 .login-mist{
   position:absolute;
   bottom:0; left:-10%; right:-10%;
-  height:260px;
-  background:linear-gradient(to top, rgba(235,240,235,0.22), transparent);
-  filter:blur(40px);
+  height:200px;
+  background:linear-gradient(to top, rgba(0,0,0,0.25), transparent);
   pointer-events:none;
-  animation:fwx-mist-drift 20s ease-in-out infinite;
-}
-@keyframes fwx-mist-drift{
-  0%,100%{ transform:translateX(0); }
-  50%{ transform:translateX(6%); }
 }
 .login-card{
   width:100%;
