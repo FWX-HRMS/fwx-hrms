@@ -273,7 +273,11 @@ async function checkNewDocsNotification() {
   if (contracts && contracts.length > 0) {
     contractBox.textContent = t("notifNewContract");
     contractBox.style.display = "block";
-    checkNewContractPopup(contracts[0]);
+    // Only the centered popup is reserved for a genuinely new share from
+    // admin — "commented" just means the employee is waiting on their own
+    // follow-up, which doesn't need an intrusive popup.
+    const freshlyShared = contracts.find(c => c.status === "shared");
+    if (freshlyShared) checkNewContractPopup(freshlyShared);
   } else {
     contractBox.style.display = "none";
   }

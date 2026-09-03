@@ -5,6 +5,7 @@ let CONTRACT_ALT_TEXT = "";
 let CONTRACT_LANG = "ar";
 let signaturePad = null;
 let sigMode = "draw"; // "draw" | "upload"
+let suppressNextContractPopup = false;
 
 function showToast(msg) {
   const el = document.getElementById("toast");
@@ -139,8 +140,14 @@ async function loadContracts() {
   if (activeOne) checkActiveContractNotice(activeOne);
 
   // Popup once per new contract awaiting the employee's review.
-  const awaitingOnes = data.filter(c => c.status === "shared" || c.status === "commented");
-  if (awaitingOnes.length > 0) checkNewContractNotice(awaitingOnes[0]);
+  const awaitingOnes = data.filter(c => c.status === "shared");
+  if (awaitingOnes.length > 0) {
+    if (suppressNextContractPopup) {
+      suppressNextContractPopup = false;
+    } else {
+      checkNewContractNotice(awaitingOnes[0]);
+    }
+  }
 }
 
 function checkNewContractNotice(contract) {
@@ -291,6 +298,7 @@ document.getElementById("submitCommentBtn").addEventListener("click", async () =
   }
 
   showToast(t("commentsSentToast"));
+  suppressNextContractPopup = true;
   await loadContracts();
   openContractView(CONTRACT.id);
 });
