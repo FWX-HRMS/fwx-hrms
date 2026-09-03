@@ -36,6 +36,60 @@ a{ color:var(--accent); }
   align-items:center;
   justify-content:center;
   padding:24px;
+  position:relative;
+  overflow:hidden;
+  background:linear-gradient(160deg, #0B1220 0%, #101B2E 45%, #0D1A26 100%);
+}
+.login-orb{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(70px);
+  opacity:0.55;
+  will-change:transform;
+  pointer-events:none;
+}
+.login-orb-1{
+  width:480px; height:480px;
+  top:-120px; left:-100px;
+  background:radial-gradient(circle at 30% 30%, #2E6E8E, transparent 70%);
+  animation:fwx-orb-drift-1 26s ease-in-out infinite;
+}
+.login-orb-2{
+  width:420px; height:420px;
+  bottom:-140px; right:-80px;
+  background:radial-gradient(circle at 60% 40%, #14B8A6, transparent 70%);
+  animation:fwx-orb-drift-2 32s ease-in-out infinite;
+}
+.login-orb-3{
+  width:360px; height:360px;
+  top:35%; left:55%;
+  background:radial-gradient(circle at 50% 50%, #3B4E8A, transparent 70%);
+  animation:fwx-orb-drift-3 38s ease-in-out infinite;
+}
+.login-orb-4{
+  width:300px; height:300px;
+  bottom:15%; left:8%;
+  background:radial-gradient(circle at 50% 50%, #1E90A0, transparent 70%);
+  animation:fwx-orb-drift-4 22s ease-in-out infinite;
+}
+@keyframes fwx-orb-drift-1{
+  0%,100%{ transform:translate(0,0) scale(1); }
+  50%{ transform:translate(60px,50px) scale(1.12); }
+}
+@keyframes fwx-orb-drift-2{
+  0%,100%{ transform:translate(0,0) scale(1); }
+  50%{ transform:translate(-50px,-40px) scale(1.15); }
+}
+@keyframes fwx-orb-drift-3{
+  0%,100%{ transform:translate(0,0) scale(1); }
+  50%{ transform:translate(-70px,40px) scale(0.9); }
+}
+@keyframes fwx-orb-drift-4{
+  0%,100%{ transform:translate(0,0) scale(1); }
+  50%{ transform:translate(45px,-35px) scale(1.1); }
+}
+@media (prefers-reduced-motion: reduce){
+  .login-orb{ animation:none !important; }
 }
 .login-card{
   width:100%;
@@ -44,6 +98,9 @@ a{ color:var(--accent); }
   border:1px solid var(--border);
   border-radius:var(--radius);
   padding:36px 32px;
+  position:relative;
+  z-index:1;
+  box-shadow:0 30px 80px -20px rgba(0,0,0,.45);
 }
 .login-logo{
   height:48px;
