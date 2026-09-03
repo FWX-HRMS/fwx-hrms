@@ -389,6 +389,19 @@ html[dir="rtl"] .action-menu button{ text-align:right; }
   text-align:center;
 }
 
+@keyframes fwx-spin{ to{ transform:rotate(360deg); } }
+.btn-spinner{
+  display:inline-block;
+  width:15px; height:15px;
+  border:2px solid rgba(255,255,255,.5);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:fwx-spin .7s linear infinite;
+  vertical-align:middle;
+  margin-inline-end:8px;
+}
+.btn.is-loading{ pointer-events:none; opacity:.85; }
+
 .toast{
   position:fixed; bottom:20px; right:20px;
   background:var(--ink); color:#fff;
