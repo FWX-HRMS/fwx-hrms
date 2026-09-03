@@ -193,6 +193,7 @@ function renderLeaveRequests() {
       <td>${r.reason ? r.reason : "—"}</td>
       <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">${t("view")}</button>` : "—"}</td>
       <td>${badgeFor(r.status)}</td>
+      <td><button type="button" class="btn btn-danger btn-sm" data-delete-leave="${r.id}">${t("deleteBtn")}</button></td>
     `;
     body.appendChild(tr);
   }
@@ -204,6 +205,23 @@ function renderLeaveRequests() {
       const { data, error } = await db.storage.from("leave-documents").createSignedUrl(btn.dataset.doc, 60);
       if (error || !data) { showToast(t("couldNotOpenDoc")); return; }
       window.open(data.signedUrl, "_blank");
+    });
+  });
+
+  body.querySelectorAll("button[data-delete-leave]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!(await showConfirm(t("deleteBtn"), t("confirmDeleteLeaveRequest"), t("deleteBtn"), true))) return;
+      showGlobalSpinner();
+      const { data, error } = await db.functions.invoke("clever-action", {
+        body: { action: "delete_leave_request", leave_request_id: btn.dataset.deleteLeave }
+      });
+      hideGlobalSpinner();
+      if (error || (data && data.error)) {
+        showToast((data && data.error) ? data.error : t("somethingWrongDeletingLeaveRequest"));
+        return;
+      }
+      showToast(t("leaveRequestDeletedToast"));
+      await loadLeaveRequests();
     });
   });
 }
