@@ -62,9 +62,11 @@ function renderUsers() {
   body.innerHTML = "";
   empty.style.display = TEAM_LIST.length ? "none" : "block";
 
+  const balByEmployeeId = Object.fromEntries(TEAM_BALANCE_ROWS.map(r => [r.employee_id, r]));
   const start = USERS_PAGE * PAGE_SIZE;
   const pageItems = TEAM_LIST.slice(start, start + PAGE_SIZE);
   for (const e of pageItems) {
+    const bal = balByEmployeeId[e.id];
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${e.full_name}</td>
@@ -72,6 +74,13 @@ function renderUsers() {
       <td style="text-transform:capitalize">${e.role}</td>
       <td>${e.client_company || "—"}</td>
       <td>${e.department || "—"}</td>
+      <td>${e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0}</td>
+      <td>${bal ? bal.annual_entitlement : "—"}</td>
+      <td>${bal ? bal.taken : "—"}</td>
+      <td>${bal ? bal.remaining : "—"}</td>
+      <td>${bal ? bal.sick_entitlement : "—"}</td>
+      <td>${bal ? bal.sick_taken : "—"}</td>
+      <td>${bal ? bal.sick_remaining : "—"}</td>
     `;
     body.appendChild(tr);
   }
@@ -80,10 +89,11 @@ function renderUsers() {
 
 async function loadBalances() {
   const { data, error } = await db.from("leave_balances").select("*");
-  if (error || !data) { TEAM_BALANCE_ROWS = []; return; }
+  if (error || !data) { TEAM_BALANCE_ROWS = []; renderUsers(); return; }
 
   // leave_balances RLS already restricts this to "my team + me"
   TEAM_BALANCE_ROWS = data.filter(r => TEAM_BY_ID[r.employee_id]);
+  renderUsers();
 }
 
 async function loadRequests() {
@@ -327,9 +337,50 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   }
 });
 
+let TEAM_WARNINGS_LIST = [];
+
+async function loadTeamWarnings() {
+  if (ME.role !== "supervisor") { document.getElementById("teamWarningsPanel").style.display = "none"; return; }
+  document.getElementById("teamWarningsPanel").style.display = "";
+
+  const { data, error } = await db.from("warnings").select("*").order("sent_at", { ascending: false });
+  const body = document.getElementById("teamWarningsBody");
+  const empty = document.getElementById("noTeamWarnings");
+  body.innerHTML = "";
+
+  if (error || !data) { empty.style.display = "block"; return; }
+  TEAM_WARNINGS_LIST = data;
+  empty.style.display = data.length ? "none" : "block";
+
+  for (const w of data) {
+    const emp = TEAM_BY_ID[w.employee_id];
+    if (!emp) continue;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${emp.full_name}</td>
+      <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-view-team-warning="${w.id}">${t("view")}</button></td>
+    `;
+    body.appendChild(tr);
+  }
+  body.querySelectorAll("button[data-view-team-warning]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const w = TEAM_WARNINGS_LIST.find(x => x.id === btn.dataset.viewTeamWarning);
+      if (!w) return;
+      const emp = TEAM_BY_ID[w.employee_id];
+      document.getElementById("teamWarningViewTitle").textContent = emp ? emp.full_name : t("warningDetailsTitle");
+      document.getElementById("teamWarningTextDisplay").textContent = w.warning_text || w.reason;
+      document.getElementById("teamWarningViewOverlay").style.display = "flex";
+    });
+  });
+}
+document.getElementById("closeTeamWarningViewBtn").addEventListener("click", () => {
+  document.getElementById("teamWarningViewOverlay").style.display = "none";
+});
+
 async function refreshAll() {
   await loadTeam();
-  await Promise.all([loadBalances(), loadRequests()]);
+  await Promise.all([loadBalances(), loadRequests(), loadTeamWarnings()]);
 }
 
 (async () => {

@@ -341,8 +341,8 @@ function renderDirectory() {
           <div class="action-menu" id="actionMenu-${e.id}">
             <button type="button" data-view="${e.id}">${t("view")}</button>
             <button type="button" data-edit="${e.id}">${t("editBtn")}</button>
-            ${e.role !== "admin" ? `<button type="button" data-contract="${e.id}">${t("shareContractBtn")}</button>` : ""}
-            ${e.role !== "admin" ? `<button type="button" class="danger" data-warning="${e.id}">${t("giveWarningBtn")}</button>` : ""}
+            ${e.role === "staff" ? `<button type="button" data-contract="${e.id}">${t("shareContractBtn")}</button>` : ""}
+            ${e.role === "staff" ? `<button type="button" class="danger" data-warning="${e.id}">${t("giveWarningBtn")}</button>` : ""}
             <button type="button" data-reset="${e.id}">${t("resetPasswordBtn")}</button>
             ${!isSelf ? (e.frozen
               ? `<button type="button" data-unfreeze="${e.id}">${t("unfreezeBtn")}</button>`
@@ -449,7 +449,7 @@ document.getElementById("contractCreateForm").addEventListener("submit", async (
   btn.textContent = t("preparing");
 
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "create_contract", target_id, dob, education, address, salary, job_title, start_date, contract_period_months }
+    body: { action: "create_contract", target_id, dob, education, address, salary, job_title, start_date, contract_period_months, lang: getLang() }
   });
 
   btn.disabled = false;
@@ -502,7 +502,7 @@ document.getElementById("warningCreateForm").addEventListener("submit", async (e
   btn.textContent = t("preparing");
 
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "create_warning", target_id, reason }
+    body: { action: "create_warning", target_id, reason, lang: getLang() }
   });
 
   btn.disabled = false;
@@ -552,6 +552,13 @@ async function loadWarnings() {
   });
 }
 
+let WARNING_ALT_TEXT = "";
+let WARNING_LANG = "ar";
+
+function updateWarningConvertBtnLabel() {
+  document.getElementById("warningConvertBtn").textContent = WARNING_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
+}
+
 function openWarningViewModal(warningId, warningData) {
   const w = warningData || WARNINGS_LIST.find(x => x.id === warningId);
   if (!w) return;
@@ -559,6 +566,11 @@ function openWarningViewModal(warningId, warningData) {
   document.getElementById("warningViewOverlay").dataset.warningId = w.id;
   document.getElementById("warningTextArea").value = w.warning_text || "";
   document.getElementById("warningViewError").classList.remove("show");
+  WARNING_ALT_TEXT = w.warning_text_alt || "";
+  WARNING_LANG = w.language === "en" ? "en" : "ar";
+  document.getElementById("warningTextArea").dir = WARNING_LANG === "ar" ? "rtl" : "ltr";
+  document.getElementById("warningTextArea").style.textAlign = WARNING_LANG === "ar" ? "right" : "left";
+  updateWarningConvertBtnLabel();
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
   const emp = byId[w.employee_id];
@@ -568,7 +580,9 @@ function openWarningViewModal(warningId, warningData) {
   document.getElementById("warningStatusLine").textContent = `${t("colStatus")}: ${statusLabel}` + (w.sent_at ? ` — ${fmtDate(w.sent_at.slice(0,10))}` : "");
 
   const isSent = w.status === "sent";
-  document.getElementById("warningTextArea").disabled = isSent;
+  document.getElementById("warningTextArea").disabled = true;
+  document.getElementById("warningEditBtn").style.display = isSent ? "none" : "";
+  document.getElementById("warningViewToggleBtn").style.display = isSent ? "none" : "";
   document.getElementById("warningSaveBtn").style.display = isSent ? "none" : "";
   document.getElementById("warningSendBtn").style.display = isSent ? "none" : "";
 
@@ -576,6 +590,23 @@ function openWarningViewModal(warningId, warningData) {
 }
 document.getElementById("closeWarningViewBtn").addEventListener("click", () => {
   document.getElementById("warningViewOverlay").style.display = "none";
+});
+document.getElementById("warningEditBtn").addEventListener("click", () => {
+  document.getElementById("warningTextArea").disabled = false;
+  document.getElementById("warningTextArea").focus();
+});
+document.getElementById("warningViewToggleBtn").addEventListener("click", () => {
+  document.getElementById("warningTextArea").disabled = true;
+});
+document.getElementById("warningConvertBtn").addEventListener("click", () => {
+  const textarea = document.getElementById("warningTextArea");
+  const current = textarea.value;
+  textarea.value = WARNING_ALT_TEXT;
+  WARNING_ALT_TEXT = current;
+  WARNING_LANG = WARNING_LANG === "ar" ? "en" : "ar";
+  textarea.dir = WARNING_LANG === "ar" ? "rtl" : "ltr";
+  textarea.style.textAlign = WARNING_LANG === "ar" ? "right" : "left";
+  updateWarningConvertBtnLabel();
 });
 
 document.getElementById("warningSaveBtn").addEventListener("click", async () => {
@@ -589,7 +620,7 @@ document.getElementById("warningSaveBtn").addEventListener("click", async () => 
   btn.textContent = t("saving");
 
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "update_warning", warning_id, warning_text }
+    body: { action: "update_warning", warning_id, warning_text, warning_text_alt: WARNING_ALT_TEXT, language: WARNING_LANG }
   });
 
   btn.disabled = false;
@@ -600,6 +631,7 @@ document.getElementById("warningSaveBtn").addEventListener("click", async () => 
     errBox.classList.add("show");
     return;
   }
+  document.getElementById("warningTextArea").disabled = true;
   showToast(t("warningSavedToast"));
   await loadWarnings();
 });
@@ -671,6 +703,13 @@ async function loadContracts() {
   });
 }
 
+let CONTRACT_ALT_TEXT = "";
+let CONTRACT_LANG = "ar";
+
+function updateContractConvertBtnLabel() {
+  document.getElementById("contractConvertBtn").textContent = CONTRACT_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
+}
+
 function openContractViewModal(contractId, contractData) {
   const c = contractData || CONTRACTS_LIST.find(x => x.id === contractId);
   if (!c) return;
@@ -678,6 +717,11 @@ function openContractViewModal(contractId, contractData) {
   document.getElementById("contractViewOverlay").dataset.contractId = c.id;
   document.getElementById("contractTextArea").value = c.contract_text || "";
   document.getElementById("contractViewError").classList.remove("show");
+  CONTRACT_ALT_TEXT = c.contract_text_alt || "";
+  CONTRACT_LANG = c.language === "en" ? "en" : "ar";
+  document.getElementById("contractTextArea").dir = CONTRACT_LANG === "ar" ? "rtl" : "ltr";
+  document.getElementById("contractTextArea").style.textAlign = CONTRACT_LANG === "ar" ? "right" : "left";
+  updateContractConvertBtnLabel();
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
   const emp = byId[c.employee_id];
@@ -695,7 +739,10 @@ function openContractViewModal(contractId, contractData) {
   }
 
   const isSigned = c.status === "signed";
-  document.getElementById("contractTextArea").disabled = isSigned;
+  // Always open in read-only "View" mode; admin clicks Edit to unlock.
+  document.getElementById("contractTextArea").disabled = true;
+  document.getElementById("contractEditBtn").style.display = isSigned ? "none" : "";
+  document.getElementById("contractViewToggleBtn").style.display = isSigned ? "none" : "";
   document.getElementById("contractSaveBtn").style.display = isSigned ? "none" : "";
   document.getElementById("contractShareBtn").style.display = (c.status === "draft" || c.status === "commented") ? "" : "none";
   document.getElementById("contractShareBtn").textContent = c.status === "commented" ? t("shareAgainBtn") : t("shareWithEmployeeBtn");
@@ -704,6 +751,23 @@ function openContractViewModal(contractId, contractData) {
 }
 document.getElementById("closeContractViewBtn").addEventListener("click", () => {
   document.getElementById("contractViewOverlay").style.display = "none";
+});
+document.getElementById("contractEditBtn").addEventListener("click", () => {
+  document.getElementById("contractTextArea").disabled = false;
+  document.getElementById("contractTextArea").focus();
+});
+document.getElementById("contractViewToggleBtn").addEventListener("click", () => {
+  document.getElementById("contractTextArea").disabled = true;
+});
+document.getElementById("contractConvertBtn").addEventListener("click", () => {
+  const textarea = document.getElementById("contractTextArea");
+  const current = textarea.value;
+  textarea.value = CONTRACT_ALT_TEXT;
+  CONTRACT_ALT_TEXT = current;
+  CONTRACT_LANG = CONTRACT_LANG === "ar" ? "en" : "ar";
+  textarea.dir = CONTRACT_LANG === "ar" ? "rtl" : "ltr";
+  textarea.style.textAlign = CONTRACT_LANG === "ar" ? "right" : "left";
+  updateContractConvertBtnLabel();
 });
 
 document.getElementById("contractSaveBtn").addEventListener("click", async () => {
@@ -717,7 +781,7 @@ document.getElementById("contractSaveBtn").addEventListener("click", async () =>
   btn.textContent = t("saving");
 
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "update_contract", contract_id, contract_text }
+    body: { action: "update_contract", contract_id, contract_text, contract_text_alt: CONTRACT_ALT_TEXT, language: CONTRACT_LANG }
   });
 
   btn.disabled = false;
@@ -728,6 +792,7 @@ document.getElementById("contractSaveBtn").addEventListener("click", async () =>
     errBox.classList.add("show");
     return;
   }
+  document.getElementById("contractTextArea").disabled = true;
   showToast(t("contractSavedToast"));
   await loadContracts();
 });
