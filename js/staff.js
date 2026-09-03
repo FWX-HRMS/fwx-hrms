@@ -181,6 +181,68 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   await Promise.all([loadRequests(), loadBalance()]);
 });
 
+let DASHBOARD_WARNINGS = [];
+let DOC_ALT_TEXT = "";
+let DOC_LANG = "ar";
+
+async function loadDashboardWarnings() {
+  const { data, error } = await db
+    .from("warnings")
+    .select("*")
+    .eq("employee_id", ME.id)
+    .eq("status", "sent")
+    .order("sent_at", { ascending: false });
+
+  const body = document.getElementById("dashboardWarningsBody");
+  const empty = document.getElementById("noDashboardWarnings");
+  body.innerHTML = "";
+
+  if (error || !data || data.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  DASHBOARD_WARNINGS = data;
+
+  for (const w of data) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-view-dash-warning="${w.id}">${t("view")}</button></td>
+    `;
+    body.appendChild(tr);
+  }
+  body.querySelectorAll("button[data-view-dash-warning]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const w = DASHBOARD_WARNINGS.find(x => x.id === btn.dataset.viewDashWarning);
+      if (!w) return;
+      const display = document.getElementById("docTextDisplay");
+      display.textContent = w.warning_text || w.reason;
+      DOC_ALT_TEXT = w.warning_text_alt || "";
+      DOC_LANG = w.language === "en" ? "en" : "ar";
+      display.dir = DOC_LANG === "ar" ? "rtl" : "ltr";
+      display.style.textAlign = DOC_LANG === "ar" ? "right" : "left";
+      const convertBtn = document.getElementById("docConvertBtn");
+      convertBtn.style.display = DOC_ALT_TEXT ? "" : "none";
+      convertBtn.textContent = DOC_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
+      document.getElementById("docViewOverlay").style.display = "flex";
+    });
+  });
+}
+document.getElementById("closeDocViewBtn").addEventListener("click", () => {
+  document.getElementById("docViewOverlay").style.display = "none";
+});
+document.getElementById("docConvertBtn").addEventListener("click", () => {
+  const display = document.getElementById("docTextDisplay");
+  const current = display.textContent;
+  display.textContent = DOC_ALT_TEXT;
+  DOC_ALT_TEXT = current;
+  DOC_LANG = DOC_LANG === "ar" ? "en" : "ar";
+  display.dir = DOC_LANG === "ar" ? "rtl" : "ltr";
+  display.style.textAlign = DOC_LANG === "ar" ? "right" : "left";
+  document.getElementById("docConvertBtn").textContent = DOC_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
+});
+
 async function checkNewDocsNotification() {
   const contractBox = document.getElementById("contractNotification");
   const warningBox = document.getElementById("warningNotification");
@@ -238,5 +300,5 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
   `;
   document.getElementById("deptLine").textContent = ME.department ? `${ME.department}` : "";
   startLocationSharing();
-  await Promise.all([loadBalance(), loadRequests(), checkNewDocsNotification()]);
+  await Promise.all([loadBalance(), loadRequests(), checkNewDocsNotification(), loadDashboardWarnings()]);
 })();

@@ -441,9 +441,127 @@ function checkSupervisorWarningNotification() {
   showDocActivityPopup("⚠️", t("docActivityTitle"), tv("supervisorWarningNotifyMsg", { n: newOnes.length }));
 }
 
+let ADMIN_CONTRACTS_LIST = [];
+let ADMIN_CONTRACTS_PAGE = 0;
+let ADMIN_WARNINGS_LIST = [];
+let ADMIN_WARNINGS_PAGE = 0;
+let DOC_ALT_TEXT = "";
+let DOC_LANG = "ar";
+
+function docStatusBadge(status) {
+  const cls = { draft: "cancelled", shared: "pending", commented: "rejected", signed: "approved", sent: "approved" }[status] || "cancelled";
+  return `<span class="badge badge-${cls}">${t("contractStatus" + status[0].toUpperCase() + status.slice(1))}</span>`;
+}
+
+async function loadAdminContracts() {
+  if (ME.role !== "admin") { document.getElementById("adminContractsPanel").style.display = "none"; return; }
+  document.getElementById("adminContractsPanel").style.display = "";
+
+  const { data, error } = await db.from("contracts").select("*").order("created_at", { ascending: false });
+  const body = document.getElementById("adminContractsBody");
+  const empty = document.getElementById("noAdminContracts");
+  body.innerHTML = "";
+
+  if (error || !data) { empty.style.display = "block"; return; }
+  ADMIN_CONTRACTS_LIST = data;
+  empty.style.display = data.length ? "none" : "block";
+
+  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  const start = ADMIN_CONTRACTS_PAGE * PAGE_SIZE;
+  const pageItems = data.slice(start, start + PAGE_SIZE);
+  for (const c of pageItems) {
+    const emp = byId[c.employee_id];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${emp ? emp.full_name : "—"}</td>
+      <td>${docStatusBadge(c.status)}</td>
+      <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-view-admin-contract="${c.id}">${t("view")}</button></td>
+    `;
+    body.appendChild(tr);
+  }
+  updatePaginationControls("adminContracts", ADMIN_CONTRACTS_PAGE, ADMIN_CONTRACTS_LIST.length);
+  body.querySelectorAll("button[data-view-admin-contract]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const c = ADMIN_CONTRACTS_LIST.find(x => x.id === btn.dataset.viewAdminContract);
+      if (!c) return;
+      const emp = byId[c.employee_id];
+      openDocView(emp ? emp.full_name : t("contractDetailsTitle"), c.contract_text, c.contract_text_alt, c.language);
+    });
+  });
+}
+
+async function loadAdminWarnings() {
+  if (ME.role !== "admin") { document.getElementById("adminWarningsPanel").style.display = "none"; return; }
+  document.getElementById("adminWarningsPanel").style.display = "";
+
+  const { data, error } = await db.from("warnings").select("*").order("created_at", { ascending: false });
+  const body = document.getElementById("adminWarningsBody");
+  const empty = document.getElementById("noAdminWarnings");
+  body.innerHTML = "";
+
+  if (error || !data) { empty.style.display = "block"; return; }
+  ADMIN_WARNINGS_LIST = data;
+  empty.style.display = data.length ? "none" : "block";
+
+  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  const start = ADMIN_WARNINGS_PAGE * PAGE_SIZE;
+  const pageItems = data.slice(start, start + PAGE_SIZE);
+  for (const w of pageItems) {
+    const emp = byId[w.employee_id];
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${emp ? emp.full_name : "—"}</td>
+      <td>${fmtDate(w.created_at ? w.created_at.slice(0,10) : null)}</td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-view-admin-warning="${w.id}">${t("view")}</button></td>
+    `;
+    body.appendChild(tr);
+  }
+  updatePaginationControls("adminWarnings", ADMIN_WARNINGS_PAGE, ADMIN_WARNINGS_LIST.length);
+  body.querySelectorAll("button[data-view-admin-warning]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const w = ADMIN_WARNINGS_LIST.find(x => x.id === btn.dataset.viewAdminWarning);
+      if (!w) return;
+      const emp = byId[w.employee_id];
+      openDocView(emp ? emp.full_name : t("warningDetailsTitle"), w.warning_text || w.reason, w.warning_text_alt, w.language);
+    });
+  });
+}
+
+function openDocView(title, text, altText, lang) {
+  document.getElementById("docViewTitle").textContent = title;
+  const display = document.getElementById("docTextDisplay");
+  display.textContent = text || "";
+  DOC_ALT_TEXT = altText || "";
+  DOC_LANG = lang === "en" ? "en" : "ar";
+  display.dir = DOC_LANG === "ar" ? "rtl" : "ltr";
+  display.style.textAlign = DOC_LANG === "ar" ? "right" : "left";
+  const convertBtn = document.getElementById("docConvertBtn");
+  convertBtn.style.display = DOC_ALT_TEXT ? "" : "none";
+  convertBtn.textContent = DOC_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
+  document.getElementById("docViewOverlay").style.display = "flex";
+}
+document.getElementById("closeDocViewBtn").addEventListener("click", () => {
+  document.getElementById("docViewOverlay").style.display = "none";
+});
+document.getElementById("docConvertBtn").addEventListener("click", () => {
+  const display = document.getElementById("docTextDisplay");
+  const current = display.textContent;
+  display.textContent = DOC_ALT_TEXT;
+  DOC_ALT_TEXT = current;
+  DOC_LANG = DOC_LANG === "ar" ? "en" : "ar";
+  display.dir = DOC_LANG === "ar" ? "rtl" : "ltr";
+  display.style.textAlign = DOC_LANG === "ar" ? "right" : "left";
+  document.getElementById("docConvertBtn").textContent = DOC_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
+});
+document.getElementById("adminContractsPrevBtn").addEventListener("click", () => { if (ADMIN_CONTRACTS_PAGE > 0) { ADMIN_CONTRACTS_PAGE--; loadAdminContracts(); } });
+document.getElementById("adminContractsNextBtn").addEventListener("click", () => { if ((ADMIN_CONTRACTS_PAGE + 1) * PAGE_SIZE < ADMIN_CONTRACTS_LIST.length) { ADMIN_CONTRACTS_PAGE++; loadAdminContracts(); } });
+document.getElementById("adminWarningsPrevBtn").addEventListener("click", () => { if (ADMIN_WARNINGS_PAGE > 0) { ADMIN_WARNINGS_PAGE--; loadAdminWarnings(); } });
+document.getElementById("adminWarningsNextBtn").addEventListener("click", () => { if ((ADMIN_WARNINGS_PAGE + 1) * PAGE_SIZE < ADMIN_WARNINGS_LIST.length) { ADMIN_WARNINGS_PAGE++; loadAdminWarnings(); } });
+
 async function refreshAll() {
   await loadTeam();
-  await Promise.all([loadBalances(), loadRequests(), loadTeamWarnings()]);
+  await Promise.all([loadBalances(), loadRequests(), loadTeamWarnings(), loadAdminContracts(), loadAdminWarnings()]);
   await checkAdminContractActivity();
   checkSupervisorWarningNotification();
 }

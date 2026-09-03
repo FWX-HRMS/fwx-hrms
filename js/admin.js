@@ -455,7 +455,7 @@ function renderDirectory() {
     btn.addEventListener("click", () => { closeActionMenus(); openEditModal(btn.dataset.edit); });
   });
   body.querySelectorAll("button[data-contract]").forEach(btn => {
-    btn.addEventListener("click", () => { closeActionMenus(); openContractCreateModal(btn.dataset.contract); });
+    btn.addEventListener("click", async () => { closeActionMenus(); await openContractCreateModal(btn.dataset.contract); });
   });
   body.querySelectorAll("button[data-warning]").forEach(btn => {
     btn.addEventListener("click", () => { closeActionMenus(); openWarningCreateModal(btn.dataset.warning); });
@@ -474,9 +474,26 @@ function renderDirectory() {
   });
 }
 
-function openContractCreateModal(employeeId) {
+async function openContractCreateModal(employeeId) {
   const e = DIRECTORY.find(x => x.id === employeeId);
   if (!e) return;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: activeContracts } = await db
+    .from("contracts")
+    .select("id, end_date")
+    .eq("employee_id", employeeId)
+    .eq("status", "signed")
+    .or(`end_date.is.null,end_date.gte.${today}`);
+
+  if (activeContracts && activeContracts.length > 0) {
+    await showInfo(
+      t("activeContractBlockTitle"),
+      tv("activeContractBlockMsg", { name: e.full_name })
+    );
+    return;
+  }
+
   document.getElementById("contractCreateForm").reset();
   document.getElementById("contractCreateError").classList.remove("show");
   document.getElementById("contractCreateForm").dataset.targetId = employeeId;

@@ -238,6 +238,8 @@ const translations = {
     activeContractGeneric: "You have a signed, active job contract on file.",
     ok: "OK",
     docActivityTitle: "Notification",
+    activeContractBlockTitle: "Active contract on file",
+    activeContractBlockMsg: "%name% already has an active, signed job contract that hasn't expired yet. Delete the existing contract first if you want to start a new one.",
     adminContractActivityMsg: "%n% contract(s) have recent employee activity (signed or commented). Check the Contracts tab.",
     supervisorWarningNotifyMsg: "%n% new warning(s) issued to a member of your team. Check Team Warnings for details.",
     typeFullNameLabel: "Type your full name to sign",
@@ -647,6 +649,8 @@ const translations = {
     activeContractGeneric: "لديك عقد عمل موقّع وساري المفعول مسجل لدينا.",
     ok: "موافق",
     docActivityTitle: "إشعار",
+    activeContractBlockTitle: "يوجد عقد ساري مسجل",
+    activeContractBlockMsg: "لدى %name% بالفعل عقد عمل موقّع وساري لم تنتهِ مدته بعد. يرجى حذف العقد الحالي أولاً إذا كنت تريد إعداد عقد جديد.",
     adminContractActivityMsg: "يوجد نشاط حديث من الموظف على %n% عقد (توقيع أو تعليق). تحقق من تبويب العقود.",
     supervisorWarningNotifyMsg: "تم إصدار %n% إنذار جديد لأحد أعضاء فريقك. تحقق من إنذارات الفريق للتفاصيل.",
     typeFullNameLabel: "اكتب اسمك الكامل للتوقيع",
@@ -900,7 +904,7 @@ function setBtnLoading(btn, loading, loadingLabel) {
   const div = document.createElement("div");
   div.id = "fwxGlobalSpinnerOverlay";
   div.style.cssText = "display:none; position:fixed; inset:0; background:rgba(255,255,255,.55); z-index:9999; align-items:center; justify-content:center;";
-  div.innerHTML = '<div style="width:38px;height:38px;border:4px solid #d8dee6;border-top-color:#1D4ED8;border-radius:50%;animation:fwx-spin .7s linear infinite;"></div>';
+  div.innerHTML = '<div style="width:38px;height:38px;border:4px solid #d8dee6;border-top-color:#14B8A6;border-radius:50%;animation:fwx-spin .7s linear infinite;"></div>';
   document.body.appendChild(div);
 })();
 function showGlobalSpinner() {
