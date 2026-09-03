@@ -1,3 +1,8 @@
+function warningStatusBadge(status) {
+  const cls = { draft: "cancelled", sent: "approved" }[status] || "cancelled";
+  return `<span class="badge badge-${cls}">${t("warningStatus" + status[0].toUpperCase() + status.slice(1))}</span>`;
+}
+
 let ME = null;
 let WARNINGS_LIST = [];
 let WARNING_ALT_TEXT = "";
@@ -31,6 +36,9 @@ async function loadWarnings() {
   for (const w of data) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
+      <td>${ME.full_name}</td>
+      <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
+      <td>${warningStatusBadge(w.status)}</td>
       <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-warning="${w.id}">${t("view")}</button></td>
     `;

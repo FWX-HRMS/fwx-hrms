@@ -181,6 +181,11 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   await Promise.all([loadRequests(), loadBalance()]);
 });
 
+function warningStatusBadge(status) {
+  const cls = { draft: "cancelled", sent: "approved" }[status] || "cancelled";
+  return `<span class="badge badge-${cls}">${t("warningStatus" + status[0].toUpperCase() + status.slice(1))}</span>`;
+}
+
 let DASHBOARD_WARNINGS = [];
 let DOC_ALT_TEXT = "";
 let DOC_LANG = "ar";
@@ -207,6 +212,9 @@ async function loadDashboardWarnings() {
   for (const w of data) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
+      <td>${ME.full_name}</td>
+      <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
+      <td>${warningStatusBadge(w.status)}</td>
       <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-dash-warning="${w.id}">${t("view")}</button></td>
     `;

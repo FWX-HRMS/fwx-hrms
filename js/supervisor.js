@@ -9,6 +9,41 @@ let USERS_PAGE = 0;
 let TEAM_LIST = [];
 const PAGE_SIZE = 10;
 
+function showInfo(title, messageHTML) {
+  return new Promise((resolve) => {
+    document.getElementById("actionTitle").textContent = title;
+    document.getElementById("actionMessage").innerHTML = messageHTML;
+    const btns = document.getElementById("actionButtons");
+    btns.innerHTML = "";
+    const ok = document.createElement("button");
+    ok.className = "btn btn-primary btn-sm";
+    ok.textContent = t("okBtn");
+    ok.onclick = () => { document.getElementById("actionOverlay").style.display = "none"; resolve(); };
+    btns.appendChild(ok);
+    document.getElementById("actionOverlay").style.display = "flex";
+  });
+}
+
+function showConfirm(title, message, confirmLabel = t("confirmBtn"), danger = false) {
+  return new Promise((resolve) => {
+    document.getElementById("actionTitle").textContent = title;
+    document.getElementById("actionMessage").textContent = message;
+    const btns = document.getElementById("actionButtons");
+    btns.innerHTML = "";
+    const cancel = document.createElement("button");
+    cancel.className = "btn btn-danger btn-sm";
+    cancel.textContent = t("cancel");
+    cancel.onclick = () => { document.getElementById("actionOverlay").style.display = "none"; resolve(false); };
+    const ok = document.createElement("button");
+    ok.className = danger ? "btn btn-danger btn-sm" : "btn btn-primary btn-sm";
+    ok.textContent = confirmLabel;
+    ok.onclick = () => { document.getElementById("actionOverlay").style.display = "none"; resolve(true); };
+    btns.appendChild(cancel);
+    btns.appendChild(ok);
+    document.getElementById("actionOverlay").style.display = "flex";
+  });
+}
+
 function updatePaginationControls(prefix, page, totalCount) {
   const wrap = document.getElementById(`${prefix}Pagination`);
   const info = document.getElementById(`${prefix}PageInfo`);
@@ -364,6 +399,8 @@ async function loadTeamWarnings() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${emp.full_name}</td>
+      <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
+      <td>${docStatusBadge(w.status)}</td>
       <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-team-warning="${w.id}">${t("view")}</button></td>
     `;
@@ -476,7 +513,10 @@ async function loadAdminContracts() {
       <td>${emp ? emp.full_name : "—"}</td>
       <td>${docStatusBadge(c.status)}</td>
       <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-view-admin-contract="${c.id}">${t("view")}</button></td>
+      <td>
+        <button type="button" class="btn btn-blue btn-sm" data-view-admin-contract="${c.id}">${t("view")}</button>
+        <button type="button" class="btn btn-danger btn-sm" data-delete-admin-contract="${c.id}">${t("deleteBtn")}</button>
+      </td>
     `;
     body.appendChild(tr);
   }
@@ -487,6 +527,22 @@ async function loadAdminContracts() {
       if (!c) return;
       const emp = byId[c.employee_id];
       openDocView(emp ? emp.full_name : t("contractDetailsTitle"), c.contract_text, c.contract_text_alt, c.language);
+    });
+  });
+  body.querySelectorAll("button[data-delete-admin-contract]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!(await showConfirm(t("deleteBtn"), t("confirmDeleteContract"), t("deleteBtn"), true))) return;
+      showGlobalSpinner();
+      const { data, error } = await db.functions.invoke("clever-action", {
+        body: { action: "delete_contract", contract_id: btn.dataset.deleteAdminContract }
+      });
+      hideGlobalSpinner();
+      if (error || (data && data.error)) {
+        showToast((data && data.error) ? data.error : t("somethingWrongDeletingContract"));
+        return;
+      }
+      showToast(t("contractDeletedToast"));
+      await loadAdminContracts();
     });
   });
 }
@@ -512,8 +568,13 @@ async function loadAdminWarnings() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${emp ? emp.full_name : "—"}</td>
+      <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
+      <td>${docStatusBadge(w.status)}</td>
       <td>${fmtDate(w.created_at ? w.created_at.slice(0,10) : null)}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-view-admin-warning="${w.id}">${t("view")}</button></td>
+      <td>
+        <button type="button" class="btn btn-blue btn-sm" data-view-admin-warning="${w.id}">${t("view")}</button>
+        <button type="button" class="btn btn-danger btn-sm" data-delete-admin-warning="${w.id}">${t("deleteBtn")}</button>
+      </td>
     `;
     body.appendChild(tr);
   }
@@ -524,6 +585,22 @@ async function loadAdminWarnings() {
       if (!w) return;
       const emp = byId[w.employee_id];
       openDocView(emp ? emp.full_name : t("warningDetailsTitle"), w.warning_text || w.reason, w.warning_text_alt, w.language);
+    });
+  });
+  body.querySelectorAll("button[data-delete-admin-warning]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!(await showConfirm(t("deleteBtn"), t("confirmDeleteWarning"), t("deleteBtn"), true))) return;
+      showGlobalSpinner();
+      const { data, error } = await db.functions.invoke("clever-action", {
+        body: { action: "delete_warning", warning_id: btn.dataset.deleteAdminWarning }
+      });
+      hideGlobalSpinner();
+      if (error || (data && data.error)) {
+        showToast((data && data.error) ? data.error : t("somethingWrongDeletingWarning"));
+        return;
+      }
+      showToast(t("warningDeletedToast"));
+      await loadAdminWarnings();
     });
   });
 }

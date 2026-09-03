@@ -133,6 +133,19 @@ async function loadContracts() {
   // Popup once per session for a signed, unexpired contract.
   const activeOne = data.find(c => c.status === "signed");
   if (activeOne) checkActiveContractNotice(activeOne);
+
+  // Popup once per new contract awaiting the employee's review.
+  const awaitingOnes = data.filter(c => c.status === "shared" || c.status === "commented");
+  if (awaitingOnes.length > 0) checkNewContractNotice(awaitingOnes[0]);
+}
+
+function checkNewContractNotice(contract) {
+  const seenKey = `fwx_seenNewContract_${ME.id}_${contract.id}_${contract.updated_at || ""}`;
+  if (sessionStorage.getItem(seenKey)) return;
+  document.getElementById("activeContractTitle").textContent = t("newContractPopupTitle");
+  document.getElementById("activeContractText").textContent = t("newContractPopupMsg");
+  document.getElementById("activeContractOverlay").style.display = "flex";
+  sessionStorage.setItem(seenKey, "1");
 }
 
 function openContractView(id) {
@@ -156,6 +169,7 @@ function openContractView(id) {
   const sigImg = document.getElementById("signatureDisplay");
   const downloadBtn = document.getElementById("downloadContractBtn");
   const actionArea = document.getElementById("actionArea");
+  const waitingBox = document.getElementById("waitingOnAdminBox");
   if (c.status === "signed") {
     signedBox.style.display = "block";
     signedBox.textContent = `${t("signedOnLabel")} ${fmtDate(c.signed_at ? c.signed_at.slice(0,10) : null)}`;
@@ -167,11 +181,26 @@ function openContractView(id) {
     }
     downloadBtn.style.display = "";
     actionArea.style.display = "none";
+    waitingBox.style.display = "none";
   } else {
     signedBox.style.display = "none";
     sigImg.style.display = "none";
     downloadBtn.style.display = "none";
     actionArea.style.display = "block";
+    // After the employee has commented, everything in the action area is
+    // disabled (except Convert/Close) until admin responds — prevents
+    // double-submitting comments or signing while feedback is pending.
+    const isWaiting = c.status === "commented";
+    waitingBox.style.display = isWaiting ? "block" : "none";
+    document.getElementById("commentText").disabled = isWaiting;
+    document.getElementById("submitCommentBtn").disabled = isWaiting;
+    document.getElementById("sigModeDrawBtn").disabled = isWaiting;
+    document.getElementById("sigModeUploadBtn").disabled = isWaiting;
+    document.getElementById("clearSignatureBtn").disabled = isWaiting;
+    document.getElementById("signatureFileInput").disabled = isWaiting;
+    document.getElementById("signContractBtn").disabled = isWaiting;
+    document.getElementById("signatureCanvas").style.pointerEvents = isWaiting ? "none" : "";
+    document.getElementById("signatureCanvas").style.opacity = isWaiting ? "0.5" : "1";
   }
 
   document.getElementById("commentText").value = "";
@@ -211,6 +240,7 @@ function checkActiveContractNotice(contract) {
   const today = new Date().toISOString().slice(0, 10);
   if (contract.end_date && contract.end_date < today) return; // expired, don't show
 
+  document.getElementById("activeContractTitle").textContent = t("activeContractTitle");
   document.getElementById("activeContractText").textContent =
     contract.end_date ? `${t("activeContractUntil")} ${fmtDate(contract.end_date)}` : t("activeContractGeneric");
   document.getElementById("activeContractOverlay").style.display = "flex";
@@ -257,8 +287,8 @@ document.getElementById("submitCommentBtn").addEventListener("click", async () =
   }
 
   showToast(t("commentsSentToast"));
-  document.getElementById("contractViewOverlay").style.display = "none";
   await loadContracts();
+  openContractView(CONTRACT.id);
 });
 
 document.getElementById("signContractBtn").addEventListener("click", async () => {
