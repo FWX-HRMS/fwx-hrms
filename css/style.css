@@ -393,8 +393,8 @@ html[dir="rtl"] .action-menu button{ text-align:right; }
 .btn-spinner{
   display:inline-block;
   width:15px; height:15px;
-  border:2px solid rgba(255,255,255,.5);
-  border-top-color:#fff;
+  border:2px solid rgba(255,255,255,.45);
+  border-top-color:#14B8A6;
   border-radius:50%;
   animation:fwx-spin .7s linear infinite;
   vertical-align:middle;
