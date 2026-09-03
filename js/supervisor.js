@@ -383,9 +383,47 @@ document.getElementById("closeTeamWarningViewBtn").addEventListener("click", () 
   document.getElementById("teamWarningViewOverlay").style.display = "none";
 });
 
+document.getElementById("closeDocActivityBtn").addEventListener("click", () => {
+  document.getElementById("docActivityOverlay").style.display = "none";
+});
+
+function showDocActivityPopup(icon, title, text) {
+  document.getElementById("docActivityIcon").textContent = icon;
+  document.getElementById("docActivityTitle").textContent = title;
+  document.getElementById("docActivityText").textContent = text;
+  document.getElementById("docActivityOverlay").style.display = "flex";
+}
+
+async function checkAdminContractActivity() {
+  if (ME.role !== "admin") return;
+  const { data } = await db.from("contracts").select("id, status, employee_action_at").in("status", ["signed", "commented"]);
+  if (!data || data.length === 0) return;
+
+  const key = `fwx_lastSeenContractActivity_${ME.id}`;
+  const lastSeen = localStorage.getItem(key);
+  const newOnes = data.filter(c => c.employee_action_at && (!lastSeen || new Date(c.employee_action_at) > new Date(lastSeen)));
+  localStorage.setItem(key, new Date().toISOString());
+  if (newOnes.length === 0) return;
+
+  showDocActivityPopup("📄", t("docActivityTitle"), tv("adminContractActivityMsg", { n: newOnes.length }));
+}
+
+function checkSupervisorWarningNotification() {
+  if (ME.role !== "supervisor") return;
+  const key = `fwx_lastSeenSupervisorWarnings_${ME.id}`;
+  const lastSeen = localStorage.getItem(key);
+  const newOnes = TEAM_WARNINGS_LIST.filter(w => w.sent_at && (!lastSeen || new Date(w.sent_at) > new Date(lastSeen)));
+  localStorage.setItem(key, new Date().toISOString());
+  if (newOnes.length === 0) return;
+
+  showDocActivityPopup("⚠️", t("docActivityTitle"), tv("supervisorWarningNotifyMsg", { n: newOnes.length }));
+}
+
 async function refreshAll() {
   await loadTeam();
   await Promise.all([loadBalances(), loadRequests(), loadTeamWarnings()]);
+  await checkAdminContractActivity();
+  checkSupervisorWarningNotification();
 }
 
 (async () => {

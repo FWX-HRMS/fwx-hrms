@@ -205,10 +205,23 @@ async function checkNewDocsNotification() {
   if (newWarnings.length > 0) {
     warningBox.textContent = tv("notifNewWarnings", { n: newWarnings.length });
     warningBox.style.display = "block";
+
+    // Show the popup once per distinct "latest new warning" — won't nag on
+    // every page load, but re-appears if a genuinely newer warning arrives.
+    const latestNewTs = newWarnings[0].sent_at;
+    const popupSeenKey = `fwx_warningPopupSeen_${ME.id}`;
+    if (sessionStorage.getItem(popupSeenKey) !== latestNewTs) {
+      document.getElementById("newWarningPopupText").textContent = tv("notifNewWarnings", { n: newWarnings.length });
+      document.getElementById("newWarningOverlay").style.display = "flex";
+      sessionStorage.setItem(popupSeenKey, latestNewTs);
+    }
   } else {
     warningBox.style.display = "none";
   }
 }
+document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
+  document.getElementById("newWarningOverlay").style.display = "none";
+});
 
 (async () => {
   ME = await requireSession("staff");

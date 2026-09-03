@@ -606,13 +606,30 @@ function renderWarnings() {
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
       <td>${warningStatusBadge(w.status)}</td>
       <td>${fmtDate(w.created_at ? w.created_at.slice(0,10) : null)}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-view-warning="${w.id}">${t("view")}</button></td>
+      <td>
+        <button type="button" class="btn btn-blue btn-sm" data-view-warning="${w.id}">${t("view")}</button>
+        <button type="button" class="btn btn-danger btn-sm" data-delete-warning="${w.id}">${t("deleteBtn")}</button>
+      </td>
     `;
     body.appendChild(tr);
   }
   updatePaginationControls("warnings", WARNINGS_PAGE, WARNINGS_LIST.length);
   body.querySelectorAll("button[data-view-warning]").forEach(btn => {
     btn.addEventListener("click", () => openWarningViewModal(btn.dataset.viewWarning));
+  });
+  body.querySelectorAll("button[data-delete-warning]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm(t("confirmDeleteWarning"))) return;
+      const { data, error } = await db.functions.invoke("clever-action", {
+        body: { action: "delete_warning", warning_id: btn.dataset.deleteWarning }
+      });
+      if (error || (data && data.error)) {
+        showToast((data && data.error) ? data.error : t("somethingWrongDeletingWarning"));
+        return;
+      }
+      showToast(t("warningDeletedToast"));
+      await loadWarnings();
+    });
   });
 }
 
@@ -767,13 +784,30 @@ function renderContracts() {
       <td>${c.job_title || "—"}</td>
       <td>${contractStatusBadge(c.status)}</td>
       <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-view-contract="${c.id}">${t("view")}</button></td>
+      <td>
+        <button type="button" class="btn btn-blue btn-sm" data-view-contract="${c.id}">${t("view")}</button>
+        <button type="button" class="btn btn-danger btn-sm" data-delete-contract="${c.id}">${t("deleteBtn")}</button>
+      </td>
     `;
     body.appendChild(tr);
   }
   updatePaginationControls("contracts", CONTRACTS_PAGE, CONTRACTS_LIST.length);
   body.querySelectorAll("button[data-view-contract]").forEach(btn => {
     btn.addEventListener("click", () => openContractViewModal(btn.dataset.viewContract));
+  });
+  body.querySelectorAll("button[data-delete-contract]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      if (!confirm(t("confirmDeleteContract"))) return;
+      const { data, error } = await db.functions.invoke("clever-action", {
+        body: { action: "delete_contract", contract_id: btn.dataset.deleteContract }
+      });
+      if (error || (data && data.error)) {
+        showToast((data && data.error) ? data.error : t("somethingWrongDeletingContract"));
+        return;
+      }
+      showToast(t("contractDeletedToast"));
+      await loadContracts();
+    });
   });
 }
 
