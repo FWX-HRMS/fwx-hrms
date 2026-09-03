@@ -479,14 +479,18 @@ async function openContractCreateModal(employeeId) {
   if (!e) return;
 
   const today = new Date().toISOString().slice(0, 10);
-  const { data: activeContracts } = await db
+  const { data: existingContracts, error: checkErr } = await db
     .from("contracts")
-    .select("id, end_date")
-    .eq("employee_id", employeeId)
-    .eq("status", "signed")
-    .or(`end_date.is.null,end_date.gte.${today}`);
+    .select("id, status, end_date")
+    .eq("employee_id", employeeId);
 
-  if (activeContracts && activeContracts.length > 0) {
+  // A contract counts as "active" if it's still in progress (draft/shared/
+  // commented) or if it's signed and hasn't reached its end date yet.
+  const blockingContract = !checkErr && (existingContracts || []).find(c =>
+    c.status !== "signed" || !c.end_date || c.end_date >= today
+  );
+
+  if (blockingContract) {
     await showInfo(
       t("activeContractBlockTitle"),
       tv("activeContractBlockMsg", { name: e.full_name })
@@ -880,8 +884,8 @@ function openContractViewModal(contractId, contractData) {
   document.getElementById("contractEditBtn").style.display = isSigned ? "none" : "";
   document.getElementById("contractViewToggleBtn").style.display = isSigned ? "none" : "";
   document.getElementById("contractSaveBtn").style.display = isSigned ? "none" : "";
-  document.getElementById("contractShareBtn").style.display = (c.status === "draft" || c.status === "commented") ? "" : "none";
-  document.getElementById("contractShareBtn").textContent = c.status === "commented" ? t("shareAgainBtn") : t("shareWithEmployeeBtn");
+  document.getElementById("contractShareBtn").style.display = isSigned ? "none" : "";
+  document.getElementById("contractShareBtn").textContent = (c.status === "commented" || c.status === "shared") ? t("shareAgainBtn") : t("shareWithEmployeeBtn");
 
   document.getElementById("contractViewOverlay").style.display = "flex";
 }

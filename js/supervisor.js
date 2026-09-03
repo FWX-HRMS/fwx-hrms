@@ -466,7 +466,7 @@ async function loadAdminContracts() {
   ADMIN_CONTRACTS_LIST = data;
   empty.style.display = data.length ? "none" : "block";
 
-  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  const byId = TEAM_BY_ID;
   const start = ADMIN_CONTRACTS_PAGE * PAGE_SIZE;
   const pageItems = data.slice(start, start + PAGE_SIZE);
   for (const c of pageItems) {
@@ -504,7 +504,7 @@ async function loadAdminWarnings() {
   ADMIN_WARNINGS_LIST = data;
   empty.style.display = data.length ? "none" : "block";
 
-  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  const byId = TEAM_BY_ID;
   const start = ADMIN_WARNINGS_PAGE * PAGE_SIZE;
   const pageItems = data.slice(start, start + PAGE_SIZE);
   for (const w of pageItems) {
@@ -561,7 +561,7 @@ document.getElementById("adminWarningsNextBtn").addEventListener("click", () => 
 
 async function refreshAll() {
   await loadTeam();
-  await Promise.all([loadBalances(), loadRequests(), loadTeamWarnings(), loadAdminContracts(), loadAdminWarnings()]);
+  await Promise.allSettled([loadBalances(), loadRequests(), loadTeamWarnings(), loadAdminContracts(), loadAdminWarnings()]);
   await checkAdminContractActivity();
   checkSupervisorWarningNotification();
 }
