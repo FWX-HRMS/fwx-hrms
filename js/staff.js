@@ -184,6 +184,33 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   await Promise.all([loadRequests(), loadBalance()]);
 });
 
+async function checkNewDocsNotification() {
+  const notifBox = document.getElementById("newDocsNotification");
+  const messages = [];
+
+  // Any contract visible to this employee via RLS is already shared/commented/signed.
+  // We only need to flag it if it's awaiting the employee's attention.
+  const { data: contracts } = await db.from("contracts").select("status").eq("employee_id", ME.id).in("status", ["shared", "commented"]);
+  if (contracts && contracts.length > 0) {
+    messages.push(t("notifNewContract"));
+  }
+
+  const lastSeenKey = `fwx_lastSeenWarnings_${ME.id}`;
+  const lastSeen = localStorage.getItem(lastSeenKey);
+  const { data: warnings } = await db.from("warnings").select("sent_at").eq("employee_id", ME.id).eq("status", "sent").order("sent_at", { ascending: false });
+  const newWarnings = (warnings || []).filter(w => !lastSeen || (w.sent_at && new Date(w.sent_at) > new Date(lastSeen)));
+  if (newWarnings.length > 0) {
+    messages.push(tv("notifNewWarnings", { n: newWarnings.length }));
+  }
+
+  if (messages.length > 0) {
+    notifBox.innerHTML = messages.map(m => `<div>${m}</div>`).join("");
+    notifBox.style.display = "block";
+  } else {
+    notifBox.style.display = "none";
+  }
+}
+
 (async () => {
   ME = await requireSession("staff");
   if (!ME) return;
@@ -202,5 +229,5 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   `;
   document.getElementById("deptLine").textContent = ME.department ? `${ME.department}` : "";
   startLocationSharing();
-  await Promise.all([loadBalance(), loadRequests()]);
+  await Promise.all([loadBalance(), loadRequests(), checkNewDocsNotification()]);
 })();
