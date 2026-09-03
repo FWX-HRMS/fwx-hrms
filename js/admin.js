@@ -185,6 +185,7 @@ function renderLeaveRequests() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${emp ? emp.full_name : "—"}</td>
+      <td>${emp ? emp.file_number : "—"}</td>
       <td>${emp ? (emp.client_company || "—") : "—"}</td>
       <td>${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}</td>
       <td>${r.days_requested}</td>
@@ -619,11 +620,11 @@ function renderWarnings() {
   const pageItems = WARNINGS_LIST.slice(start, start + PAGE_SIZE);
   for (const w of pageItems) {
     const emp = byId[w.employee_id];
-    const warningName = emp ? `${emp.file_number} - ${emp.full_name}` : w.id;
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${warningName}</td>
       <td>${emp ? emp.full_name : "—"}</td>
+      <td>${emp ? emp.file_number : "—"}</td>
+      <td>${emp ? (emp.client_company || "—") : "—"}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
       <td>${warningStatusBadge(w.status)}</td>
       <td>${fmtDate(w.created_at ? w.created_at.slice(0,10) : null)}</td>
