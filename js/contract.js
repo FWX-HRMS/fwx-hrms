@@ -121,6 +121,7 @@ async function loadContracts() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${ME.full_name}</td>
+      <td>${ME.file_number}</td>
       <td>${ME.client_company || "—"}</td>
       <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
       <td><span class="badge ${badge}">${contractStatusLabel(c.status)}</span></td>

@@ -213,6 +213,7 @@ async function loadDashboardWarnings() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${ME.full_name}</td>
+      <td>${ME.file_number}</td>
       <td>${ME.client_company || "—"}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
       <td>${warningStatusBadge(w.status)}</td>

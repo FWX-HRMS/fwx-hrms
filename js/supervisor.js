@@ -399,6 +399,7 @@ async function loadTeamWarnings() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${emp.full_name}</td>
+      <td>${emp.file_number}</td>
       <td>${emp.client_company || "—"}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
       <td>${warningStatusBadge(w.status)}</td>
@@ -517,6 +518,7 @@ async function loadAdminContracts() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${emp ? emp.full_name : "—"}</td>
+      <td>${emp ? emp.file_number : "—"}</td>
       <td>${emp ? (emp.client_company || "—") : "—"}</td>
       <td>${docStatusBadge(c.status)}</td>
       <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
@@ -553,6 +555,7 @@ async function loadAdminWarnings() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${emp ? emp.full_name : "—"}</td>
+      <td>${emp ? emp.file_number : "—"}</td>
       <td>${emp ? (emp.client_company || "—") : "—"}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
       <td>${warningStatusBadge(w.status)}</td>
