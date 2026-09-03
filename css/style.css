@@ -143,32 +143,6 @@ a{ color:var(--accent); }
 @media (prefers-reduced-motion: reduce){
   .login-spectrum{ animation:none !important; }
   .login-lightorb{ animation:none !important; }
-  .login-floating-logo{ animation:none !important; }
-}
-
-/* FWX logo drifting slowly around the scene, breathing between small and large */
-.login-floating-logo{
-  position:absolute;
-  top:50%; left:50%;
-  width:160px;
-  height:auto;
-  opacity:0.85;
-  z-index:1;
-  pointer-events:none;
-  filter:drop-shadow(0 0 30px rgba(255,255,255,0.6)) brightness(0) invert(1);
-  animation:fwx-logo-drift 26s ease-in-out infinite, fwx-logo-pulse 7s ease-in-out infinite;
-}
-@keyframes fwx-logo-drift{
-  0%{ transform:translate(-50%,-50%) translate(-38vw,-24vh); }
-  20%{ transform:translate(-50%,-50%) translate(28vw,-30vh); }
-  40%{ transform:translate(-50%,-50%) translate(36vw,20vh); }
-  60%{ transform:translate(-50%,-50%) translate(-10vw,30vh); }
-  80%{ transform:translate(-50%,-50%) translate(-34vw,4vh); }
-  100%{ transform:translate(-50%,-50%) translate(-38vw,-24vh); }
-}
-@keyframes fwx-logo-pulse{
-  0%,100%{ scale:0.7; }
-  50%{ scale:1.6; }
 }
 
 .login-mist{
