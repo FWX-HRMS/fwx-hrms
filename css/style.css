@@ -38,39 +38,41 @@ a{ color:var(--accent); }
   padding:24px;
   position:relative;
   overflow:hidden;
-  background:linear-gradient(160deg, #0B1220 0%, #101B2E 45%, #0D1A26 100%);
+  background:linear-gradient(160deg, #0A1F14 0%, #123321 40%, #0C2618 75%, #081810 100%);
 }
+
+/* Soft dappled light filtering through the canopy */
 .login-orb{
   position:absolute;
   border-radius:50%;
-  filter:blur(70px);
-  opacity:0.55;
+  filter:blur(75px);
+  opacity:0.45;
   will-change:transform;
   pointer-events:none;
 }
 .login-orb-1{
   width:480px; height:480px;
   top:-120px; left:-100px;
-  background:radial-gradient(circle at 30% 30%, #2E6E8E, transparent 70%);
-  animation:fwx-orb-drift-1 26s ease-in-out infinite;
+  background:radial-gradient(circle at 30% 30%, #4E8A5A, transparent 70%);
+  animation:fwx-orb-drift-1 34s ease-in-out infinite;
 }
 .login-orb-2{
   width:420px; height:420px;
   bottom:-140px; right:-80px;
-  background:radial-gradient(circle at 60% 40%, #14B8A6, transparent 70%);
-  animation:fwx-orb-drift-2 32s ease-in-out infinite;
+  background:radial-gradient(circle at 60% 40%, #C9A24B, transparent 70%);
+  animation:fwx-orb-drift-2 40s ease-in-out infinite;
 }
 .login-orb-3{
   width:360px; height:360px;
   top:35%; left:55%;
-  background:radial-gradient(circle at 50% 50%, #3B4E8A, transparent 70%);
-  animation:fwx-orb-drift-3 38s ease-in-out infinite;
+  background:radial-gradient(circle at 50% 50%, #2E5C3A, transparent 70%);
+  animation:fwx-orb-drift-3 46s ease-in-out infinite;
 }
 .login-orb-4{
   width:300px; height:300px;
   bottom:15%; left:8%;
-  background:radial-gradient(circle at 50% 50%, #1E90A0, transparent 70%);
-  animation:fwx-orb-drift-4 22s ease-in-out infinite;
+  background:radial-gradient(circle at 50% 50%, #7FAE72, transparent 70%);
+  animation:fwx-orb-drift-4 28s ease-in-out infinite;
 }
 @keyframes fwx-orb-drift-1{
   0%,100%{ transform:translate(0,0) scale(1); }
@@ -88,8 +90,80 @@ a{ color:var(--accent); }
   0%,100%{ transform:translate(0,0) scale(1); }
   50%{ transform:translate(45px,-35px) scale(1.1); }
 }
+
+/* Gentle rain, falling steadily but softly — calm, not stormy */
+.login-rain{
+  position:absolute;
+  inset:-20% 0 0 -10%;
+  width:120%;
+  height:140%;
+  pointer-events:none;
+  opacity:.28;
+  background-image:repeating-linear-gradient(
+    115deg,
+    rgba(210,230,220,0.55) 0px,
+    rgba(210,230,220,0.55) 1px,
+    transparent 1px,
+    transparent 34px
+  );
+  background-size:100% 220px;
+  animation:fwx-rain-fall 0.9s linear infinite;
+}
+.login-rain-2{
+  opacity:.16;
+  background-size:100% 260px;
+  animation-duration:1.3s;
+  filter:blur(0.5px);
+}
+@keyframes fwx-rain-fall{
+  0%{ background-position:0 -220px; }
+  100%{ background-position:0 0; }
+}
+
+/* Slow-drifting fireflies for a warm, calming glow */
+.login-firefly{
+  position:absolute;
+  width:5px; height:5px;
+  border-radius:50%;
+  background:#FFE9A8;
+  box-shadow:0 0 8px 3px rgba(255,223,140,.8), 0 0 20px 8px rgba(255,223,140,.35);
+  opacity:0;
+  pointer-events:none;
+  animation:fwx-firefly-float 9s ease-in-out infinite;
+}
+.login-fireflies .login-firefly:nth-child(1){ left:12%; top:70%; animation-delay:0s; }
+.login-fireflies .login-firefly:nth-child(2){ left:78%; top:25%; animation-delay:1.4s; }
+.login-fireflies .login-firefly:nth-child(3){ left:35%; top:55%; animation-delay:2.8s; }
+.login-fireflies .login-firefly:nth-child(4){ left:60%; top:80%; animation-delay:4.2s; }
+.login-fireflies .login-firefly:nth-child(5){ left:88%; top:60%; animation-delay:5.6s; }
+.login-fireflies .login-firefly:nth-child(6){ left:20%; top:30%; animation-delay:7s; }
+@keyframes fwx-firefly-float{
+  0%{ opacity:0; transform:translate(0,0); }
+  15%{ opacity:.9; }
+  50%{ opacity:.5; transform:translate(18px,-26px); }
+  85%{ opacity:.8; }
+  100%{ opacity:0; transform:translate(-10px,-48px); }
+}
+
 @media (prefers-reduced-motion: reduce){
   .login-orb{ animation:none !important; }
+  .login-rain{ animation:none !important; opacity:.1 !important; }
+  .login-firefly{ animation:none !important; opacity:.4 !important; }
+}
+
+/* Soft ground mist rising at the base, like a forest floor after rain */
+.login-mist{
+  position:absolute;
+  bottom:0; left:-10%; right:-10%;
+  height:220px;
+  background:linear-gradient(to top, rgba(180,200,180,0.18), transparent);
+  filter:blur(30px);
+  pointer-events:none;
+  animation:fwx-mist-drift 50s ease-in-out infinite;
+}
+@keyframes fwx-mist-drift{
+  0%,100%{ transform:translateX(0); }
+  50%{ transform:translateX(4%); }
 }
 .login-card{
   width:100%;
