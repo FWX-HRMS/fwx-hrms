@@ -451,6 +451,7 @@ p.page-sub{
 
 /* ---------- Table ---------- */
 table{ width:100%; border-collapse:collapse; font-size:14px; }
+th:last-child, td:last-child{ width:1%; white-space:nowrap; text-align:right; }
 th{
   text-align:left;
   font-size:12px;
