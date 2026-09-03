@@ -909,6 +909,27 @@ function setBtnLoading(btn, loading, loadingLabel) {
   }
 }
 
+// Adds the same animated spectrum-of-light background used on the login
+// screen to every inner app page (admin/supervisor/staff), minus the
+// floating logo — that stays exclusive to login. Skips login pages entirely
+// since they already build their own version of this background directly
+// in HTML.
+(function injectAppBackground() {
+  const appEl = document.querySelector(".app");
+  if (!appEl || document.querySelector(".login-wrap")) return;
+  const bg = document.createElement("div");
+  bg.className = "app-bg";
+  bg.innerHTML = `
+    <div class="login-spectrum"></div>
+    <div class="login-lightorb login-lightorb-1"></div>
+    <div class="login-lightorb login-lightorb-2"></div>
+    <div class="login-lightorb login-lightorb-3"></div>
+    <div class="login-lightorb login-lightorb-4"></div>
+    <div class="login-mist"></div>
+  `;
+  appEl.insertBefore(bg, appEl.firstChild);
+})();
+
 // A full-page dimmed spinner for actions that don't have one specific button
 // to attach a spinner to (e.g. a confirm-modal action like freeze/delete,
 // where the modal has already closed by the time the request runs).
