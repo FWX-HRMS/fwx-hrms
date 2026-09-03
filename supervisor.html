@@ -106,7 +106,57 @@
         </div>
       </div>
     </div>
+
+    <div class="panel" id="adminContractsPanel" style="display:none">
+      <h2 data-i18n="contractsTitle">Contracts</h2>
+      <table>
+        <thead>
+          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colStatus">Status</th><th data-i18n="colCreatedDate">Created</th><th></th></tr>
+        </thead>
+        <tbody id="adminContractsBody"></tbody>
+      </table>
+      <div class="empty-state" id="noAdminContracts" style="display:none" data-i18n="noContractsFound">No contracts found.</div>
+      <div id="adminContractsPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="adminContractsPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-blue btn-sm" id="adminContractsPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-blue btn-sm" id="adminContractsNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="adminWarningsPanel" style="display:none">
+      <h2 data-i18n="warningsTitle">Warnings</h2>
+      <table>
+        <thead>
+          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colCreatedDate">Date</th><th></th></tr>
+        </thead>
+        <tbody id="adminWarningsBody"></tbody>
+      </table>
+      <div class="empty-state" id="noAdminWarnings" style="display:none" data-i18n="noWarningsFound">No warnings found.</div>
+      <div id="adminWarningsPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="adminWarningsPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-blue btn-sm" id="adminWarningsPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-blue btn-sm" id="adminWarningsNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
+    </div>
   </main>
+</div>
+
+<!-- Read-only view modal reused for admin contracts/warnings on the dashboard -->
+<div id="docViewOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:700px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:10px; flex-wrap:wrap">
+      <h2 style="margin:0" id="docViewTitle"></h2>
+      <div style="display:flex; gap:10px">
+        <button type="button" class="btn btn-blue btn-sm" id="docConvertBtn"></button>
+        <button type="button" class="btn btn-blue btn-sm" id="closeDocViewBtn" data-i18n="close">Close</button>
+      </div>
+    </div>
+    <div id="docTextDisplay" dir="rtl" style="white-space:pre-wrap; font-size:14px; text-align:right; line-height:1.8; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:16px; max-height:500px; overflow-y:auto"></div>
+  </div>
 </div>
 
 <!-- View team warning modal (read-only) -->
