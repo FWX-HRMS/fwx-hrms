@@ -337,7 +337,7 @@ document.getElementById("signContractBtn").addEventListener("click", async () =>
   ME = await requireSession("staff");
   if (!ME) return;
   document.getElementById("whoami").innerHTML = `${ME.full_name} · #${ME.file_number}<br><span style="opacity:.7">${ME.client_company || ""}</span>`;
-  document.getElementById("contractSub").textContent = ME.department ? `${ME.department}` : "";
+  document.getElementById("contractSub").textContent = `${ME.full_name} · ${ME.client_company || ""}`;
   signaturePad = initSignaturePad(document.getElementById("signatureCanvas"));
   await loadContracts();
 })();

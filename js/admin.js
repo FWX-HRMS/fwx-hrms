@@ -1626,4 +1626,19 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   await Promise.all([loadCompanyOptions(), loadSupervisors(), loadBalances()]);
   await loadDirectory();
   if (COMPANY_FILTER) document.getElementById("clientCompany").value = COMPANY_FILTER;
+
+  // Deep link from the dashboard's "View" buttons: ?tab=contracts&contractId=... / ?tab=warnings&warningId=...
+  const qs = new URLSearchParams(window.location.search);
+  const deepLinkTab = qs.get("tab");
+  if (deepLinkTab === "contracts") {
+    applyTab("contracts");
+    await loadContracts();
+    const contractId = qs.get("contractId");
+    if (contractId) openContractViewModal(contractId);
+  } else if (deepLinkTab === "warnings") {
+    applyTab("warnings");
+    await loadWarnings();
+    const warningId = qs.get("warningId");
+    if (warningId) openWarningViewModal(warningId);
+  }
 })();
