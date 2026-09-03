@@ -58,6 +58,17 @@ initLangToggle();
 
 let ME = null;
 
+// Map company names (must match client_companies.name exactly) to their logo file paths.
+// If a company has no entry here, its card simply renders without a logo image.
+const COMPANY_LOGOS = {
+  "F.W.X Company": "images/companies/fwx.png",
+  "Fiber-Tech": "images/companies/fibertech.png",
+  "MODEE": "images/companies/modee.png",
+  "Orange": "images/companies/orange.png",
+  "Umniah": "images/companies/umniah.png",
+  "Zain": "images/companies/zain.png",
+};
+
 function showToast(msg) {
   const el = document.getElementById("toast");
   el.textContent = msg;
@@ -122,7 +133,9 @@ async function loadCompanies() {
     const a = document.createElement("a");
     a.className = "company-card";
     a.href = `admin.html?company=${encodeURIComponent(c.name)}`;
+    const logoSrc = COMPANY_LOGOS[c.name];
     a.innerHTML = `
+      ${logoSrc ? `<img src="${logoSrc}" alt="${c.name} logo" class="company-logo">` : ""}
       <span class="company-name">${c.name}</span>
       <span class="company-count">${counts[c.name] || 0} ${t("peopleSuffix")}</span>
     `;
