@@ -1,4 +1,5 @@
 let ME = null;
+let CONTRACTS_LIST = [];
 let CONTRACT = null;
 let CONTRACT_ALT_TEXT = "";
 let CONTRACT_LANG = "ar";
@@ -21,7 +22,9 @@ function contractStatusClass(status) {
 }
 
 function updateContractConvertBtnLabel() {
-  document.getElementById("contractConvertBtn").textContent = CONTRACT_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
+  const btn = document.getElementById("contractConvertBtn");
+  btn.style.display = CONTRACT_ALT_TEXT ? "" : "none";
+  btn.textContent = CONTRACT_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
 }
 
 function initSignaturePad(canvas) {
@@ -77,8 +80,6 @@ function setSigMode(mode) {
   sigMode = mode;
   document.getElementById("sigDrawArea").style.display = mode === "draw" ? "" : "none";
   document.getElementById("sigUploadArea").style.display = mode === "upload" ? "" : "none";
-  document.getElementById("sigModeDrawBtn").classList.toggle("active", mode === "draw");
-  document.getElementById("sigModeUploadBtn").classList.toggle("active", mode === "upload");
 }
 document.getElementById("sigModeDrawBtn").addEventListener("click", () => setSigMode("draw"));
 document.getElementById("sigModeUploadBtn").addEventListener("click", () => setSigMode("upload"));
@@ -96,57 +97,113 @@ document.getElementById("signatureFileInput").addEventListener("change", (e) => 
   reader.readAsDataURL(file);
 });
 
-async function loadContract() {
+async function loadContracts() {
   const { data, error } = await db
     .from("contracts")
     .select("*")
     .eq("employee_id", ME.id)
     .neq("status", "draft")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order("created_at", { ascending: false });
 
-  if (error || !data) {
-    document.getElementById("noContractPanel").style.display = "block";
-    document.getElementById("contractPanel").style.display = "none";
+  const body = document.getElementById("contractsBody");
+  const empty = document.getElementById("noContractPanel");
+  body.innerHTML = "";
+
+  if (error || !data || data.length === 0) {
+    empty.style.display = "block";
     return;
   }
+  empty.style.display = "none";
+  CONTRACTS_LIST = data;
 
-  CONTRACT = data;
-  document.getElementById("noContractPanel").style.display = "none";
-  document.getElementById("contractPanel").style.display = "block";
+  for (const c of data) {
+    const badge = contractStatusClass(c.status);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
+      <td><span class="badge ${badge}">${contractStatusLabel(c.status)}</span></td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-view-contract="${c.id}">${t("view")}</button></td>
+    `;
+    body.appendChild(tr);
+  }
+  body.querySelectorAll("button[data-view-contract]").forEach(btn => {
+    btn.addEventListener("click", () => openContractView(btn.dataset.viewContract));
+  });
 
-  document.getElementById("contractTextDisplay").textContent = data.contract_text || "";
-  CONTRACT_ALT_TEXT = data.contract_text_alt || "";
-  CONTRACT_LANG = data.language === "en" ? "en" : "ar";
+  // Popup once per session for a signed, unexpired contract.
+  const activeOne = data.find(c => c.status === "signed");
+  if (activeOne) checkActiveContractNotice(activeOne);
+}
+
+function openContractView(id) {
+  const c = CONTRACTS_LIST.find(x => x.id === id);
+  if (!c) return;
+  CONTRACT = c;
+
   const display = document.getElementById("contractTextDisplay");
+  display.textContent = c.contract_text || "";
+  CONTRACT_ALT_TEXT = c.contract_text_alt || "";
+  CONTRACT_LANG = c.language === "en" ? "en" : "ar";
   display.dir = CONTRACT_LANG === "ar" ? "rtl" : "ltr";
   display.style.textAlign = CONTRACT_LANG === "ar" ? "right" : "left";
-  document.getElementById("contractConvertBtn").style.display = CONTRACT_ALT_TEXT ? "" : "none";
   updateContractConvertBtnLabel();
 
   const badge = document.getElementById("contractStatusBadge");
-  badge.textContent = contractStatusLabel(data.status);
-  badge.className = `badge ${contractStatusClass(data.status)}`;
+  badge.textContent = contractStatusLabel(c.status);
+  badge.className = `badge ${contractStatusClass(c.status)}`;
 
   const signedBox = document.getElementById("signedBox");
   const sigImg = document.getElementById("signatureDisplay");
+  const downloadBtn = document.getElementById("downloadContractBtn");
   const actionArea = document.getElementById("actionArea");
-  if (data.status === "signed") {
+  if (c.status === "signed") {
     signedBox.style.display = "block";
-    signedBox.textContent = `${t("signedOnLabel")} ${fmtDate(data.signed_at ? data.signed_at.slice(0,10) : null)}`;
-    if (data.signature_image) {
-      sigImg.src = data.signature_image;
+    signedBox.textContent = `${t("signedOnLabel")} ${fmtDate(c.signed_at ? c.signed_at.slice(0,10) : null)}`;
+    if (c.signature_image) {
+      sigImg.src = c.signature_image;
       sigImg.style.display = "block";
+    } else {
+      sigImg.style.display = "none";
     }
+    downloadBtn.style.display = "";
     actionArea.style.display = "none";
-    checkActiveContractNotice(data);
   } else {
     signedBox.style.display = "none";
     sigImg.style.display = "none";
+    downloadBtn.style.display = "none";
     actionArea.style.display = "block";
   }
+
+  document.getElementById("commentText").value = "";
+  document.getElementById("commentError").classList.remove("show");
+  document.getElementById("signError").classList.remove("show");
+  if (signaturePad) signaturePad.clear();
+  document.getElementById("signaturePreview").style.display = "none";
+  document.getElementById("signatureFileInput").value = "";
+  setSigMode("draw");
+
+  document.getElementById("contractViewOverlay").style.display = "flex";
 }
+document.getElementById("closeContractViewBtn").addEventListener("click", () => {
+  document.getElementById("contractViewOverlay").style.display = "none";
+});
+
+document.getElementById("downloadContractBtn").addEventListener("click", () => {
+  const text = document.getElementById("contractTextDisplay").textContent;
+  const { jsPDF } = window.jspdf || {};
+  if (!jsPDF) { showToast("PDF library not loaded"); return; }
+  const doc = new jsPDF();
+  doc.setFontSize(11);
+  const lines = doc.splitTextToSize(text, 180);
+  let y = 20;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  for (const line of lines) {
+    if (y > pageHeight - 15) { doc.addPage(); y = 20; }
+    doc.text(line, 14, y);
+    y += 6;
+  }
+  doc.save("my_contract.pdf");
+});
 
 function checkActiveContractNotice(contract) {
   const seenKey = `fwx_seenActiveContract_${ME.id}_${contract.id}`;
@@ -199,9 +256,9 @@ document.getElementById("submitCommentBtn").addEventListener("click", async () =
     return;
   }
 
-  document.getElementById("commentText").value = "";
   showToast(t("commentsSentToast"));
-  await loadContract();
+  document.getElementById("contractViewOverlay").style.display = "none";
+  await loadContracts();
 });
 
 document.getElementById("signContractBtn").addEventListener("click", async () => {
@@ -242,7 +299,8 @@ document.getElementById("signContractBtn").addEventListener("click", async () =>
   }
 
   showToast(t("contractSignedToast"));
-  await loadContract();
+  document.getElementById("contractViewOverlay").style.display = "none";
+  await loadContracts();
 });
 
 (async () => {
@@ -251,5 +309,5 @@ document.getElementById("signContractBtn").addEventListener("click", async () =>
   document.getElementById("whoami").innerHTML = `${ME.full_name} · #${ME.file_number}<br><span style="opacity:.7">${ME.client_company || ""}</span>`;
   document.getElementById("contractSub").textContent = ME.department ? `${ME.department}` : "";
   signaturePad = initSignaturePad(document.getElementById("signatureCanvas"));
-  await loadContract();
+  await loadContracts();
 })();

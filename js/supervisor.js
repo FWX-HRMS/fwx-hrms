@@ -374,11 +374,31 @@ async function loadTeamWarnings() {
       if (!w) return;
       const emp = TEAM_BY_ID[w.employee_id];
       document.getElementById("teamWarningViewTitle").textContent = emp ? emp.full_name : t("warningDetailsTitle");
-      document.getElementById("teamWarningTextDisplay").textContent = w.warning_text || w.reason;
+      const display = document.getElementById("teamWarningTextDisplay");
+      display.textContent = w.warning_text || w.reason;
+      TEAM_WARNING_ALT_TEXT = w.warning_text_alt || "";
+      TEAM_WARNING_LANG = w.language === "en" ? "en" : "ar";
+      display.dir = TEAM_WARNING_LANG === "ar" ? "rtl" : "ltr";
+      display.style.textAlign = TEAM_WARNING_LANG === "ar" ? "right" : "left";
+      const convertBtn = document.getElementById("teamWarningConvertBtn");
+      convertBtn.style.display = TEAM_WARNING_ALT_TEXT ? "" : "none";
+      convertBtn.textContent = TEAM_WARNING_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
       document.getElementById("teamWarningViewOverlay").style.display = "flex";
     });
   });
 }
+let TEAM_WARNING_ALT_TEXT = "";
+let TEAM_WARNING_LANG = "ar";
+document.getElementById("teamWarningConvertBtn").addEventListener("click", () => {
+  const display = document.getElementById("teamWarningTextDisplay");
+  const current = display.textContent;
+  display.textContent = TEAM_WARNING_ALT_TEXT;
+  TEAM_WARNING_ALT_TEXT = current;
+  TEAM_WARNING_LANG = TEAM_WARNING_LANG === "ar" ? "en" : "ar";
+  display.dir = TEAM_WARNING_LANG === "ar" ? "rtl" : "ltr";
+  display.style.textAlign = TEAM_WARNING_LANG === "ar" ? "right" : "left";
+  document.getElementById("teamWarningConvertBtn").textContent = TEAM_WARNING_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
+});
 document.getElementById("closeTeamWarningViewBtn").addEventListener("click", () => {
   document.getElementById("teamWarningViewOverlay").style.display = "none";
 });
