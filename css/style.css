@@ -334,6 +334,14 @@ button{
   display:grid;
   grid-template-columns:220px 1fr;
   min-height:100vh;
+  position:relative;
+}
+.app-bg{
+  position:absolute;
+  inset:0;
+  z-index:-1;
+  overflow:hidden;
+  pointer-events:none;
 }
 .sidebar{
   background:var(--ink);
