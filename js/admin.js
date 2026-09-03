@@ -502,6 +502,9 @@ async function openContractCreateModal(employeeId) {
   document.getElementById("contractCreateForm").reset();
   document.getElementById("contractCreateError").classList.remove("show");
   document.getElementById("contractCreateForm").dataset.targetId = employeeId;
+  delete document.getElementById("contractCreateForm").dataset.editContractId;
+  document.getElementById("contractCreateTitle").textContent = t("createContractTitle");
+  document.getElementById("contractCreateBtn").textContent = t("prepareContractBtn");
   document.getElementById("contractCreateOverlay").style.display = "flex";
 }
 document.getElementById("contractCreateCancelBtn").addEventListener("click", () => {
@@ -513,7 +516,9 @@ document.getElementById("contractCreateForm").addEventListener("submit", async (
   const errBox = document.getElementById("contractCreateError");
   errBox.classList.remove("show");
 
-  const target_id = document.getElementById("contractCreateForm").dataset.targetId;
+  const formEl = document.getElementById("contractCreateForm");
+  const target_id = formEl.dataset.targetId;
+  const editContractId = formEl.dataset.editContractId;
   const dob = document.getElementById("contractDob").value || null;
   const education = document.getElementById("contractEducation").value.trim() || null;
   const address = document.getElementById("contractAddress").value.trim() || null;
@@ -523,10 +528,12 @@ document.getElementById("contractCreateForm").addEventListener("submit", async (
   const contract_period_months = document.getElementById("contractPeriodMonths").value;
 
   const btn = document.getElementById("contractCreateBtn");
-  setBtnLoading(btn, true, t("preparing"));
+  setBtnLoading(btn, true, editContractId ? t("saving") : t("preparing"));
 
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "create_contract", target_id, dob, education, address, salary, job_title, start_date, contract_period_months, lang: getLang() }
+    body: editContractId
+      ? { action: "update_contract_details", contract_id: editContractId, target_id, dob, education, address, salary, job_title, start_date, contract_period_months, lang: getLang() }
+      : { action: "create_contract", target_id, dob, education, address, salary, job_title, start_date, contract_period_months, lang: getLang() }
   });
 
   setBtnLoading(btn, false);
@@ -538,7 +545,7 @@ document.getElementById("contractCreateForm").addEventListener("submit", async (
   }
 
   document.getElementById("contractCreateOverlay").style.display = "none";
-  showToast(t("contractPreparedToast"));
+  showToast(editContractId ? t("contractSavedToast") : t("contractPreparedToast"));
   if (ACTIVE_TAB === "contracts") await loadContracts();
   openContractViewModal(data.contract.id, data.contract);
 });
@@ -844,9 +851,12 @@ function updateContractConvertBtnLabel() {
   document.getElementById("contractConvertBtn").textContent = CONTRACT_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
 }
 
+let CURRENT_VIEWED_CONTRACT = null;
+
 function openContractViewModal(contractId, contractData) {
   const c = contractData || CONTRACTS_LIST.find(x => x.id === contractId);
   if (!c) return;
+  CURRENT_VIEWED_CONTRACT = c;
 
   document.getElementById("contractViewOverlay").dataset.contractId = c.id;
   document.getElementById("contractTextArea").value = c.contract_text || "";
@@ -894,8 +904,24 @@ document.getElementById("closeContractViewBtn").addEventListener("click", () => 
   document.getElementById("contractViewOverlay").style.display = "none";
 });
 document.getElementById("contractEditBtn").addEventListener("click", () => {
-  document.getElementById("contractTextArea").disabled = false;
-  document.getElementById("contractTextArea").focus();
+  if (!CURRENT_VIEWED_CONTRACT) return;
+  const c = CURRENT_VIEWED_CONTRACT;
+  document.getElementById("contractViewOverlay").style.display = "none";
+
+  document.getElementById("contractCreateForm").reset();
+  document.getElementById("contractCreateError").classList.remove("show");
+  document.getElementById("contractDob").value = c.dob || "";
+  document.getElementById("contractEducation").value = c.education || "";
+  document.getElementById("contractAddress").value = c.address || "";
+  document.getElementById("contractSalary").value = c.salary || "";
+  document.getElementById("contractJobTitle").value = c.job_title || "";
+  document.getElementById("contractStartDate").value = c.start_date || "";
+  document.getElementById("contractPeriodMonths").value = c.contract_period_months || "";
+  document.getElementById("contractCreateForm").dataset.targetId = c.employee_id;
+  document.getElementById("contractCreateForm").dataset.editContractId = c.id;
+  document.getElementById("contractCreateTitle").textContent = t("editContractFormTitle");
+  document.getElementById("contractCreateBtn").textContent = t("saveChangesBtn");
+  document.getElementById("contractCreateOverlay").style.display = "flex";
 });
 document.getElementById("contractViewToggleBtn").addEventListener("click", () => {
   document.getElementById("contractTextArea").disabled = true;
