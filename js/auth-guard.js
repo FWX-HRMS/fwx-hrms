@@ -39,6 +39,8 @@ async function requireSession(requiredRole) {
 }
 
 async function logout() {
+  const confirmed = await showLogoutConfirm();
+  if (!confirmed) return;
   await db.auth.signOut();
   window.location.href = "index.html";
 }

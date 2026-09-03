@@ -7,6 +7,8 @@ const translations = {
   en: {
     // Common
     logout: "Log out",
+    logoutConfirmTitle: "Log out?",
+    logoutConfirmMsg: "Are you sure you want to log out of your account?",
     settingsLink: "⚙ Settings",
     back: "← Back",
     cancel: "Cancel",
@@ -424,6 +426,8 @@ const translations = {
   ar: {
     // Common
     logout: "تسجيل الخروج",
+    logoutConfirmTitle: "تسجيل الخروج؟",
+    logoutConfirmMsg: "هل أنت متأكد من رغبتك في تسجيل الخروج من حسابك؟",
     settingsLink: "⚙ الإعدادات",
     back: "→ رجوع",
     cancel: "إلغاء",
@@ -929,6 +933,41 @@ function setBtnLoading(btn, loading, loadingLabel) {
   `;
   appEl.insertBefore(bg, appEl.firstChild);
 })();
+
+// A small confirmation modal for logout, available on every page. Returns a
+// Promise<boolean> resolved once the user picks Cancel or Log out.
+(function injectLogoutConfirm() {
+  const div = document.createElement("div");
+  div.id = "fwxLogoutConfirmOverlay";
+  div.className = "modal-overlay";
+  div.style.display = "none";
+  div.innerHTML = `
+    <div class="modal-box" style="max-width:380px">
+      <h2 id="fwxLogoutConfirmTitle" style="margin:0 0 10px"></h2>
+      <p id="fwxLogoutConfirmMsg" style="margin:0 0 20px; color:var(--ink-soft); font-size:14.5px"></p>
+      <div style="display:flex; gap:10px; justify-content:flex-end">
+        <button type="button" class="btn btn-blue btn-sm" id="fwxLogoutCancelBtn"></button>
+        <button type="button" class="btn btn-danger btn-sm" id="fwxLogoutConfirmBtn"></button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div);
+})();
+
+function showLogoutConfirm() {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("fwxLogoutConfirmOverlay");
+    document.getElementById("fwxLogoutConfirmTitle").textContent = t("logoutConfirmTitle");
+    document.getElementById("fwxLogoutConfirmMsg").textContent = t("logoutConfirmMsg");
+    const cancelBtn = document.getElementById("fwxLogoutCancelBtn");
+    const confirmBtn = document.getElementById("fwxLogoutConfirmBtn");
+    cancelBtn.textContent = t("cancel");
+    confirmBtn.textContent = t("logout");
+    cancelBtn.onclick = () => { overlay.style.display = "none"; resolve(false); };
+    confirmBtn.onclick = () => { overlay.style.display = "none"; resolve(true); };
+    overlay.style.display = "flex";
+  });
+}
 
 // A full-page dimmed spinner for actions that don't have one specific button
 // to attach a spinner to (e.g. a confirm-modal action like freeze/delete,
