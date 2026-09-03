@@ -27,10 +27,29 @@
     <p class="page-sub" id="warningsSub"></p>
 
     <div class="panel">
-      <div id="warningsList"></div>
+      <table>
+        <thead>
+          <tr><th data-i18n="colCreatedDate">Date</th><th></th></tr>
+        </thead>
+        <tbody id="warningsBody"></tbody>
+      </table>
       <div class="empty-state" id="noWarningsMsg" style="display:none" data-i18n="noWarningsForYou">You have no warnings on file.</div>
     </div>
   </main>
+</div>
+
+<!-- View-only warning modal -->
+<div id="warningViewOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:700px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:10px; flex-wrap:wrap">
+      <h2 style="margin:0" data-i18n="warningDetailsTitle">Warning</h2>
+      <div style="display:flex; gap:10px">
+        <button type="button" class="btn btn-blue btn-sm" id="warningConvertBtn"></button>
+        <button type="button" class="btn btn-blue btn-sm" id="closeWarningViewBtn" data-i18n="close">Close</button>
+      </div>
+    </div>
+    <div id="warningTextDisplay" dir="rtl" style="white-space:pre-wrap; font-size:14px; text-align:right; line-height:1.8; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:16px; max-height:500px; overflow-y:auto"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>

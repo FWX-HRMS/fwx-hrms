@@ -6,6 +6,7 @@
 <title>My Contract — HR Portal</title>
 <link rel="stylesheet" href="css/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div class="app">
@@ -26,56 +27,67 @@
     <h1 class="page-title" data-i18n="myContractTitle">My Contract</h1>
     <p class="page-sub" id="contractSub"></p>
 
-    <div class="panel" id="noContractPanel" style="display:none">
-      <p class="empty-state" data-i18n="noContractYet">No contract has been shared with you yet. Please check back later or contact HR.</p>
-    </div>
-
-    <div class="panel" id="contractPanel" style="display:none">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px; flex-wrap:wrap">
-        <h2 style="margin:0" data-i18n="myContractTitle">My Contract</h2>
-        <div style="display:flex; align-items:center; gap:10px">
-          <button type="button" class="btn btn-blue btn-sm" id="contractConvertBtn"></button>
-          <span class="badge" id="contractStatusBadge"></span>
-        </div>
-      </div>
-      <div id="contractTextDisplay" dir="rtl" style="white-space:pre-wrap; font-family:inherit; font-size:14px; text-align:right; line-height:1.8; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:16px; max-height:500px; overflow-y:auto; margin-bottom:16px"></div>
-
-      <div id="signedBox" style="display:none" class="success-msg"></div>
-      <img id="signatureDisplay" style="display:none; max-width:260px; border:1px solid var(--border); border-radius:8px; margin-top:10px; background:#fff">
-
-      <div id="actionArea">
-        <div class="panel" style="margin-bottom:16px">
-          <h2 data-i18n="sendCommentsTitle">Send comments to admin</h2>
-          <label for="commentText" data-i18n="commentTextLabel">If you have questions or requested changes, describe them here</label>
-          <textarea id="commentText" rows="3"></textarea>
-          <button type="button" class="btn btn-blue" id="submitCommentBtn" style="margin-top:10px; max-width:220px" data-i18n="sendCommentsBtn">Send Comments</button>
-          <div class="error-msg" id="commentError"></div>
-        </div>
-
-        <div class="panel">
-          <h2 data-i18n="signContractTitle">Sign this contract</h2>
-          <p class="help-text" style="margin-bottom:14px" data-i18n="signContractNote">By providing your signature below and clicking Sign, you confirm that you have read, understood, and agree to the terms of this contract.</p>
-
-          <div style="display:flex; gap:10px; margin-bottom:12px">
-            <button type="button" class="btn btn-blue btn-sm" id="sigModeDrawBtn" data-i18n="drawSignatureBtn">Draw Signature</button>
-            <button type="button" class="btn btn-blue btn-sm" id="sigModeUploadBtn" data-i18n="uploadSignatureBtn">Upload Image</button>
-          </div>
-
-          <div id="sigDrawArea">
-            <canvas id="signatureCanvas" width="500" height="160" style="border:1px solid var(--border); border-radius:8px; width:100%; max-width:500px; height:160px; touch-action:none; background:#fff; display:block"></canvas>
-            <button type="button" class="btn btn-blue btn-sm" id="clearSignatureBtn" style="margin-top:8px" data-i18n="clearSignatureBtn">Clear</button>
-          </div>
-          <div id="sigUploadArea" style="display:none">
-            <input type="file" id="signatureFileInput" accept="image/*">
-            <img id="signaturePreview" style="display:none; max-width:280px; margin-top:10px; border:1px solid var(--border); border-radius:8px;">
-          </div>
-
-          <button type="button" class="btn btn-primary" id="signContractBtn" style="margin-top:14px; max-width:220px" data-i18n="signContractBtn">Sign Contract</button>
-          <div class="error-msg" id="signError"></div>
-        </div>
-      </div>
+    <div class="panel">
+      <table>
+        <thead>
+          <tr><th data-i18n="colCreatedDate">Date</th><th data-i18n="colStatus">Status</th><th></th></tr>
+        </thead>
+        <tbody id="contractsBody"></tbody>
+      </table>
+      <div class="empty-state" id="noContractPanel" style="display:none" data-i18n="noContractYet">No contract has been shared with you yet. Please check back later or contact HR.</div>
     </div>
   </main>
+</div>
+
+<!-- Contract view modal -->
+<div id="contractViewOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:760px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px; flex-wrap:wrap">
+      <h2 style="margin:0" data-i18n="myContractTitle">My Contract</h2>
+      <div style="display:flex; align-items:center; gap:10px">
+        <button type="button" class="btn btn-blue btn-sm" id="contractConvertBtn"></button>
+        <span class="badge" id="contractStatusBadge"></span>
+        <button type="button" class="btn btn-blue btn-sm" id="closeContractViewBtn" data-i18n="close">Close</button>
+      </div>
+    </div>
+    <div id="contractTextDisplay" dir="rtl" style="white-space:pre-wrap; font-family:inherit; font-size:14px; text-align:right; line-height:1.8; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:16px; max-height:420px; overflow-y:auto; margin-bottom:16px"></div>
+
+    <div id="signedBox" style="display:none" class="success-msg"></div>
+    <img id="signatureDisplay" style="display:none; max-width:260px; border:1px solid var(--border); border-radius:8px; margin-top:10px; background:#fff">
+    <button type="button" class="btn btn-blue" id="downloadContractBtn" style="display:none; margin-top:14px; max-width:220px" data-i18n="downloadReportPdfBtn">Download Report</button>
+
+    <div id="actionArea">
+      <div class="panel" style="margin-bottom:16px; margin-top:16px">
+        <h2 data-i18n="sendCommentsTitle">Send comments to admin</h2>
+        <label for="commentText" data-i18n="commentTextLabel">If you have questions or requested changes, describe them here</label>
+        <textarea id="commentText" rows="3"></textarea>
+        <button type="button" class="btn btn-blue" id="submitCommentBtn" style="margin-top:10px; max-width:220px" data-i18n="sendCommentsBtn">Send Comments</button>
+        <div class="error-msg" id="commentError"></div>
+      </div>
+
+      <div class="panel">
+        <h2 data-i18n="signContractTitle">Sign this contract</h2>
+        <p class="help-text" style="margin-bottom:14px" data-i18n="signContractNote">By providing your signature below and clicking Sign, you confirm that you have read, understood, and agree to the terms of this contract.</p>
+
+        <div style="display:flex; gap:10px; margin-bottom:12px">
+          <button type="button" class="btn btn-blue btn-sm" id="sigModeDrawBtn" data-i18n="drawSignatureBtn">Draw Signature</button>
+          <button type="button" class="btn btn-blue btn-sm" id="sigModeUploadBtn" data-i18n="uploadSignatureBtn">Upload Image</button>
+        </div>
+
+        <div id="sigDrawArea">
+          <canvas id="signatureCanvas" width="500" height="160" style="border:1px solid var(--border); border-radius:8px; width:100%; max-width:500px; height:160px; touch-action:none; background:#fff; display:block"></canvas>
+          <button type="button" class="btn btn-blue btn-sm" id="clearSignatureBtn" style="margin-top:8px" data-i18n="clearSignatureBtn">Clear</button>
+        </div>
+        <div id="sigUploadArea" style="display:none">
+          <input type="file" id="signatureFileInput" accept="image/*">
+          <img id="signaturePreview" style="display:none; max-width:280px; margin-top:10px; border:1px solid var(--border); border-radius:8px;">
+        </div>
+
+        <button type="button" class="btn btn-primary" id="signContractBtn" style="margin-top:14px; max-width:220px" data-i18n="signContractBtn">Sign Contract</button>
+        <div class="error-msg" id="signError"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Centered notice for an active, unexpired signed contract -->
