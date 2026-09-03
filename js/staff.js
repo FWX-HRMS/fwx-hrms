@@ -253,16 +253,27 @@ document.getElementById("docConvertBtn").addEventListener("click", () => {
   document.getElementById("docConvertBtn").textContent = DOC_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
 });
 
+function checkNewContractPopup(contract) {
+  const seenKey = `fwx_seenNewContract_${ME.id}_${contract.id}_${contract.updated_at || ""}`;
+  if (sessionStorage.getItem(seenKey)) return;
+  document.getElementById("newContractOverlay").style.display = "flex";
+  sessionStorage.setItem(seenKey, "1");
+}
+document.getElementById("closeNewContractBtn").addEventListener("click", () => {
+  document.getElementById("newContractOverlay").style.display = "none";
+});
+
 async function checkNewDocsNotification() {
   const contractBox = document.getElementById("contractNotification");
   const warningBox = document.getElementById("warningNotification");
 
   // Any contract visible to this employee via RLS is already shared/commented/signed.
   // We only need to flag it if it's awaiting the employee's attention.
-  const { data: contracts } = await db.from("contracts").select("status").eq("employee_id", ME.id).in("status", ["shared", "commented"]);
+  const { data: contracts } = await db.from("contracts").select("id, status, updated_at").eq("employee_id", ME.id).in("status", ["shared", "commented"]);
   if (contracts && contracts.length > 0) {
     contractBox.textContent = t("notifNewContract");
     contractBox.style.display = "block";
+    checkNewContractPopup(contracts[0]);
   } else {
     contractBox.style.display = "none";
   }
