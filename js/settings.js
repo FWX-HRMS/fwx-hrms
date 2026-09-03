@@ -17,7 +17,10 @@ document.getElementById("nameForm").addEventListener("submit", async (e) => {
   const full_name = document.getElementById("fullName").value.trim();
   if (!full_name) return;
 
+  const btn = document.getElementById("saveNameBtn");
+  setBtnLoading(btn, true);
   const { error } = await db.from("employees").update({ full_name }).eq("id", ME.id);
+  setBtnLoading(btn, false);
 
   if (error) {
     errBox.textContent = t("somethingWrongUpdatingName");
@@ -40,9 +43,13 @@ document.getElementById("emailForm").addEventListener("submit", async (e) => {
   const newEmail = document.getElementById("newEmail").value.trim();
   if (!newEmail) return;
 
+  const btn = document.getElementById("updateEmailBtn");
+  setBtnLoading(btn, true);
+
   // This sends a confirmation link to the new address via Supabase Auth.
   const { error: authError } = await db.auth.updateUser({ email: newEmail });
   if (authError) {
+    setBtnLoading(btn, false);
     errBox.textContent = authError.message || "Could not start the email change.";
     errBox.classList.add("show");
     return;
@@ -51,6 +58,7 @@ document.getElementById("emailForm").addEventListener("submit", async (e) => {
   // Keep our own employees table in sync right away so logins/lookups
   // work with the new address once it's confirmed.
   await db.from("employees").update({ email: newEmail }).eq("id", ME.id);
+  setBtnLoading(btn, false);
 
   okBox.classList.add("show");
   okBox.textContent = t("emailChangeConfirmMsg");
@@ -72,7 +80,10 @@ document.getElementById("passwordForm").addEventListener("submit", async (e) => 
     return;
   }
 
+  const btn = document.getElementById("updatePasswordBtn");
+  setBtnLoading(btn, true);
   const { error } = await db.auth.updateUser({ password: newPassword });
+  setBtnLoading(btn, false);
 
   if (error) {
     errBox.textContent = t("somethingWrongUpdatingPassword");

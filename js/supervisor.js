@@ -153,10 +153,12 @@ function renderPending() {
   pendingBody.querySelectorAll("button[data-id]").forEach(btn => {
     btn.addEventListener("click", async () => {
       pendingBody.querySelectorAll("button").forEach(b => b.disabled = true);
+      showGlobalSpinner();
       const { error } = await db
         .from("leave_requests")
         .update({ status: btn.dataset.action, decided_by: ME.id, decided_at: new Date().toISOString() })
         .eq("id", btn.dataset.id);
+      hideGlobalSpinner();
       if (error) { showToast(t("couldNotUpdateRequest")); }
       else {
         showToast(t(btn.dataset.action === "approved" ? "statusApproved" : "statusRejected"));

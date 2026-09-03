@@ -96,12 +96,12 @@ async function loadRequests() {
 
   body.querySelectorAll("button[data-id]").forEach(btn => {
     btn.addEventListener("click", async () => {
-      btn.disabled = true;
+      setBtnLoading(btn, true);
       const { error } = await db
         .from("leave_requests")
         .update({ status: "cancelled" })
         .eq("id", btn.dataset.id);
-      if (error) { showToast(t("couldNotCancelToast")); btn.disabled = false; return; }
+      if (error) { showToast(t("couldNotCancelToast")); setBtnLoading(btn, false); return; }
       showToast(t("requestCancelledToast"));
       await Promise.all([loadRequests(), loadBalance()]);
     });
@@ -139,8 +139,7 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   }
 
   const btn = document.getElementById("applyBtn");
-  btn.disabled = true;
-  btn.textContent = t("submitting");
+  setBtnLoading(btn, true, t("submitting"));
 
   let document_path = null;
 
@@ -149,8 +148,7 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
     document_path = `${ME.id}/${Date.now()}_${safeName}`;
     const { error: uploadError } = await db.storage.from("leave-documents").upload(document_path, file);
     if (uploadError) {
-      btn.disabled = false;
-      btn.textContent = t("submitRequestBtn");
+      setBtnLoading(btn, false);
       errBox.textContent = t("couldNotUploadDoc");
       errBox.classList.add("show");
       return;
@@ -164,8 +162,7 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
     document_path
   }).select().single();
 
-  btn.disabled = false;
-  btn.textContent = t("submitRequestBtn");
+  setBtnLoading(btn, false);
 
   if (error) {
     errBox.textContent = t("somethingWrongSubmitting");

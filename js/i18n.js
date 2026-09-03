@@ -893,6 +893,25 @@ function setBtnLoading(btn, loading, loadingLabel) {
   }
 }
 
+// A full-page dimmed spinner for actions that don't have one specific button
+// to attach a spinner to (e.g. a confirm-modal action like freeze/delete,
+// where the modal has already closed by the time the request runs).
+(function injectGlobalSpinner() {
+  const div = document.createElement("div");
+  div.id = "fwxGlobalSpinnerOverlay";
+  div.style.cssText = "display:none; position:fixed; inset:0; background:rgba(255,255,255,.55); z-index:9999; align-items:center; justify-content:center;";
+  div.innerHTML = '<div style="width:38px;height:38px;border:4px solid #d8dee6;border-top-color:#1D4ED8;border-radius:50%;animation:fwx-spin .7s linear infinite;"></div>';
+  document.body.appendChild(div);
+})();
+function showGlobalSpinner() {
+  const el = document.getElementById("fwxGlobalSpinnerOverlay");
+  if (el) el.style.display = "flex";
+}
+function hideGlobalSpinner() {
+  const el = document.getElementById("fwxGlobalSpinnerOverlay");
+  if (el) el.style.display = "none";
+}
+
 // Apply immediately so static markup is translated before the page-specific
 // script runs (which may itself call t() while building dynamic content).
 applyTranslations();

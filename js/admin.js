@@ -619,10 +619,12 @@ function renderWarnings() {
   });
   body.querySelectorAll("button[data-delete-warning]").forEach(btn => {
     btn.addEventListener("click", async () => {
-      if (!confirm(t("confirmDeleteWarning"))) return;
+      if (!(await showConfirm(t("deleteBtn"), t("confirmDeleteWarning"), t("deleteBtn"), true))) return;
+      showGlobalSpinner();
       const { data, error } = await db.functions.invoke("clever-action", {
         body: { action: "delete_warning", warning_id: btn.dataset.deleteWarning }
       });
+      hideGlobalSpinner();
       if (error || (data && data.error)) {
         showToast((data && data.error) ? data.error : t("somethingWrongDeletingWarning"));
         return;
@@ -797,10 +799,12 @@ function renderContracts() {
   });
   body.querySelectorAll("button[data-delete-contract]").forEach(btn => {
     btn.addEventListener("click", async () => {
-      if (!confirm(t("confirmDeleteContract"))) return;
+      if (!(await showConfirm(t("deleteBtn"), t("confirmDeleteContract"), t("deleteBtn"), true))) return;
+      showGlobalSpinner();
       const { data, error } = await db.functions.invoke("clever-action", {
         body: { action: "delete_contract", contract_id: btn.dataset.deleteContract }
       });
+      hideGlobalSpinner();
       if (error || (data && data.error)) {
         showToast((data && data.error) ? data.error : t("somethingWrongDeletingContract"));
         return;
@@ -1074,9 +1078,11 @@ async function freezeEmployee(id, employee) {
   const reason = await showFreezePrompt();
   if (!reason) return;
 
+  showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "freeze_employee", target_id: id, reason }
   });
+  hideGlobalSpinner();
 
   if (error || (data && data.error)) {
     showToast((data && data.error) ? data.error : t("couldNotFreezeToast"));
@@ -1095,9 +1101,11 @@ async function unfreezeEmployee(id, employee) {
   );
   if (!ok) return;
 
+  showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "unfreeze_employee", target_id: id }
   });
+  hideGlobalSpinner();
 
   if (error || (data && data.error)) {
     showToast((data && data.error) ? data.error : t("couldNotUnfreezeToast"));
@@ -1241,15 +1249,13 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
   }
 
   const btn = document.getElementById("editSaveBtn");
-  btn.disabled = true;
-  btn.textContent = t("saving");
+  setBtnLoading(btn, true, t("saving"));
 
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "update_employee", target_id, full_name, email, hiring_date, department, client_company, role, supervisor_file_number, annual_entitlement_override, carryover_balance, dob, nationality, education, salary, taken_this_year }
   });
 
-  btn.disabled = false;
-  btn.textContent = t("save");
+  setBtnLoading(btn, false);
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : t("somethingWrongUpdatingEmployee");
@@ -1270,9 +1276,11 @@ async function resetPassword(id, employee) {
   );
   if (!ok) return;
 
+  showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "reset_password", target_id: id }
   });
+  hideGlobalSpinner();
 
   if (error || (data && data.error)) {
     showToast(t("couldNotResetPasswordToast"));
@@ -1294,9 +1302,11 @@ async function deleteEmployee(id, employee) {
   );
   if (!ok) return;
 
+  showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "delete_employee", target_id: id }
   });
+  hideGlobalSpinner();
 
   if (error || (data && data.error)) {
     showToast((data && data.error) ? data.error : t("couldNotDeleteEmployee"));
@@ -1551,15 +1561,13 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   }
 
   const btn = document.getElementById("addBtn");
-  btn.disabled = true;
-  btn.textContent = t("creating");
+  setBtnLoading(btn, true, t("creating"));
 
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "create_employee", full_name, email, role, hiring_date, department, client_company, supervisor_file_number, annual_entitlement_override, carryover_balance, taken_this_year }
   });
 
-  btn.disabled = false;
-  btn.textContent = t("createBtn");
+  setBtnLoading(btn, false);
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : t("somethingWrongCreating");
