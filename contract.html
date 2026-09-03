@@ -56,6 +56,7 @@
     <img id="signatureDisplay" style="display:none; max-width:260px; border:1px solid var(--border); border-radius:8px; margin-top:10px; background:#fff">
     <button type="button" class="btn btn-blue" id="downloadContractBtn" style="display:none; margin-top:14px; max-width:220px" data-i18n="downloadReportPdfBtn">Download Report</button>
 
+    <div id="waitingOnAdminBox" style="display:none; margin-top:16px; padding:12px 16px; border-radius:8px; font-size:13.5px; background:var(--amber-soft); color:var(--amber); border:1px solid #F0E0BC;" data-i18n="waitingOnAdminMsg">Your comment has been sent. Waiting for admin's response.</div>
     <div id="actionArea">
       <div class="panel" style="margin-bottom:16px; margin-top:16px">
         <h2 data-i18n="sendCommentsTitle">Send comments to admin</h2>
@@ -94,7 +95,7 @@
 <div id="activeContractOverlay" class="modal-overlay" style="display:none">
   <div class="modal-box" style="max-width:420px; text-align:center">
     <div style="font-size:34px; margin-bottom:6px">📄</div>
-    <h2 style="margin:0 0 10px" data-i18n="activeContractTitle">You have an active job contract</h2>
+    <h2 style="margin:0 0 10px" id="activeContractTitle" data-i18n="activeContractTitle">You have an active job contract</h2>
     <p class="help-text" id="activeContractText" style="margin-bottom:18px"></p>
     <button type="button" class="btn btn-primary" id="closeActiveContractBtn" data-i18n="ok">OK</button>
   </div>

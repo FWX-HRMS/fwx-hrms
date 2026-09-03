@@ -93,7 +93,7 @@
       <h2 data-i18n="teamWarningsTitle">Team Warnings</h2>
       <table>
         <thead>
-          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colCreatedDate">Date</th><th></th></tr>
+          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="warningReasonCol">Reason</th><th data-i18n="colStatus">Status</th><th data-i18n="colCreatedDate">Date</th><th></th></tr>
         </thead>
         <tbody id="teamWarningsBody"></tbody>
       </table>
@@ -129,7 +129,7 @@
       <h2 data-i18n="warningsTitle">Warnings</h2>
       <table>
         <thead>
-          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colCreatedDate">Date</th><th></th></tr>
+          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="warningReasonCol">Reason</th><th data-i18n="colStatus">Status</th><th data-i18n="colCreatedDate">Date</th><th></th></tr>
         </thead>
         <tbody id="adminWarningsBody"></tbody>
       </table>
@@ -213,6 +213,14 @@
     <h2 style="margin:0 0 10px" id="docActivityTitle" data-i18n="docActivityTitle">Notification</h2>
     <p class="help-text" id="docActivityText" style="margin-bottom:18px"></p>
     <button type="button" class="btn btn-primary" id="closeDocActivityBtn" data-i18n="ok">OK</button>
+  </div>
+</div>
+
+<div id="actionOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:420px">
+    <h2 id="actionTitle" style="margin:0 0 10px"></h2>
+    <p id="actionMessage" style="margin:0 0 20px; color:var(--ink-soft); font-size:14.5px"></p>
+    <div id="actionButtons" style="display:flex; gap:10px; justify-content:flex-end"></div>
   </div>
 </div>
 
