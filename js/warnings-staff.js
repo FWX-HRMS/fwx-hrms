@@ -37,6 +37,7 @@ async function loadWarnings() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${ME.full_name}</td>
+      <td>${ME.client_company || "—"}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
       <td>${warningStatusBadge(w.status)}</td>
       <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
