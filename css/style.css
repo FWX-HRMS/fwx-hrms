@@ -54,25 +54,25 @@ a{ color:var(--accent); }
   width:480px; height:480px;
   top:-120px; left:-100px;
   background:radial-gradient(circle at 30% 30%, #4E8A5A, transparent 70%);
-  animation:fwx-orb-drift-1 34s ease-in-out infinite;
+  animation:fwx-orb-drift-1 55s ease-in-out infinite;
 }
 .login-orb-2{
   width:420px; height:420px;
   bottom:-140px; right:-80px;
   background:radial-gradient(circle at 60% 40%, #C9A24B, transparent 70%);
-  animation:fwx-orb-drift-2 40s ease-in-out infinite;
+  animation:fwx-orb-drift-2 62s ease-in-out infinite;
 }
 .login-orb-3{
   width:360px; height:360px;
   top:35%; left:55%;
   background:radial-gradient(circle at 50% 50%, #2E5C3A, transparent 70%);
-  animation:fwx-orb-drift-3 46s ease-in-out infinite;
+  animation:fwx-orb-drift-3 70s ease-in-out infinite;
 }
 .login-orb-4{
   width:300px; height:300px;
   bottom:15%; left:8%;
   background:radial-gradient(circle at 50% 50%, #7FAE72, transparent 70%);
-  animation:fwx-orb-drift-4 28s ease-in-out infinite;
+  animation:fwx-orb-drift-4 48s ease-in-out infinite;
 }
 @keyframes fwx-orb-drift-1{
   0%,100%{ transform:translate(0,0) scale(1); }
@@ -98,7 +98,7 @@ a{ color:var(--accent); }
   width:120%;
   height:140%;
   pointer-events:none;
-  opacity:.28;
+  opacity:.18;
   background-image:repeating-linear-gradient(
     115deg,
     rgba(210,230,220,0.55) 0px,
@@ -107,12 +107,12 @@ a{ color:var(--accent); }
     transparent 34px
   );
   background-size:100% 220px;
-  animation:fwx-rain-fall 0.9s linear infinite;
+  animation:fwx-rain-fall 2.2s linear infinite;
 }
 .login-rain-2{
   opacity:.16;
   background-size:100% 260px;
-  animation-duration:1.3s;
+  animation-duration:3s;
   filter:blur(0.5px);
 }
 @keyframes fwx-rain-fall{
@@ -126,10 +126,10 @@ a{ color:var(--accent); }
   width:5px; height:5px;
   border-radius:50%;
   background:#FFE9A8;
-  box-shadow:0 0 8px 3px rgba(255,223,140,.8), 0 0 20px 8px rgba(255,223,140,.35);
+  box-shadow:0 0 10px 4px rgba(255,223,140,.9), 0 0 26px 10px rgba(255,223,140,.45);
   opacity:0;
   pointer-events:none;
-  animation:fwx-firefly-float 9s ease-in-out infinite;
+  animation:fwx-firefly-float 16s ease-in-out infinite;
 }
 .login-fireflies .login-firefly:nth-child(1){ left:12%; top:70%; animation-delay:0s; }
 .login-fireflies .login-firefly:nth-child(2){ left:78%; top:25%; animation-delay:1.4s; }
@@ -159,7 +159,7 @@ a{ color:var(--accent); }
   background:linear-gradient(to top, rgba(180,200,180,0.18), transparent);
   filter:blur(30px);
   pointer-events:none;
-  animation:fwx-mist-drift 50s ease-in-out infinite;
+  animation:fwx-mist-drift 80s ease-in-out infinite;
 }
 @keyframes fwx-mist-drift{
   0%,100%{ transform:translateX(0); }
