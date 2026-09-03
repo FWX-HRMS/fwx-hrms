@@ -799,14 +799,14 @@ function renderContracts() {
   const pageItems = CONTRACTS_LIST.slice(start, start + PAGE_SIZE);
   for (const c of pageItems) {
     const emp = byId[c.employee_id];
-    const contractName = emp ? `${emp.file_number} - ${emp.full_name}` : c.id;
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${contractName}</td>
       <td>${emp ? emp.full_name : "—"}</td>
-      <td>${c.job_title || "—"}</td>
+      <td>${emp ? emp.file_number : "—"}</td>
+      <td>${emp ? (emp.client_company || "—") : "—"}</td>
       <td>${contractStatusBadge(c.status)}</td>
       <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
+      <td>${c.contract_period_months ? `${c.contract_period_months} ${t("monthsLabel")}` : "—"}</td>
       <td>
         <button type="button" class="btn btn-blue btn-sm" data-view-contract="${c.id}">${t("view")}</button>
         <button type="button" class="btn btn-danger btn-sm" data-delete-contract="${c.id}">${t("deleteBtn")}</button>

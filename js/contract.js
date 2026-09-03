@@ -123,8 +123,9 @@ async function loadContracts() {
       <td>${ME.full_name}</td>
       <td>${ME.file_number}</td>
       <td>${ME.client_company || "—"}</td>
-      <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
       <td><span class="badge ${badge}">${contractStatusLabel(c.status)}</span></td>
+      <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
+      <td>${c.contract_period_months ? `${c.contract_period_months} ${t("monthsLabel")}` : "—"}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-contract="${c.id}">${t("view")}</button></td>
     `;
     body.appendChild(tr);

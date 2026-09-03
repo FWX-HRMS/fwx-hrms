@@ -522,6 +522,7 @@ async function loadAdminContracts() {
       <td>${emp ? (emp.client_company || "—") : "—"}</td>
       <td>${docStatusBadge(c.status)}</td>
       <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
+      <td>${c.contract_period_months ? `${c.contract_period_months} ${t("monthsLabel")}` : "—"}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-admin-contract="${c.id}">${t("view")}</button></td>
     `;
     body.appendChild(tr);
