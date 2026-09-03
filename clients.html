@@ -135,7 +135,7 @@ async function loadCompanies() {
     a.href = `admin.html?company=${encodeURIComponent(c.name)}`;
     const logoSrc = COMPANY_LOGOS[c.name];
     a.innerHTML = `
-      ${logoSrc ? `<img src="${logoSrc}" alt="${c.name} logo" class="company-logo">` : ""}
+      ${logoSrc ? `<div class="company-logo-wrap"><img src="${logoSrc}" alt="${c.name} logo" class="company-logo"></div>` : ""}
       <span class="company-name">${c.name}</span>
       <span class="company-count">${counts[c.name] || 0} ${t("peopleSuffix")}</span>
     `;
