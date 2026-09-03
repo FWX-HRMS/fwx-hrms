@@ -221,7 +221,15 @@ const translations = {
     commentTextLabel: "If you have questions or requested changes, describe them here",
     sendCommentsBtn: "Send Comments",
     signContractTitle: "Sign this contract",
-    signContractNote: "By typing your full name below and clicking Sign, you confirm that you have read, understood, and agree to the terms of this contract.",
+    signContractNote: "By providing your signature below and clicking Sign, you confirm that you have read, understood, and agree to the terms of this contract.",
+    drawSignatureBtn: "Draw Signature",
+    uploadSignatureBtn: "Upload Image",
+    clearSignatureBtn: "Clear",
+    pleaseProvideSignature: "Please draw or upload your signature before signing.",
+    activeContractTitle: "You have an active job contract",
+    activeContractUntil: "Your signed contract is valid until",
+    activeContractGeneric: "You have a signed, active job contract on file.",
+    ok: "OK",
     typeFullNameLabel: "Type your full name to sign",
     signContractBtn: "Sign Contract",
     pleaseEnterComment: "Please enter a comment before submitting.",
@@ -612,7 +620,15 @@ const translations = {
     commentTextLabel: "إذا كان لديك أسئلة أو تعديلات مطلوبة، اذكرها هنا",
     sendCommentsBtn: "إرسال الملاحظات",
     signContractTitle: "توقيع هذا العقد",
-    signContractNote: "بكتابة اسمك الكامل أدناه والنقر على توقيع، فإنك تؤكد أنك قرأت وفهمت ووافقت على شروط هذا العقد.",
+    signContractNote: "بتقديم توقيعك أدناه والنقر على توقيع، فإنك تؤكد أنك قرأت وفهمت ووافقت على شروط هذا العقد.",
+    drawSignatureBtn: "رسم التوقيع",
+    uploadSignatureBtn: "رفع صورة",
+    clearSignatureBtn: "مسح",
+    pleaseProvideSignature: "الرجاء رسم توقيعك أو رفع صورة له قبل التوقيع.",
+    activeContractTitle: "لديك عقد عمل ساري",
+    activeContractUntil: "عقدك الموقّع ساري المفعول حتى",
+    activeContractGeneric: "لديك عقد عمل موقّع وساري المفعول مسجل لدينا.",
+    ok: "موافق",
     typeFullNameLabel: "اكتب اسمك الكامل للتوقيع",
     signContractBtn: "توقيع العقد",
     pleaseEnterComment: "الرجاء كتابة ملاحظة قبل الإرسال.",
@@ -836,6 +852,25 @@ function initLangToggle() {
       window.location.reload();
     });
   });
+}
+
+// Shows/hides a small spinner on a button while an async action runs, and
+// disables the button so it can't be clicked twice. loadingLabel is optional
+// text shown next to the spinner (e.g. "Saving…"); if omitted, the spinner
+// shows alone.
+function setBtnLoading(btn, loading, loadingLabel) {
+  if (!btn) return;
+  if (loading) {
+    if (btn.dataset.origText === undefined) btn.dataset.origText = btn.textContent;
+    btn.innerHTML = `<span class="btn-spinner"></span>${loadingLabel || ""}`;
+    btn.classList.add("is-loading");
+    btn.disabled = true;
+  } else {
+    btn.textContent = btn.dataset.origText !== undefined ? btn.dataset.origText : btn.textContent;
+    delete btn.dataset.origText;
+    btn.classList.remove("is-loading");
+    btn.disabled = false;
+  }
 }
 
 // Apply immediately so static markup is translated before the page-specific

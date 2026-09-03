@@ -185,14 +185,17 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
 });
 
 async function checkNewDocsNotification() {
-  const notifBox = document.getElementById("newDocsNotification");
-  const messages = [];
+  const contractBox = document.getElementById("contractNotification");
+  const warningBox = document.getElementById("warningNotification");
 
   // Any contract visible to this employee via RLS is already shared/commented/signed.
   // We only need to flag it if it's awaiting the employee's attention.
   const { data: contracts } = await db.from("contracts").select("status").eq("employee_id", ME.id).in("status", ["shared", "commented"]);
   if (contracts && contracts.length > 0) {
-    messages.push(t("notifNewContract"));
+    contractBox.textContent = t("notifNewContract");
+    contractBox.style.display = "block";
+  } else {
+    contractBox.style.display = "none";
   }
 
   const lastSeenKey = `fwx_lastSeenWarnings_${ME.id}`;
@@ -200,14 +203,10 @@ async function checkNewDocsNotification() {
   const { data: warnings } = await db.from("warnings").select("sent_at").eq("employee_id", ME.id).eq("status", "sent").order("sent_at", { ascending: false });
   const newWarnings = (warnings || []).filter(w => !lastSeen || (w.sent_at && new Date(w.sent_at) > new Date(lastSeen)));
   if (newWarnings.length > 0) {
-    messages.push(tv("notifNewWarnings", { n: newWarnings.length }));
-  }
-
-  if (messages.length > 0) {
-    notifBox.innerHTML = messages.map(m => `<div>${m}</div>`).join("");
-    notifBox.style.display = "block";
+    warningBox.textContent = tv("notifNewWarnings", { n: newWarnings.length });
+    warningBox.style.display = "block";
   } else {
-    notifBox.style.display = "none";
+    warningBox.style.display = "none";
   }
 }
 

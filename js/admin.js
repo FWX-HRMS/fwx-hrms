@@ -445,15 +445,13 @@ document.getElementById("contractCreateForm").addEventListener("submit", async (
   const contract_period_months = document.getElementById("contractPeriodMonths").value;
 
   const btn = document.getElementById("contractCreateBtn");
-  btn.disabled = true;
-  btn.textContent = t("preparing");
+  setBtnLoading(btn, true, t("preparing"));
 
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "create_contract", target_id, dob, education, address, salary, job_title, start_date, contract_period_months, lang: getLang() }
   });
 
-  btn.disabled = false;
-  btn.textContent = t("prepareContractBtn");
+  setBtnLoading(btn, false);
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : t("somethingWrongCreatingContract");
@@ -498,15 +496,13 @@ document.getElementById("warningCreateForm").addEventListener("submit", async (e
   }
 
   const btn = document.getElementById("warningCreateBtn");
-  btn.disabled = true;
-  btn.textContent = t("preparing");
+  setBtnLoading(btn, true, t("preparing"));
 
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "create_warning", target_id, reason, lang: getLang() }
   });
 
-  btn.disabled = false;
-  btn.textContent = t("prepareWarningBtn");
+  setBtnLoading(btn, false);
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : t("somethingWrongCreatingWarning");
@@ -616,15 +612,13 @@ document.getElementById("warningSaveBtn").addEventListener("click", async () => 
   const warning_text = document.getElementById("warningTextArea").value;
 
   const btn = document.getElementById("warningSaveBtn");
-  btn.disabled = true;
-  btn.textContent = t("saving");
+  setBtnLoading(btn, true, t("saving"));
 
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "update_warning", warning_id, warning_text, warning_text_alt: WARNING_ALT_TEXT, language: WARNING_LANG }
   });
 
-  btn.disabled = false;
-  btn.textContent = t("saveChangesBtn");
+  setBtnLoading(btn, false);
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSaving");
@@ -642,13 +636,13 @@ document.getElementById("warningSendBtn").addEventListener("click", async () => 
   const warning_id = document.getElementById("warningViewOverlay").dataset.warningId;
 
   const btn = document.getElementById("warningSendBtn");
-  btn.disabled = true;
+  setBtnLoading(btn, true);
 
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "send_warning", warning_id }
   });
 
-  btn.disabled = false;
+  setBtnLoading(btn, false);
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSendingWarning");
@@ -739,6 +733,13 @@ function openContractViewModal(contractId, contractData) {
   }
 
   const isSigned = c.status === "signed";
+  const sigImg = document.getElementById("adminSignatureDisplay");
+  if (isSigned && c.signature_image) {
+    sigImg.src = c.signature_image;
+    sigImg.style.display = "block";
+  } else {
+    sigImg.style.display = "none";
+  }
   // Always open in read-only "View" mode; admin clicks Edit to unlock.
   document.getElementById("contractTextArea").disabled = true;
   document.getElementById("contractEditBtn").style.display = isSigned ? "none" : "";
@@ -777,15 +778,13 @@ document.getElementById("contractSaveBtn").addEventListener("click", async () =>
   const contract_text = document.getElementById("contractTextArea").value;
 
   const btn = document.getElementById("contractSaveBtn");
-  btn.disabled = true;
-  btn.textContent = t("saving");
+  setBtnLoading(btn, true, t("saving"));
 
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "update_contract", contract_id, contract_text, contract_text_alt: CONTRACT_ALT_TEXT, language: CONTRACT_LANG }
   });
 
-  btn.disabled = false;
-  btn.textContent = t("saveChangesBtn");
+  setBtnLoading(btn, false);
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSaving");
@@ -803,13 +802,13 @@ document.getElementById("contractShareBtn").addEventListener("click", async () =
   const contract_id = document.getElementById("contractViewOverlay").dataset.contractId;
 
   const btn = document.getElementById("contractShareBtn");
-  btn.disabled = true;
+  setBtnLoading(btn, true);
 
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "share_contract", contract_id }
   });
 
-  btn.disabled = false;
+  setBtnLoading(btn, false);
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSharing");
