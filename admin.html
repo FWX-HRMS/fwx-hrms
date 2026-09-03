@@ -52,6 +52,13 @@
         </thead>
         <tbody id="directoryBody"></tbody>
       </table>
+      <div id="directoryPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="directoryPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-blue btn-sm" id="directoryPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-blue btn-sm" id="directoryNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
     </div>
 
     <div class="panel" id="addPanel" style="display:none">
@@ -157,6 +164,13 @@
         <tbody id="leaveRequestsBody"></tbody>
       </table>
       <div class="empty-state" id="noLeaveRequests" style="display:none" data-i18n="noLeaveRequestsFound">No leave requests found.</div>
+      <div id="leaveRequestsPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="leaveRequestsPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-blue btn-sm" id="leaveRequestsPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-blue btn-sm" id="leaveRequestsNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
     </div>
 
     <div class="panel" id="contractsPanel" style="display:none">
@@ -168,6 +182,13 @@
         <tbody id="contractsBody"></tbody>
       </table>
       <div class="empty-state" id="noContracts" style="display:none" data-i18n="noContractsFound">No contracts found.</div>
+      <div id="contractsPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="contractsPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-blue btn-sm" id="contractsPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-blue btn-sm" id="contractsNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
     </div>
 
     <div class="panel" id="warningsPanel" style="display:none">
@@ -179,6 +200,13 @@
         <tbody id="warningsBody"></tbody>
       </table>
       <div class="empty-state" id="noWarnings" style="display:none" data-i18n="noWarningsFound">No warnings found.</div>
+      <div id="warningsPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="warningsPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-blue btn-sm" id="warningsPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-blue btn-sm" id="warningsNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
     </div>
   </main>
 </div>
