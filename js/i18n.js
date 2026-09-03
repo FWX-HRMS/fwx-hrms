@@ -32,7 +32,7 @@ const translations = {
 
     // Nav
     navTeamOverview: "Team overview",
-    navUsers: "Users",
+    navUsers: "All Users",
     navClientCompanies: "Client Companies",
     navStaffLocations: "Staff Locations",
     navMyLeave: "My leave",
@@ -446,7 +446,7 @@ const translations = {
 
     // Nav
     navTeamOverview: "نظرة عامة على الفريق",
-    navUsers: "المستخدمون",
+    navUsers: "جميع المستخدمين",
     navClientCompanies: "الشركات العميلة",
     navStaffLocations: "مواقع الموظفين",
     navMyLeave: "إجازتي",
