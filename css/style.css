@@ -38,87 +38,130 @@ a{ color:var(--accent); }
   padding:24px;
   position:relative;
   overflow:hidden;
-  background:linear-gradient(160deg, #0B1E2E 0%, #0E2B2A 35%, #0A1A28 70%, #060F18 100%);
+  background:linear-gradient(180deg, #C7CFC9 0%, #A9B4AC 22%, #7C8E7C 48%, #4E6350 72%, #2C4030 100%);
 }
-
-/* Large, soft, velvet-toned clouds sweeping fast around the whole screen */
-.login-orb{
-  position:absolute;
-  border-radius:50%;
-  filter:blur(85px);
-  opacity:0.65;
-  will-change:transform;
-  pointer-events:none;
-}
-.login-orb-1{
-  width:620px; height:620px;
-  top:-160px; left:-140px;
-  background:radial-gradient(circle at 35% 35%, #2F6FE0, transparent 72%);
-  animation:fwx-orb-drift-1 13s ease-in-out infinite;
-}
-.login-orb-2{
-  width:560px; height:560px;
-  bottom:-180px; right:-120px;
-  background:radial-gradient(circle at 60% 40%, #2FD98A, transparent 72%);
-  animation:fwx-orb-drift-2 15s ease-in-out infinite;
-}
-.login-orb-3{
-  width:480px; height:480px;
-  top:28%; left:50%;
-  background:radial-gradient(circle at 50% 50%, #F5F7FA, transparent 70%);
-  opacity:0.4;
-  animation:fwx-orb-drift-3 11s ease-in-out infinite;
-}
-.login-orb-4{
-  width:440px; height:440px;
-  bottom:8%; left:2%;
-  background:radial-gradient(circle at 50% 50%, #35C7C0, transparent 72%);
-  animation:fwx-orb-drift-4 9.5s ease-in-out infinite;
-}
-@keyframes fwx-orb-drift-1{
-  0%{ transform:translate(0,0) scale(1); }
-  25%{ transform:translate(40vw,10vh) scale(1.15); }
-  50%{ transform:translate(20vw,45vh) scale(0.9); }
-  75%{ transform:translate(-10vw,20vh) scale(1.1); }
-  100%{ transform:translate(0,0) scale(1); }
-}
-@keyframes fwx-orb-drift-2{
-  0%{ transform:translate(0,0) scale(1); }
-  25%{ transform:translate(-35vw,-15vh) scale(1.2); }
-  50%{ transform:translate(-15vw,-40vh) scale(0.95); }
-  75%{ transform:translate(15vw,-10vh) scale(1.1); }
-  100%{ transform:translate(0,0) scale(1); }
-}
-@keyframes fwx-orb-drift-3{
-  0%{ transform:translate(0,0) scale(1); }
-  30%{ transform:translate(-30vw,20vh) scale(1.1); }
-  60%{ transform:translate(10vw,-25vh) scale(0.85); }
-  100%{ transform:translate(0,0) scale(1); }
-}
-@keyframes fwx-orb-drift-4{
-  0%{ transform:translate(0,0) scale(1); }
-  30%{ transform:translate(25vw,-20vh) scale(1.2); }
-  60%{ transform:translate(45vw,10vh) scale(0.9); }
-  100%{ transform:translate(0,0) scale(1); }
-}
-
+.login-orb{ display:none; }
 .login-rain{ display:none; }
 .login-cloud{ display:none; }
 .login-gridfloor{ display:none; }
 
-@media (prefers-reduced-motion: reduce){
-  .login-orb{ animation:none !important; }
+/* Layered misty mountain ridges, like rain-soaked hills fading into fog */
+.login-mountains{
+  position:absolute;
+  bottom:0; left:0; right:0;
+  height:60vh;
+  min-height:320px;
+  pointer-events:none;
+  line-height:0;
+}
+.login-mountains svg{
+  position:absolute;
+  bottom:0; left:0;
+  width:100%;
+  height:100%;
+}
+.ridge-back{ fill:#9AA79C; opacity:.55; }
+.ridge-mid{ fill:#5E7460; opacity:.75; }
+.ridge-front{ fill:#324832; opacity:.92; }
+
+/* Drifting fog banks weaving through the mountains */
+.login-fogbank{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(55px);
+  background:rgba(235,240,235,0.35);
+  pointer-events:none;
+  will-change:transform;
+}
+.login-fogbank-1{
+  width:520px; height:160px;
+  top:38%; left:-15%;
+  animation:fwx-fog-drift-1 26s ease-in-out infinite;
+}
+.login-fogbank-2{
+  width:600px; height:180px;
+  top:52%; right:-20%;
+  background:rgba(235,240,235,0.28);
+  animation:fwx-fog-drift-2 32s ease-in-out infinite;
+}
+.login-fogbank-3{
+  width:460px; height:140px;
+  top:62%; left:20%;
+  background:rgba(235,240,235,0.22);
+  animation:fwx-fog-drift-3 22s ease-in-out infinite;
+}
+@keyframes fwx-fog-drift-1{
+  0%,100%{ transform:translateX(0); }
+  50%{ transform:translateX(45vw); }
+}
+@keyframes fwx-fog-drift-2{
+  0%,100%{ transform:translateX(0); }
+  50%{ transform:translateX(-40vw); }
+}
+@keyframes fwx-fog-drift-3{
+  0%,100%{ transform:translateX(0); }
+  50%{ transform:translateX(-30vw); }
 }
 
-/* Soft velvet haze near the base for extra depth */
+/* Heavy, visible rain falling steadily across the whole scene */
+.login-heavyrain{
+  position:absolute;
+  inset:-20% -10% 0 -10%;
+  width:120%;
+  height:140%;
+  pointer-events:none;
+  opacity:.4;
+  background-image:repeating-linear-gradient(
+    100deg,
+    rgba(255,255,255,0.85) 0px,
+    rgba(255,255,255,0.85) 1.5px,
+    transparent 1.5px,
+    transparent 22px
+  );
+  background-size:100% 200px;
+  animation:fwx-heavyrain-fall 0.5s linear infinite;
+}
+.login-heavyrain-2{
+  opacity:.25;
+  background-image:repeating-linear-gradient(
+    98deg,
+    rgba(255,255,255,0.7) 0px,
+    rgba(255,255,255,0.7) 1px,
+    transparent 1px,
+    transparent 16px
+  );
+  background-size:100% 160px;
+  animation-duration:0.35s;
+  filter:blur(0.4px);
+}
+@keyframes fwx-heavyrain-fall{
+  0%{ background-position:0 -200px; }
+  100%{ background-position:0 0; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .login-fogbank{ animation:none !important; }
+  .login-heavyrain{ animation:none !important; opacity:.15 !important; }
+}
+
+/* Blurred green foreground foliage, like grass close to the camera */
+.login-foreground{
+  position:absolute;
+  bottom:-40px; left:-10%; right:-10%;
+  height:130px;
+  background:linear-gradient(to top, #17240F 0%, #2C4420 55%, rgba(44,68,32,0) 100%);
+  filter:blur(6px);
+  pointer-events:none;
+}
+
 .login-mist{
   position:absolute;
   bottom:0; left:-10%; right:-10%;
   height:260px;
-  background:linear-gradient(to top, rgba(47,111,224,0.14), transparent);
+  background:linear-gradient(to top, rgba(235,240,235,0.22), transparent);
   filter:blur(40px);
   pointer-events:none;
-  animation:fwx-mist-drift 10s ease-in-out infinite;
+  animation:fwx-mist-drift 20s ease-in-out infinite;
 }
 @keyframes fwx-mist-drift{
   0%,100%{ transform:translateX(0); }
