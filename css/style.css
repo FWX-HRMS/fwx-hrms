@@ -98,21 +98,21 @@ a{ color:var(--accent); }
   width:120%;
   height:140%;
   pointer-events:none;
-  opacity:.18;
+  opacity:.4;
   background-image:repeating-linear-gradient(
     115deg,
-    rgba(210,230,220,0.55) 0px,
-    rgba(210,230,220,0.55) 1px,
-    transparent 1px,
-    transparent 34px
+    rgba(220,235,225,0.7) 0px,
+    rgba(220,235,225,0.7) 1.5px,
+    transparent 1.5px,
+    transparent 26px
   );
-  background-size:100% 220px;
-  animation:fwx-rain-fall 2.2s linear infinite;
+  background-size:100% 180px;
+  animation:fwx-rain-fall 0.6s linear infinite;
 }
 .login-rain-2{
-  opacity:.16;
-  background-size:100% 260px;
-  animation-duration:3s;
+  opacity:.25;
+  background-size:100% 200px;
+  animation-duration:0.85s;
   filter:blur(0.5px);
 }
 @keyframes fwx-rain-fall{
@@ -482,6 +482,20 @@ p.page-sub{
 /* ---------- Table ---------- */
 table{ width:100%; border-collapse:collapse; font-size:14px; }
 th:last-child, td:last-child{ width:1%; white-space:nowrap; text-align:right; }
+
+/* Keep the admin dashboard's Contracts and Warnings tables lined up column-for-column */
+#adminContractsPanel th:nth-child(1), #adminContractsPanel td:nth-child(1),
+#adminWarningsPanel th:nth-child(1), #adminWarningsPanel td:nth-child(1){ width:22%; }
+#adminContractsPanel th:nth-child(2), #adminContractsPanel td:nth-child(2),
+#adminWarningsPanel th:nth-child(2), #adminWarningsPanel td:nth-child(2){ width:10%; }
+#adminContractsPanel th:nth-child(3), #adminContractsPanel td:nth-child(3),
+#adminWarningsPanel th:nth-child(3), #adminWarningsPanel td:nth-child(3){ width:16%; }
+#adminContractsPanel th:nth-child(4), #adminContractsPanel td:nth-child(4),
+#adminWarningsPanel th:nth-child(4), #adminWarningsPanel td:nth-child(4){ width:14%; }
+#adminContractsPanel th:nth-child(5), #adminContractsPanel td:nth-child(5),
+#adminWarningsPanel th:nth-child(5), #adminWarningsPanel td:nth-child(5){ width:14%; }
+#adminContractsPanel th:nth-child(6), #adminContractsPanel td:nth-child(6),
+#adminWarningsPanel th:nth-child(6), #adminWarningsPanel td:nth-child(6){ width:16%; }
 th{
   text-align:left;
   font-size:12px;
