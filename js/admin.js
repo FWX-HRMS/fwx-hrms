@@ -1863,7 +1863,9 @@ async function ewFinalizeCreation() {
   EMP_WIZARD.password = data.password;
 
   const uploadErrors = [];
-  for (const file of EMP_WIZARD.stagedFiles) {
+  for (let i = 0; i < EMP_WIZARD.stagedFiles.length; i++) {
+    const file = EMP_WIZARD.stagedFiles[i];
+    ewRenderSpinner(`Uploading document ${i + 1} of ${EMP_WIZARD.stagedFiles.length}…`);
     const result = await ewUploadStagedFile(file);
     if (!result.ok) uploadErrors.push(`${file.name}: ${result.error}`);
   }
@@ -1922,6 +1924,7 @@ async function ewRenderDoneScreen(uploadErrors) {
 
   const skipBtn = document.getElementById("empWizardSkipBtn");
   skipBtn.textContent = "Share Job Contract";
+  skipBtn.style.width = "220px";
   skipBtn.style.display = "";
 
   const nextBtn = document.getElementById("empWizardNextBtn");
@@ -1953,8 +1956,11 @@ async function ewRenderCurrentStep() {
   cancelBtn.style.display = "";
   nextBtn.style.display = "";
 
-  if (stepDef.key === "documents_staging") {
+  const SKIPPABLE_STEPS = ["documents_staging", "contract_period_months", "salary"];
+
+  if (SKIPPABLE_STEPS.includes(stepDef.key)) {
     skipBtn.textContent = "Skip";
+    skipBtn.style.width = "120px";
     skipBtn.style.display = "";
     nextBtn.textContent = "Next ›";
   } else if (stepDef.key === "review") {
@@ -1991,11 +1997,24 @@ document.getElementById("empWizardSkipBtn").addEventListener("click", async () =
     return;
   }
 
-  // On the documents step: discard any staged files, then move on to Review
-  // (same destination as clicking Next — nothing is created yet).
-  EMP_WIZARD.stagedFiles = [];
-  EMP_WIZARD.stepIndex++;
-  await ewRenderCurrentStep();
+  const steps = ewVisibleSteps();
+  const stepDef = steps[EMP_WIZARD.stepIndex];
+
+  if (stepDef.key === "documents_staging") {
+    // Discard any staged files, then move on to Review (same destination as
+    // clicking Next — nothing is created yet).
+    EMP_WIZARD.stagedFiles = [];
+    EMP_WIZARD.stepIndex++;
+    await ewRenderCurrentStep();
+    return;
+  }
+
+  if (stepDef.key === "contract_period_months" || stepDef.key === "salary") {
+    // Skip without saving whatever's typed in the box — just move on.
+    EMP_WIZARD.stepIndex++;
+    await ewRenderCurrentStep();
+    return;
+  }
 });
 
 document.getElementById("empWizardNextBtn").addEventListener("click", async () => {
