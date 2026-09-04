@@ -1590,13 +1590,31 @@ function yearsSinceHire(dateStr) {
 
 const EMP_WIZARD = {
   stepIndex: 0,
-  phase: "steps", // "steps" | "done"
+  phase: "steps", // "steps" | "creating" | "done"
   values: {},
   stagedFiles: [],
   employeeId: null,
   fileNumber: null,
   password: null,
 };
+
+const COUNTRY_CODES = [
+  ["+962", "Jordan"], ["+966", "Saudi Arabia"], ["+971", "UAE"], ["+965", "Kuwait"],
+  ["+973", "Bahrain"], ["+974", "Qatar"], ["+968", "Oman"], ["+20", "Egypt"],
+  ["+961", "Lebanon"], ["+963", "Syria"], ["+964", "Iraq"], ["+970", "Palestine"],
+  ["+90", "Turkey"], ["+1", "USA / Canada"], ["+44", "United Kingdom"], ["+49", "Germany"],
+  ["+33", "France"], ["+39", "Italy"], ["+34", "Spain"], ["+31", "Netherlands"],
+  ["+46", "Sweden"], ["+41", "Switzerland"], ["+91", "India"], ["+92", "Pakistan"],
+  ["+86", "China"], ["+81", "Japan"], ["+82", "South Korea"], ["+60", "Malaysia"],
+  ["+65", "Singapore"], ["+62", "Indonesia"], ["+63", "Philippines"], ["+880", "Bangladesh"],
+  ["+94", "Sri Lanka"], ["+251", "Ethiopia"], ["+254", "Kenya"], ["+27", "South Africa"],
+  ["+234", "Nigeria"], ["+212", "Morocco"], ["+216", "Tunisia"], ["+213", "Algeria"],
+  ["+7", "Russia"], ["+61", "Australia"], ["+64", "New Zealand"], ["+55", "Brazil"], ["+52", "Mexico"],
+];
+
+function escapeHtml(str) {
+  return String(str ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 
 function ewSimpleField(key, title, label, type, required) {
   return {
@@ -1620,9 +1638,39 @@ function ewSimpleField(key, title, label, type, required) {
 const EMP_WIZARD_STEPS = [
   ewSimpleField("full_name", t("fullNameLabel"), t("fullNameLabel"), "text", true),
   ewSimpleField("dob", t("colDob"), t("colDob"), "date", false),
-  ewSimpleField("email", t("emailLabel"), t("emailLabel"), "text", true),
-  ewSimpleField("phone", "Phone number", "Phone number", "text", false),
+  {
+    key: "email", title: t("emailLabel"), required: true,
+    render(container) {
+      container.innerHTML = `<label for="ew_email">${t("emailLabel")}</label><input type="email" id="ew_email" value="${escapeHtml(EMP_WIZARD.values.email)}">`;
+      setTimeout(() => document.getElementById("ew_email").focus(), 0);
+    },
+    save() { EMP_WIZARD.values.email = document.getElementById("ew_email").value.trim(); },
+    valid() { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(EMP_WIZARD.values.email); },
+    errorMsg: "Please enter a valid email address (e.g. name@example.com).",
+  },
+  {
+    key: "phone", title: "Phone number", required: false,
+    render(container) {
+      const prefix = EMP_WIZARD.values.phone_prefix || "+962";
+      container.innerHTML = `
+        <label>Phone number</label>
+        <div style="display:flex; gap:8px">
+          <select id="ew_phone_prefix" style="max-width:170px">
+            ${COUNTRY_CODES.map(([code, name]) => `<option value="${code}" ${code === prefix ? "selected" : ""}>${code} — ${name}</option>`).join("")}
+          </select>
+          <input type="tel" id="ew_phone_number" placeholder="7XXXXXXXX" value="${escapeHtml(EMP_WIZARD.values.phone_number)}" style="flex:1">
+        </div>
+      `;
+    },
+    save() {
+      EMP_WIZARD.values.phone_prefix = document.getElementById("ew_phone_prefix").value;
+      EMP_WIZARD.values.phone_number = document.getElementById("ew_phone_number").value.trim();
+    },
+    valid() { return true; },
+  },
   ewSimpleField("hiring_date", t("hiringDateLabel"), t("hiringDateLabel"), "date", true),
+  ewSimpleField("contract_period_months", "Contract period (months)", "Contract period (months)", "number", false),
+  ewSimpleField("salary", "Salary (JOD/month)", "Salary (JOD/month)", "number", false),
   {
     ...ewSimpleField("carryover", t("carryoverLabel"), t("carryoverLabel"), "number", false),
     showIf: (v) => yearsSinceHire(v.hiring_date) >= 1,
@@ -1679,10 +1727,10 @@ const EMP_WIZARD_STEPS = [
     valid() { return !!EMP_WIZARD.values.supervisor_file_number; },
   },
   {
-    // Last step: staging only — nothing is uploaded yet, no employee exists yet.
-    // Files are held client-side and only actually uploaded once the admin
-    // clicks "Create employee" (or discarded entirely if they click "Skip").
-    key: "documents_staging", title: "Documents",
+    // Staging only — nothing uploaded yet, no employee exists yet. Files are
+    // held client-side; both "Skip" and "Next" here just move on to Review,
+    // where the account is actually created (and staged files uploaded).
+    key: "documents_staging", title: "Upload Documents",
     render(container) {
       container.innerHTML = `
         <p style="margin:0 0 10px">Attach the employee's CV and certificates, up to 5 documents. This is optional — click Skip if you don't want to attach anything.</p>
@@ -1706,6 +1754,29 @@ const EMP_WIZARD_STEPS = [
     save() {},
     valid() { return true; },
   },
+  {
+    key: "review", title: "Review & Create",
+    render(container) {
+      const v = EMP_WIZARD.values;
+      const phoneDisplay = v.phone_number ? `${v.phone_prefix || ""} ${v.phone_number}` : "—";
+      container.innerHTML = `
+        <div style="font-size:13.5px; line-height:1.9">
+          <p><strong>${t("fullNameLabel")}:</strong> ${escapeHtml(v.full_name)}</p>
+          <p><strong>${t("colDob")}:</strong> ${v.dob || "—"}</p>
+          <p><strong>${t("emailLabel")}:</strong> ${escapeHtml(v.email)}</p>
+          <p><strong>Phone:</strong> ${escapeHtml(phoneDisplay)}</p>
+          <p><strong>${t("hiringDateLabel")}:</strong> ${v.hiring_date || "—"}</p>
+          <p><strong>Contract period:</strong> ${v.contract_period_months ? v.contract_period_months + " months" : "—"}</p>
+          <p><strong>Salary:</strong> ${v.salary ? v.salary + " JOD" : "—"}</p>
+          <p><strong>${t("companyClientLabel")}:</strong> ${escapeHtml(v.company)}</p>
+          <p><strong>${t("departmentLabel")}:</strong> ${escapeHtml(v.department)}</p>
+          <p><strong>Documents:</strong> ${EMP_WIZARD.stagedFiles.length ? escapeHtml(EMP_WIZARD.stagedFiles.map(f => f.name).join(", ")) : "None"}</p>
+        </div>
+      `;
+    },
+    save() {},
+    valid() { return true; },
+  },
 ];
 
 function ewVisibleSteps() {
@@ -1724,8 +1795,8 @@ function ewRenderStagedList() {
   listEl.innerHTML = EMP_WIZARD.stagedFiles.length
     ? EMP_WIZARD.stagedFiles.map((f, i) => `
       <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border)">
-        <span style="font-size:13.5px">${f.name}</span>
-        <button type="button" class="btn btn-danger btn-sm" data-remove-staged="${i}">${t("deleteBtn")}</button>
+        <span style="font-size:13.5px">${escapeHtml(f.name)}</span>
+        <button type="button" data-remove-staged="${i}" title="Remove" style="background:none; border:none; color:#c0392b; font-size:19px; font-weight:bold; line-height:1; cursor:pointer; padding:0 4px">✕</button>
       </div>
     `).join("")
     : `<p class="help-text" style="margin:0">No documents selected yet.</p>`;
@@ -1738,19 +1809,37 @@ function ewRenderStagedList() {
   });
 }
 
+function ewRenderSpinner(message) {
+  document.getElementById("empWizardStepCounter").textContent = "";
+  document.getElementById("empWizardTitle").textContent = "";
+  document.getElementById("empWizardError").classList.remove("show");
+  document.getElementById("empWizardBody").innerHTML = `
+    <div style="text-align:center; padding:10px 0">
+      <div class="ew-spinner"></div>
+      <p style="margin-top:6px; color:var(--ink-soft)">${message}</p>
+    </div>
+  `;
+  document.getElementById("empWizardBackBtn").style.display = "none";
+  document.getElementById("empWizardSkipBtn").style.display = "none";
+  document.getElementById("empWizardCancelBtn").style.display = "none";
+  document.getElementById("empWizardNextBtn").style.display = "none";
+}
+
 // Creates the employee, then uploads whatever is in stagedFiles (which may
 // be empty, whether because the admin skipped or just attached nothing).
-async function ewFinalizeCreation(triggerBtn) {
-  document.getElementById("empWizardError").classList.remove("show");
-  setBtnLoading(triggerBtn, true, t("creating"));
+async function ewFinalizeCreation() {
+  EMP_WIZARD.phase = "creating";
+  ewRenderSpinner("Creating employee and uploading documents…");
 
   const v = EMP_WIZARD.values;
+  const phone_number = v.phone_number ? `${v.phone_prefix || ""} ${v.phone_number}`.trim() : null;
+
   const { data, error } = await db.functions.invoke("clever-action", {
     body: {
       action: "create_employee",
       full_name: v.full_name,
       email: v.email,
-      phone_number: v.phone || null,
+      phone_number,
       dob: v.dob || null,
       role: "staff",
       hiring_date: v.hiring_date,
@@ -1763,7 +1852,8 @@ async function ewFinalizeCreation(triggerBtn) {
   });
 
   if (error || (data && data.error)) {
-    setBtnLoading(triggerBtn, false);
+    EMP_WIZARD.phase = "steps";
+    await ewRenderCurrentStep();
     ewShowError((data && data.error) ? data.error : t("somethingWrongCreating"));
     return;
   }
@@ -1778,9 +1868,8 @@ async function ewFinalizeCreation(triggerBtn) {
     if (!result.ok) uploadErrors.push(`${file.name}: ${result.error}`);
   }
 
-  setBtnLoading(triggerBtn, false);
   EMP_WIZARD.phase = "done";
-  ewRenderDoneScreen(uploadErrors);
+  await ewRenderDoneScreen(uploadErrors);
 }
 
 async function ewUploadStagedFile(file) {
@@ -1806,7 +1895,7 @@ async function ewUploadStagedFile(file) {
   return { ok: true };
 }
 
-function ewRenderDoneScreen(uploadErrors) {
+async function ewRenderDoneScreen(uploadErrors) {
   document.getElementById("empWizardStepCounter").textContent = "";
   document.getElementById("empWizardTitle").textContent = "";
   document.getElementById("empWizardError").classList.remove("show");
@@ -1819,7 +1908,7 @@ function ewRenderDoneScreen(uploadErrors) {
       <p style="margin:0">${t("initialPasswordColonLabel")} <strong>${EMP_WIZARD.password}</strong></p>
       <p style="margin:8px 0 0"><button type="button" class="btn btn-blue btn-sm" id="ewCopyCredsBtn">${t("copyDetailsBtn")}</button></p>
     </div>
-    ${uploadErrors && uploadErrors.length ? `<div class="error-msg show">Some documents could not be uploaded: ${uploadErrors.join("; ")}</div>` : ""}
+    ${uploadErrors && uploadErrors.length ? `<div class="error-msg show">Some documents could not be uploaded: ${escapeHtml(uploadErrors.join("; "))}</div>` : ""}
   `;
   document.getElementById("ewCopyCredsBtn").onclick = () => {
     navigator.clipboard.writeText(
@@ -1829,11 +1918,17 @@ function ewRenderDoneScreen(uploadErrors) {
   };
 
   document.getElementById("empWizardBackBtn").style.display = "none";
-  document.getElementById("empWizardSkipBtn").style.display = "none";
   document.getElementById("empWizardCancelBtn").style.display = "none";
+
+  const skipBtn = document.getElementById("empWizardSkipBtn");
+  skipBtn.textContent = "Share Job Contract";
+  skipBtn.style.display = "";
+
   const nextBtn = document.getElementById("empWizardNextBtn");
-  nextBtn.textContent = "Done";
-  nextBtn.style.width = "160px";
+  nextBtn.textContent = "Finish";
+  nextBtn.style.display = "";
+
+  await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
 }
 
 async function ewRenderCurrentStep() {
@@ -1856,9 +1951,14 @@ async function ewRenderCurrentStep() {
 
   backBtn.style.display = EMP_WIZARD.stepIndex === 0 ? "none" : "";
   cancelBtn.style.display = "";
+  nextBtn.style.display = "";
 
   if (stepDef.key === "documents_staging") {
+    skipBtn.textContent = "Skip";
     skipBtn.style.display = "";
+    nextBtn.textContent = "Next ›";
+  } else if (stepDef.key === "review") {
+    skipBtn.style.display = "none";
     nextBtn.textContent = "Create employee";
   } else {
     skipBtn.style.display = "none";
@@ -1880,14 +1980,27 @@ document.getElementById("empWizardCancelBtn").addEventListener("click", async ()
 });
 
 document.getElementById("empWizardSkipBtn").addEventListener("click", async () => {
+  if (EMP_WIZARD.phase === "done") {
+    // "Share Job Contract" — open the existing contract flow, pre-filled
+    // with whatever the wizard already collected.
+    document.getElementById("empWizardOverlay").style.display = "none";
+    await openContractCreateModal(EMP_WIZARD.employeeId);
+    if (EMP_WIZARD.values.dob) document.getElementById("contractDob").value = EMP_WIZARD.values.dob;
+    if (EMP_WIZARD.values.salary) document.getElementById("contractSalary").value = EMP_WIZARD.values.salary;
+    if (EMP_WIZARD.values.contract_period_months) document.getElementById("contractPeriodMonths").value = EMP_WIZARD.values.contract_period_months;
+    return;
+  }
+
+  // On the documents step: discard any staged files, then move on to Review
+  // (same destination as clicking Next — nothing is created yet).
   EMP_WIZARD.stagedFiles = [];
-  await ewFinalizeCreation(document.getElementById("empWizardSkipBtn"));
+  EMP_WIZARD.stepIndex++;
+  await ewRenderCurrentStep();
 });
 
 document.getElementById("empWizardNextBtn").addEventListener("click", async () => {
   if (EMP_WIZARD.phase === "done") {
     document.getElementById("empWizardOverlay").style.display = "none";
-    await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
     return;
   }
 
@@ -1896,12 +2009,12 @@ document.getElementById("empWizardNextBtn").addEventListener("click", async () =
 
   if (stepDef.save) stepDef.save();
   if (stepDef.valid && !stepDef.valid()) {
-    ewShowError("Please fill in this field before continuing.");
+    ewShowError(stepDef.errorMsg || "Please fill in this field before continuing.");
     return;
   }
 
-  if (stepDef.key === "documents_staging") {
-    await ewFinalizeCreation(document.getElementById("empWizardNextBtn"));
+  if (stepDef.key === "review") {
+    await ewFinalizeCreation();
     return;
   }
 
@@ -1913,7 +2026,8 @@ document.getElementById("showAddFormBtn").addEventListener("click", async () => 
   EMP_WIZARD.stepIndex = 0;
   EMP_WIZARD.phase = "steps";
   EMP_WIZARD.values = {
-    full_name: "", dob: "", email: "", phone: "", hiring_date: "",
+    full_name: "", dob: "", email: "", phone_prefix: "+962", phone_number: "", hiring_date: "",
+    contract_period_months: "", salary: "",
     carryover: 0, taken_this_year: 0,
     company: COMPANY_FILTER || "", department: "", supervisor_file_number: "",
   };
