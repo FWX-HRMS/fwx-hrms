@@ -69,8 +69,8 @@ function showConfirm(title, message, confirmLabel = t("confirmBtn"), danger = fa
     const btns = document.getElementById("actionButtons");
     btns.innerHTML = "";
     const cancel = document.createElement("button");
-    cancel.className = "btn btn-danger btn-sm";
-    cancel.textContent = t("cancel");
+    cancel.className = danger ? "btn btn-primary btn-sm" : "btn btn-danger btn-sm";
+    cancel.textContent = danger ? "Discard" : t("cancel");
     cancel.onclick = () => { document.getElementById("actionOverlay").style.display = "none"; resolve(false); };
     const ok = document.createElement("button");
     ok.className = danger ? "btn btn-danger btn-sm" : "btn btn-primary btn-sm";
@@ -1525,7 +1525,7 @@ document.getElementById("closeAddSupervisorAdminBtn").addEventListener("click", 
 });
 document.getElementById("cancelAddSupervisorAdminBtn").addEventListener("click", async () => {
   document.getElementById("addSupervisorOverlay").style.display = "none";
-  const confirmed = await ewShowCancelConfirm();
+  const confirmed = await showConfirm(t("cancel"), "Any information entered so far will be lost. Are you sure you want to cancel?", "Yes, Cancel it", true);
   if (!confirmed) {
     document.getElementById("addSupervisorOverlay").style.display = "flex";
   }
@@ -1812,32 +1812,9 @@ document.getElementById("empWizardBackBtn").addEventListener("click", async () =
   await ewRenderCurrentStep();
 });
 
-function ewShowCancelConfirm() {
-  return new Promise((resolve) => {
-    document.getElementById("actionTitle").textContent = "Cancel";
-    document.getElementById("actionMessage").textContent = "Any information entered so far will be lost. Are you sure you want to cancel?";
-    const btns = document.getElementById("actionButtons");
-    btns.innerHTML = "";
-
-    const discardBtn = document.createElement("button");
-    discardBtn.className = "btn btn-primary btn-sm";
-    discardBtn.textContent = "Discard";
-    discardBtn.onclick = () => { document.getElementById("actionOverlay").style.display = "none"; resolve(false); };
-
-    const cancelBtn = document.createElement("button");
-    cancelBtn.className = "btn btn-danger btn-sm";
-    cancelBtn.textContent = "Yes, Cancel it";
-    cancelBtn.onclick = () => { document.getElementById("actionOverlay").style.display = "none"; resolve(true); };
-
-    btns.appendChild(discardBtn);
-    btns.appendChild(cancelBtn);
-    document.getElementById("actionOverlay").style.display = "flex";
-  });
-}
-
 document.getElementById("empWizardCancelBtn").addEventListener("click", async () => {
   document.getElementById("empWizardOverlay").style.display = "none";
-  const confirmed = await ewShowCancelConfirm();
+  const confirmed = await showConfirm(t("cancel"), "Any information entered so far will be lost. Are you sure you want to cancel?", "Yes, Cancel it", true);
   if (!confirmed) {
     document.getElementById("empWizardOverlay").style.display = "flex";
   }
