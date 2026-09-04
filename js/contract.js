@@ -331,8 +331,9 @@ document.getElementById("downloadContractBtn").addEventListener("click", () => {
     }
 
     const labelHeight = 8;
+    const nameLineHeight = 8;
     const gapBeforeBlock = 10;
-    const blockHeight = labelHeight + imgHeight + 5;
+    const blockHeight = nameLineHeight + labelHeight + imgHeight + 5;
 
     let sigY = lastY + gapBeforeBlock;
     if (sigY + blockHeight > pageHeight - marginMm) {
@@ -342,6 +343,8 @@ document.getElementById("downloadContractBtn").addEventListener("click", () => {
 
     doc.setFontSize(11);
     doc.setTextColor(27, 36, 48);
+    doc.text(`Employee Name: ${ME.full_name || "—"}`, marginMm, sigY);
+    sigY += nameLineHeight;
     doc.text("Employee Signature:", marginMm, sigY);
     if (imageOk) {
       try {
