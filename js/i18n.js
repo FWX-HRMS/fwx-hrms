@@ -991,8 +991,8 @@ function showLogoutConfirm() {
       <h2 id="fwxCloseConfirmTitle" style="margin:0 0 10px"></h2>
       <p id="fwxCloseConfirmMsg" style="margin:0 0 20px; color:var(--ink-soft); font-size:14.5px"></p>
       <div style="display:flex; gap:10px; justify-content:flex-end">
-        <button type="button" class="btn btn-primary btn-sm" id="fwxCloseConfirmStayBtn">Stay</button>
-        <button type="button" class="btn btn-danger btn-sm" id="fwxCloseConfirmProceedBtn">Yes, Close</button>
+        <button type="button" class="btn btn-primary btn-sm" id="fwxCloseConfirmStayBtn" data-skip-confirm="1">Stay</button>
+        <button type="button" class="btn btn-danger btn-sm" id="fwxCloseConfirmProceedBtn" data-skip-confirm="1">Yes, Close</button>
       </div>
     </div>
   `;
