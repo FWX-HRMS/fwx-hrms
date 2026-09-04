@@ -55,6 +55,25 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Edit Company modal -->
+<div id="editCompanyOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:420px">
+    <h2 style="margin:0 0 14px">Edit company</h2>
+    <label for="editCompanyName">Company name</label>
+    <input type="text" id="editCompanyName">
+    <label for="editCompanyLogo" style="margin-top:12px">Company logo (optional)</label>
+    <input type="file" id="editCompanyLogo" accept="image/*">
+    <div id="editCompanyLogoPreviewWrap" style="display:none; margin-top:10px">
+      <div class="company-logo-wrap"><img id="editCompanyLogoPreview" class="company-logo"></div>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:14px">
+      <button type="button" class="btn btn-danger" id="cancelEditCompanyBtn" data-confirm-close="1" style="width:140px">Cancel</button>
+      <button type="button" class="btn btn-primary" id="saveEditCompanyBtn" style="width:140px">Save</button>
+    </div>
+    <div class="error-msg" id="editCompanyError"></div>
+  </div>
+</div>
+
 <!-- Company action dialog (used for delete confirmation / cannot-delete notice) -->
 <div id="companyActionOverlay" class="modal-overlay" style="display:none">
   <div class="modal-box" style="max-width:400px">
@@ -188,6 +207,100 @@ document.getElementById("saveCompanyBtn").addEventListener("click", async () => 
   await loadCompanies();
 });
 
+let EDIT_COMPANY_ID = null;
+
+function openEditCompanyModal(companyId, companyName, currentLogoUrl) {
+  EDIT_COMPANY_ID = companyId;
+  document.getElementById("editCompanyName").dataset.originalName = companyName;
+  document.getElementById("editCompanyName").value = companyName;
+  document.getElementById("editCompanyLogo").value = "";
+  document.getElementById("editCompanyError").classList.remove("show");
+
+  const previewWrap = document.getElementById("editCompanyLogoPreviewWrap");
+  if (currentLogoUrl) {
+    document.getElementById("editCompanyLogoPreview").src = currentLogoUrl;
+    previewWrap.style.display = "block";
+  } else {
+    previewWrap.style.display = "none";
+  }
+
+  document.getElementById("editCompanyOverlay").style.display = "flex";
+}
+
+document.getElementById("cancelEditCompanyBtn").addEventListener("click", () => {
+  document.getElementById("editCompanyOverlay").style.display = "none";
+});
+
+document.getElementById("editCompanyLogo").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  const wrap = document.getElementById("editCompanyLogoPreviewWrap");
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById("editCompanyLogoPreview").src = reader.result;
+    wrap.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById("saveEditCompanyBtn").addEventListener("click", async () => {
+  const errBox = document.getElementById("editCompanyError");
+  errBox.classList.remove("show");
+  const name = document.getElementById("editCompanyName").value.trim();
+  if (!name) {
+    errBox.textContent = t("enterCompanyName");
+    errBox.classList.add("show");
+    return;
+  }
+
+  const btn = document.getElementById("saveEditCompanyBtn");
+  btn.disabled = true;
+  btn.textContent = "Saving…";
+
+  const originalName = document.getElementById("editCompanyName").dataset.originalName;
+  const updatePayload = { name };
+  const logoFile = document.getElementById("editCompanyLogo").files[0];
+  if (logoFile) {
+    try {
+      const resizedBlob = await resizeLogoFile(logoFile);
+      const safeName = name.replace(/[^a-zA-Z0-9]+/g, "_").toLowerCase();
+      const path = `${safeName}-${Date.now()}.png`;
+      const { error: uploadErr } = await db.storage.from("company-logos").upload(path, resizedBlob, { contentType: "image/png" });
+      if (uploadErr) throw uploadErr;
+      const { data: urlData } = db.storage.from("company-logos").getPublicUrl(path);
+      updatePayload.logo_url = urlData.publicUrl;
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = "Save";
+      errBox.textContent = "Could not upload the logo. Please try again.";
+      errBox.classList.add("show");
+      return;
+    }
+  }
+
+  const { error } = await db.from("client_companies").update(updatePayload).eq("id", EDIT_COMPANY_ID);
+
+  if (!error && originalName && name !== originalName) {
+    // client_company on employees is stored as plain text, not a foreign
+    // key — keep every employee's record pointing at the new name so
+    // nothing silently loses its company association.
+    await db.from("employees").update({ client_company: name }).eq("client_company", originalName);
+  }
+
+  btn.disabled = false;
+  btn.textContent = "Save";
+
+  if (error) {
+    errBox.textContent = error.code === "23505" ? t("companyAlreadyExists") : "Could not save changes.";
+    errBox.classList.add("show");
+    return;
+  }
+
+  document.getElementById("editCompanyOverlay").style.display = "none";
+  showToast("Company updated.");
+  await loadCompanies();
+});
+
 async function loadCompanies() {
   const { data: companies, error } = await db.from("client_companies").select("*").order("name");
   const grid = document.getElementById("companyGrid");
@@ -214,6 +327,8 @@ async function loadCompanies() {
         style="display:none; position:absolute; top:44px; inset-inline-end:8px; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.18); min-width:130px; z-index:3; overflow:hidden">
         <button type="button" class="company-menu-item" data-open-company="${c.name}"
           style="display:block; width:100%; text-align:start; padding:10px 14px; background:none; border:none; cursor:pointer; font-size:13.5px; color:var(--ink)">Open</button>
+        <button type="button" class="company-menu-item" data-edit-company="${c.id}" data-company-name="${c.name}" data-company-logo="${logoSrc || ""}"
+          style="display:block; width:100%; text-align:start; padding:10px 14px; background:none; border:none; cursor:pointer; font-size:13.5px; color:var(--ink)">Edit</button>
         <button type="button" class="company-menu-item" data-delete-company="${c.id}" data-company-name="${c.name}"
           style="display:block; width:100%; text-align:start; padding:10px 14px; background:none; border:none; cursor:pointer; font-size:13.5px; color:#c0392b">Delete</button>
       </div>
@@ -242,6 +357,14 @@ async function loadCompanies() {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       window.location.href = `admin.html?company=${encodeURIComponent(btn.dataset.openCompany)}`;
+    });
+  });
+
+  grid.querySelectorAll("[data-edit-company]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      grid.querySelectorAll(".company-menu-dropdown").forEach(d => d.style.display = "none");
+      openEditCompanyModal(btn.dataset.editCompany, btn.dataset.companyName, btn.dataset.companyLogo);
     });
   });
 
