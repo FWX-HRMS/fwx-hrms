@@ -50,6 +50,15 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Company action dialog (used for delete confirmation / cannot-delete notice) -->
+<div id="companyActionOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:400px">
+    <h2 id="companyActionTitle" style="margin:0 0 10px"></h2>
+    <p id="companyActionMsg" style="margin:0 0 20px; color:var(--ink-soft); font-size:14.5px"></p>
+    <div id="companyActionButtons" style="display:flex; gap:10px; justify-content:flex-end"></div>
+  </div>
+</div>
+
 <script src="js/supabaseClient.js"></script>
 <script src="js/auth-guard.js"></script>
 <script src="js/i18n.js"></script>
@@ -130,17 +139,136 @@ async function loadCompanies() {
   }
 
   for (const c of companies) {
-    const a = document.createElement("a");
-    a.className = "company-card";
-    a.href = `admin.html?company=${encodeURIComponent(c.name)}`;
+    const card = document.createElement("div");
+    card.className = "company-card";
+    card.style.position = "relative";
+    card.style.cursor = "pointer";
     const logoSrc = COMPANY_LOGOS[c.name];
-    a.innerHTML = `
+    card.innerHTML = `
+      <button type="button" class="company-menu-btn" data-company-menu="${c.id}" title="Options"
+        style="position:absolute; top:8px; inset-inline-end:8px; background:rgba(255,255,255,0.18); border:none; color:#fff; font-size:20px; line-height:1; width:32px; height:32px; border-radius:6px; cursor:pointer; z-index:2">⋮</button>
+      <div class="company-menu-dropdown" id="companyMenu-${c.id}"
+        style="display:none; position:absolute; top:44px; inset-inline-end:8px; background:#fff; border:1px solid var(--border); border-radius:8px; box-shadow:0 6px 18px rgba(0,0,0,0.18); min-width:130px; z-index:3; overflow:hidden">
+        <button type="button" class="company-menu-item" data-open-company="${c.name}"
+          style="display:block; width:100%; text-align:start; padding:10px 14px; background:none; border:none; cursor:pointer; font-size:13.5px; color:var(--ink)">Open</button>
+        <button type="button" class="company-menu-item" data-delete-company="${c.id}" data-company-name="${c.name}"
+          style="display:block; width:100%; text-align:start; padding:10px 14px; background:none; border:none; cursor:pointer; font-size:13.5px; color:#c0392b">Delete</button>
+      </div>
       ${logoSrc ? `<div class="company-logo-wrap"><img src="${logoSrc}" alt="${c.name} logo" class="company-logo"></div>` : ""}
       <span class="company-name">${c.name}</span>
       <span class="company-count">${counts[c.name] || 0} ${t("peopleSuffix")}</span>
     `;
-    grid.appendChild(a);
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("[data-company-menu]") || e.target.closest(".company-menu-dropdown")) return;
+      window.location.href = `admin.html?company=${encodeURIComponent(c.name)}`;
+    });
+    grid.appendChild(card);
   }
+
+  grid.querySelectorAll("[data-company-menu]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const targetId = `companyMenu-${btn.dataset.companyMenu}`;
+      grid.querySelectorAll(".company-menu-dropdown").forEach(d => {
+        d.style.display = (d.id === targetId && d.style.display === "none") ? "block" : "none";
+      });
+    });
+  });
+
+  grid.querySelectorAll("[data-open-company]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      window.location.href = `admin.html?company=${encodeURIComponent(btn.dataset.openCompany)}`;
+    });
+  });
+
+  grid.querySelectorAll("[data-delete-company]").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      grid.querySelectorAll(".company-menu-dropdown").forEach(d => d.style.display = "none");
+      await handleDeleteCompany(btn.dataset.deleteCompany, btn.dataset.companyName);
+    });
+  });
+
+  // Clicking anywhere outside a menu closes any open one.
+  document.addEventListener("click", () => {
+    grid.querySelectorAll(".company-menu-dropdown").forEach(d => d.style.display = "none");
+  });
+}
+
+async function handleDeleteCompany(companyId, companyName) {
+  const { count, error: countErr } = await db
+    .from("employees")
+    .select("id", { count: "exact", head: true })
+    .eq("client_company", companyName);
+
+  if (countErr) {
+    showToast("Could not check this company's staff before deleting.");
+    return;
+  }
+  if (count && count > 0) {
+    await showCompanyInfo(
+      "Cannot delete company",
+      `"${companyName}" still has ${count} ${count === 1 ? "person" : "people"} (staff or supervisors) registered under it. Reassign or remove them first before deleting this company.`
+    );
+    return;
+  }
+
+  const confirmed = await showCompanyConfirm(
+    "Delete company?",
+    `Delete "${companyName}"? This cannot be undone.`,
+    "Delete"
+  );
+  if (!confirmed) return;
+
+  const { error: delErr } = await db.from("client_companies").delete().eq("id", companyId);
+  if (delErr) {
+    showToast("Could not delete this company.");
+    return;
+  }
+  showToast("Company deleted.");
+  await loadCompanies();
+}
+
+// Small self-contained info/confirm dialog for this page (Open button here
+// is a pure notification and intentionally has no id, so it's naturally
+// excluded from the system-wide auto-confirm-on-close behavior).
+function showCompanyInfo(title, msg) {
+  return new Promise((resolve) => {
+    document.getElementById("companyActionTitle").textContent = title;
+    document.getElementById("companyActionMsg").textContent = msg;
+    const btns = document.getElementById("companyActionButtons");
+    btns.innerHTML = "";
+    const ok = document.createElement("button");
+    ok.type = "button";
+    ok.className = "btn btn-primary btn-sm";
+    ok.textContent = "OK";
+    ok.onclick = () => { document.getElementById("companyActionOverlay").style.display = "none"; resolve(); };
+    btns.appendChild(ok);
+    document.getElementById("companyActionOverlay").style.display = "flex";
+  });
+}
+
+function showCompanyConfirm(title, msg, confirmLabel) {
+  return new Promise((resolve) => {
+    document.getElementById("companyActionTitle").textContent = title;
+    document.getElementById("companyActionMsg").textContent = msg;
+    const btns = document.getElementById("companyActionButtons");
+    btns.innerHTML = "";
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.className = "btn btn-primary btn-sm";
+    cancel.textContent = "Discard";
+    cancel.onclick = () => { document.getElementById("companyActionOverlay").style.display = "none"; resolve(false); };
+    const ok = document.createElement("button");
+    ok.type = "button";
+    ok.className = "btn btn-danger btn-sm";
+    ok.textContent = confirmLabel;
+    ok.onclick = () => { document.getElementById("companyActionOverlay").style.display = "none"; resolve(true); };
+    btns.appendChild(cancel);
+    btns.appendChild(ok);
+    document.getElementById("companyActionOverlay").style.display = "flex";
+  });
 }
 
 (async () => {
