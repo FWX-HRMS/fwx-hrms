@@ -975,6 +975,60 @@ function showLogoutConfirm() {
   });
 }
 
+// ------------------------------------------------------------
+// System-wide "confirm before Close/Cancel" — any button marked with
+// data-confirm-close on ANY page automatically gets a confirmation prompt
+// before it's allowed to actually run. No other code changes are needed:
+// the original close/cancel handler already wired to that button still
+// runs exactly as before, just one click later (after the admin confirms).
+(function injectCloseConfirm() {
+  const div = document.createElement("div");
+  div.id = "fwxCloseConfirmOverlay";
+  div.className = "modal-overlay";
+  div.style.display = "none";
+  div.innerHTML = `
+    <div class="modal-box" style="max-width:380px">
+      <h2 id="fwxCloseConfirmTitle" style="margin:0 0 10px"></h2>
+      <p id="fwxCloseConfirmMsg" style="margin:0 0 20px; color:var(--ink-soft); font-size:14.5px"></p>
+      <div style="display:flex; gap:10px; justify-content:flex-end">
+        <button type="button" class="btn btn-primary btn-sm" id="fwxCloseConfirmStayBtn">Stay</button>
+        <button type="button" class="btn btn-danger btn-sm" id="fwxCloseConfirmProceedBtn">Yes, Close</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div);
+})();
+
+function showCloseConfirm() {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("fwxCloseConfirmOverlay");
+    document.getElementById("fwxCloseConfirmTitle").textContent = "Close?";
+    document.getElementById("fwxCloseConfirmMsg").textContent = "Are you sure you want to close this? Any unsaved changes may be lost.";
+    document.getElementById("fwxCloseConfirmStayBtn").onclick = () => { overlay.style.display = "none"; resolve(false); };
+    document.getElementById("fwxCloseConfirmProceedBtn").onclick = () => { overlay.style.display = "none"; resolve(true); };
+    overlay.style.display = "flex";
+  });
+}
+
+// Capture phase runs before the button's own click handler, so we can
+// pause the click, ask for confirmation, and only let the original
+// handler run afterward if the admin actually confirms.
+document.addEventListener("click", async function (e) {
+  const btn = e.target.closest("[data-confirm-close]");
+  if (!btn) return;
+  if (btn.dataset.fwxConfirmed === "1") {
+    delete btn.dataset.fwxConfirmed;
+    return;
+  }
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  const ok = await showCloseConfirm();
+  if (ok) {
+    btn.dataset.fwxConfirmed = "1";
+    btn.click();
+  }
+}, true);
+
 // A full-page dimmed spinner for actions that don't have one specific button
 // to attach a spinner to (e.g. a confirm-modal action like freeze/delete,
 // where the modal has already closed by the time the request runs).
