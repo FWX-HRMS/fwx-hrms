@@ -258,6 +258,13 @@ button{
   border-color:#2563eb;
 }
 .btn-blue:hover{ background:#1d4ed8; }
+.btn-paginate{
+  background:#6d28d9;
+  color:#fff;
+  border-color:#6d28d9;
+}
+.btn-paginate:hover{ background:#5b21b6; }
+.btn-paginate:disabled{ background:#c4b5e6; border-color:#c4b5e6; cursor:not-allowed; }
 .error-msg{
   background:var(--brick-soft);
   color:var(--brick);
