@@ -114,11 +114,8 @@ function applyTab(tab) {
   }
 
   document.getElementById("tableTitle").textContent = tab === "supervisors" ? t("tabSupervisors") : t("tabEmployees");
-  document.getElementById("showAddFormBtn").textContent = tab === "supervisors" ? t("addNewSupervisorBtn") : t("addNewEmployeeBtn");
-  document.getElementById("addPanelTitle").textContent = tab === "supervisors" ? t("newSupervisorDetailsTitle") : t("newEmployeeDetailsTitle");
-  document.getElementById("hiringDateRow").style.display = tab === "supervisors" ? "none" : "";
-  document.getElementById("entitlementRow").style.display = tab === "supervisors" ? "none" : "";
-  if (tab === "supervisors") document.getElementById("takenThisYearRow").style.display = "none";
+  document.getElementById("showAddFormBtn").style.display = tab === "supervisors" ? "none" : "";
+  document.getElementById("showAddSupervisorAdminBtn").style.display = tab === "supervisors" ? "" : "none";
   DIRECTORY_PAGE = 0;
   renderDirectory();
 }
@@ -382,7 +379,7 @@ function renderDirectory() {
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
   let allRows = ACTIVE_TAB === "supervisors"
     ? DIRECTORY.filter(e => e.role === "supervisor")
-    : DIRECTORY.filter(e => e.role !== "admin");
+    : DIRECTORY.filter(e => e.role === "staff");
   if (COMPANY_FILTER) allRows = allRows.filter(e => e.client_company === COMPANY_FILTER);
 
   const start = DIRECTORY_PAGE * PAGE_SIZE;
@@ -1655,6 +1652,91 @@ document.getElementById("addForm").addEventListener("submit", async (e) => {
   if (COMPANY_FILTER) document.getElementById("clientCompany").value = COMPANY_FILTER;
   toggleSupervisorField();
   populateSupervisorOptions();
+
+  await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
+});
+
+async function populateSupAdminCompanyOptions() {
+  const { data } = await db.from("client_companies").select("name").order("name");
+  const select = document.getElementById("supAdminCompany");
+  select.innerHTML = `<option value="">${t("selectCompanyPlaceholder")}</option>`;
+  for (const c of data || []) {
+    const opt = document.createElement("option");
+    opt.value = c.name;
+    opt.textContent = c.name;
+    select.appendChild(opt);
+  }
+}
+
+document.getElementById("showAddSupervisorAdminBtn").addEventListener("click", async () => {
+  document.getElementById("addSupervisorAdminForm").reset();
+  document.getElementById("addSupervisorAdminForm").style.display = "";
+  document.getElementById("addSupervisorAdminError").classList.remove("show");
+  document.getElementById("supervisorAdminCredentialsBox").classList.remove("show");
+  await populateSupAdminCompanyOptions();
+  const companySelect = document.getElementById("supAdminCompany");
+  if (COMPANY_FILTER) {
+    companySelect.value = COMPANY_FILTER;
+    companySelect.disabled = true;
+  } else {
+    companySelect.disabled = false;
+  }
+  populateDepartmentOptions(document.getElementById("supAdminDepartment"), companySelect.value, null);
+  document.getElementById("addSupervisorOverlay").style.display = "flex";
+});
+document.getElementById("closeAddSupervisorAdminBtn").addEventListener("click", () => {
+  document.getElementById("addSupervisorOverlay").style.display = "none";
+});
+document.getElementById("cancelAddSupervisorAdminBtn").addEventListener("click", () => {
+  document.getElementById("addSupervisorOverlay").style.display = "none";
+});
+document.getElementById("supAdminCompany").addEventListener("change", () => {
+  populateDepartmentOptions(document.getElementById("supAdminDepartment"), document.getElementById("supAdminCompany").value, null);
+});
+
+document.getElementById("addSupervisorAdminForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById("addSupervisorAdminError");
+  const credBox = document.getElementById("supervisorAdminCredentialsBox");
+  errBox.classList.remove("show");
+  credBox.classList.remove("show");
+
+  const full_name = document.getElementById("supAdminFullName").value.trim();
+  const email = document.getElementById("supAdminEmail").value.trim();
+  const client_company = document.getElementById("supAdminCompany").value;
+  const department = document.getElementById("supAdminDepartment").value;
+
+  if (!client_company) {
+    errBox.textContent = t("pleaseSelectCompany");
+    errBox.classList.add("show");
+    return;
+  }
+
+  const btn = document.getElementById("addSupervisorAdminBtn");
+  setBtnLoading(btn, true, t("creating"));
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "create_employee", full_name, email, role: "supervisor", department, client_company }
+  });
+
+  setBtnLoading(btn, false);
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongCreating");
+    errBox.classList.add("show");
+    return;
+  }
+
+  document.getElementById("supAdminCredFileNumber").textContent = data.file_number;
+  document.getElementById("supAdminCredPassword").textContent = data.password;
+  credBox.classList.add("show");
+  document.getElementById("addSupervisorAdminForm").style.display = "none";
+  document.getElementById("copySupAdminCredsBtn").onclick = () => {
+    navigator.clipboard.writeText(
+      `${t("fileNumColonLabel")} ${data.file_number}\n${t("initialPasswordColonLabel")} ${data.password}\nSign in at: ${window.location.origin}`
+    );
+    showToast(t("copiedToast"));
+  };
 
   await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
 });
