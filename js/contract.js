@@ -311,6 +311,23 @@ document.getElementById("downloadContractBtn").addEventListener("click", () => {
     }
   }
 
+  if (CONTRACT && CONTRACT.signature_image) {
+    doc.addPage();
+    doc.setFontSize(12);
+    doc.setTextColor(27, 36, 48);
+    doc.text("Employee Signature", 14, 24);
+    try {
+      const imgProps = doc.getImageProperties(CONTRACT.signature_image);
+      const maxWidth = 100;
+      const imgWidth = Math.min(maxWidth, imgProps.width);
+      const imgHeight = (imgProps.height / imgProps.width) * imgWidth;
+      doc.addImage(CONTRACT.signature_image, 14, 34, imgWidth, imgHeight);
+    } catch (e) {
+      doc.setFontSize(10);
+      doc.text("(Signature image could not be embedded)", 14, 40);
+    }
+  }
+
   const safeName = (ME.full_name || "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   const safeFileNumber = (ME.file_number || "").replace(/[^a-zA-Z0-9]+/g, "_");
   doc.save(`Contract-${safeFileNumber}-${safeName}.pdf`);

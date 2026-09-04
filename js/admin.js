@@ -640,6 +640,21 @@ function updateWarningConvertBtnLabel() {
   document.getElementById("warningConvertBtn").textContent = WARNING_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
 }
 
+function ensureWarningAckNote() {
+  let note = document.getElementById("warningAckNote");
+  if (!note) {
+    note = document.createElement("div");
+    note.id = "warningAckNote";
+    note.className = "success-msg";
+    note.style.marginTop = "10px";
+    note.style.marginBottom = "10px";
+    note.style.fontWeight = "600";
+    const statusLine = document.getElementById("warningStatusLine");
+    statusLine.parentNode.insertBefore(note, statusLine.nextSibling);
+  }
+  return note;
+}
+
 function openWarningViewModal(warningId, warningData) {
   const w = warningData || WARNINGS_LIST.find(x => x.id === warningId);
   if (!w) return;
@@ -660,11 +675,15 @@ function openWarningViewModal(warningId, warningData) {
   document.getElementById("warningViewOverlay").dataset.employeeName = emp ? emp.full_name : "";
 
   const statusLabel = t("warningStatus" + w.status[0].toUpperCase() + w.status.slice(1));
-  let statusText = `${t("colStatus")}: ${statusLabel}` + (w.sent_at ? ` — ${fmtDate(w.sent_at.slice(0,10))}` : "");
+  document.getElementById("warningStatusLine").textContent = `${t("colStatus")}: ${statusLabel}` + (w.sent_at ? ` — ${fmtDate(w.sent_at.slice(0,10))}` : "");
+
+  const ackNote = ensureWarningAckNote();
   if (w.acknowledged_at) {
-    statusText += ` · Acknowledged by employee on ${fmtDate(w.acknowledged_at.slice(0,10))}`;
+    ackNote.textContent = `✓ Acknowledged by employee on ${fmtDate(w.acknowledged_at.slice(0,10))}`;
+    ackNote.classList.add("show");
+  } else {
+    ackNote.classList.remove("show");
   }
-  document.getElementById("warningStatusLine").textContent = statusText;
 
   const isSent = w.status === "sent";
   document.getElementById("warningTextArea").disabled = true;
@@ -978,7 +997,8 @@ document.getElementById("contractShareBtn").addEventListener("click", async () =
 document.getElementById("contractDownloadBtn").addEventListener("click", () => {
   const text = document.getElementById("contractTextArea").value;
   const overlay = document.getElementById("contractViewOverlay");
-  downloadContractPDF("Contract", overlay.dataset.fileNumber, overlay.dataset.employeeName, text);
+  const signatureImage = CURRENT_VIEWED_CONTRACT ? CURRENT_VIEWED_CONTRACT.signature_image : null;
+  downloadContractPDF("Contract", overlay.dataset.fileNumber, overlay.dataset.employeeName, text, signatureImage);
 });
 
 function containsArabic(text) {
@@ -1068,7 +1088,7 @@ async function renderArabicPagesToPdf(doc, text, logo) {
   }
 }
 
-async function downloadContractPDF(kind, fileNumber, employeeName, text) {
+async function downloadContractPDF(kind, fileNumber, employeeName, text, signatureImage) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const logo = await loadLogoDataURL();
@@ -1091,6 +1111,23 @@ async function downloadContractPDF(kind, fileNumber, employeeName, text) {
       if (y > pageHeight - 15) { doc.addPage(); y = 20; }
       doc.text(line, 14, y);
       y += 6;
+    }
+  }
+
+  if (signatureImage) {
+    doc.addPage();
+    doc.setFontSize(12);
+    doc.setTextColor(27, 36, 48);
+    doc.text("Employee Signature", 14, 24);
+    try {
+      const imgProps = doc.getImageProperties(signatureImage);
+      const maxWidth = 100;
+      const imgWidth = Math.min(maxWidth, imgProps.width);
+      const imgHeight = (imgProps.height / imgProps.width) * imgWidth;
+      doc.addImage(signatureImage, 14, 34, imgWidth, imgHeight);
+    } catch (e) {
+      doc.setFontSize(10);
+      doc.text("(Signature image could not be embedded)", 14, 40);
     }
   }
 
