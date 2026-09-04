@@ -300,7 +300,7 @@ button{
   position:fixed; inset:0;
   background:rgba(27,36,48,0.45);
   display:flex; align-items:center; justify-content:center;
-  z-index:100;
+  z-index:10000;
   padding:20px;
 }
 .modal-box{
