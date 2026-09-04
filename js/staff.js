@@ -110,7 +110,8 @@ async function loadRequests() {
 
 document.getElementById("leaveType").addEventListener("change", (e) => {
   const isSick = e.target.value === "sick";
-  document.getElementById("documentLabel").textContent = isSick ? t("attachDocRequiredLabel") : t("attachDocOptionalLabel");
+  const docLabel = document.getElementById("documentLabel");
+  if (docLabel) docLabel.textContent = isSick ? t("attachDocRequiredLabel") : t("attachDocOptionalLabel");
 });
 
 document.getElementById("leaveForm").addEventListener("submit", async (e) => {
@@ -151,6 +152,7 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
       setBtnLoading(btn, false);
       errBox.textContent = t("couldNotUploadDoc");
       errBox.classList.add("show");
+      showToast(t("couldNotUploadDoc"));
       return;
     }
   }
@@ -167,6 +169,7 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   if (error) {
     errBox.textContent = t("somethingWrongSubmitting");
     errBox.classList.add("show");
+    showToast(t("somethingWrongSubmitting"));
     return;
   }
 
@@ -346,6 +349,173 @@ document.getElementById("closeNewWarningBtn").dataset.skipConfirm = "1";
 document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
   document.getElementById("newWarningOverlay").style.display = "none";
 });
+
+// ================= Apply for Leave wizard =================
+// Reuses the existing #leaveForm and its fields/submit logic exactly as
+// they already work — this just adds a guided, step-by-step way to fill
+// them in. No submission logic is duplicated here.
+(function setupLeaveWizard() {
+  const originalPanel = document.getElementById("leaveForm").closest(".panel");
+  if (!originalPanel) return;
+  originalPanel.style.display = "none";
+
+  const trigger = document.createElement("div");
+  trigger.className = "panel";
+  trigger.innerHTML = `
+    <h2 style="margin:0 0 10px">Apply for leave</h2>
+    <p class="help-text" style="margin:0 0 16px">Request annual, sick, or other leave in a few quick steps.</p>
+    <button type="button" class="btn btn-blue" id="openLeaveWizardBtn" style="max-width:220px">Apply for Vacation</button>
+  `;
+  originalPanel.parentNode.insertBefore(trigger, originalPanel);
+
+  const overlay = document.createElement("div");
+  overlay.id = "leaveWizardOverlay";
+  overlay.className = "modal-overlay";
+  overlay.style.display = "none";
+  overlay.innerHTML = `
+    <div class="modal-box" style="max-width:480px">
+      <h2 id="leaveWizardTitle" style="margin:0 0 4px"></h2>
+      <p class="help-text" id="leaveWizardStepCounter" style="margin:0 0 18px"></p>
+      <div id="leaveWizardBody"></div>
+      <div class="error-msg" id="leaveWizardError"></div>
+      <div style="display:flex; gap:10px; margin-top:20px">
+        <button type="button" class="btn btn-danger" id="leaveWizardCancelBtn" style="width:120px">Cancel</button>
+        <button type="button" class="btn btn-blue" id="leaveWizardBackBtn" style="width:120px; display:none">‹ Back</button>
+        <button type="button" class="btn btn-blue" id="leaveWizardSkipBtn" style="width:120px; display:none">Skip</button>
+        <button type="button" class="btn btn-primary" id="leaveWizardNextBtn" style="width:160px">Next ›</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const LEAVE_WIZARD = { stepIndex: 0 };
+
+  function fieldStep(key, title, label, elementId) {
+    return {
+      key, title,
+      render(container) {
+        const lbl = document.createElement("label");
+        lbl.textContent = label;
+        lbl.setAttribute("for", elementId);
+        container.appendChild(lbl);
+        container.appendChild(document.getElementById(elementId));
+      },
+    };
+  }
+
+  const LEAVE_WIZARD_STEPS = [
+    { ...fieldStep("type", "Leave type", "Type", "leaveType"), valid: () => !!document.getElementById("leaveType").value },
+    { ...fieldStep("start_date", "Start date", "Start date", "startDate"),
+      valid: () => !!document.getElementById("startDate").value,
+      errorMsg: "Please select a start date." },
+    { ...fieldStep("end_date", "End date", "End date", "endDate"),
+      valid: () => {
+        const s = document.getElementById("startDate").value;
+        const eVal = document.getElementById("endDate").value;
+        return !!eVal && eVal >= s;
+      },
+      errorMsg: "Please select a valid end date (on or after the start date)." },
+    { ...fieldStep("reason", "Reason (optional)", "Reason", "reason"),
+      valid: () => true, skippable: true },
+    {
+      key: "document", title: "Attach supporting document",
+      render(container) {
+        const isSick = document.getElementById("leaveType").value === "sick";
+        const note = document.createElement("p");
+        note.className = "help-text";
+        note.style.margin = "0 0 10px";
+        note.textContent = isSick
+          ? "A supporting document is required for sick leave."
+          : "Attach a supporting document if you have one. This is optional — click Skip if you don't want to attach anything.";
+        container.appendChild(note);
+        const lbl = document.createElement("label");
+        lbl.id = "documentLabel";
+        lbl.textContent = isSick ? t("attachDocRequiredLabel") : t("attachDocOptionalLabel");
+        lbl.setAttribute("for", "document");
+        container.appendChild(lbl);
+        container.appendChild(document.getElementById("document"));
+      },
+      valid: () => {
+        const isSick = document.getElementById("leaveType").value === "sick";
+        return !isSick || !!document.getElementById("document").files[0];
+      },
+      skippable: () => document.getElementById("leaveType").value !== "sick",
+      errorMsg: "A supporting document is required for sick leave.",
+    },
+  ];
+
+  function lwShowError(msg) {
+    const box = document.getElementById("leaveWizardError");
+    box.textContent = msg;
+    box.classList.add("show");
+  }
+
+  function lwRenderCurrentStep() {
+    const stepDef = LEAVE_WIZARD_STEPS[LEAVE_WIZARD.stepIndex];
+    document.getElementById("leaveWizardStepCounter").textContent = `Step ${LEAVE_WIZARD.stepIndex + 1} of ${LEAVE_WIZARD_STEPS.length}`;
+    document.getElementById("leaveWizardTitle").textContent = stepDef.title;
+    document.getElementById("leaveWizardError").classList.remove("show");
+
+    const body = document.getElementById("leaveWizardBody");
+    body.innerHTML = "";
+    stepDef.render(body);
+
+    document.getElementById("leaveWizardBackBtn").style.display = LEAVE_WIZARD.stepIndex === 0 ? "none" : "";
+
+    const isSkippable = typeof stepDef.skippable === "function" ? stepDef.skippable() : !!stepDef.skippable;
+    document.getElementById("leaveWizardSkipBtn").style.display = isSkippable ? "" : "none";
+
+    const isLast = LEAVE_WIZARD.stepIndex === LEAVE_WIZARD_STEPS.length - 1;
+    document.getElementById("leaveWizardNextBtn").textContent = isLast ? "Submit request" : "Next ›";
+  }
+
+  function lwSubmit() {
+    document.getElementById("leaveWizardOverlay").style.display = "none";
+    document.getElementById("leaveForm").requestSubmit();
+  }
+
+  document.getElementById("openLeaveWizardBtn").addEventListener("click", () => {
+    LEAVE_WIZARD.stepIndex = 0;
+    // These fields were moved out of #leaveForm into the wizard steps, so
+    // form.reset() (called after a successful submit) no longer reaches
+    // them — clear them manually here to avoid stale data on reopen.
+    document.getElementById("startDate").value = "";
+    document.getElementById("endDate").value = "";
+    document.getElementById("leaveType").selectedIndex = 0;
+    document.getElementById("reason").value = "";
+    document.getElementById("document").value = "";
+    document.getElementById("leaveWizardOverlay").style.display = "flex";
+    lwRenderCurrentStep();
+  });
+
+  document.getElementById("leaveWizardBackBtn").addEventListener("click", () => {
+    LEAVE_WIZARD.stepIndex = Math.max(0, LEAVE_WIZARD.stepIndex - 1);
+    lwRenderCurrentStep();
+  });
+
+  document.getElementById("leaveWizardCancelBtn").addEventListener("click", () => {
+    document.getElementById("leaveWizardOverlay").style.display = "none";
+  });
+
+  document.getElementById("leaveWizardSkipBtn").addEventListener("click", () => {
+    const isLast = LEAVE_WIZARD.stepIndex === LEAVE_WIZARD_STEPS.length - 1;
+    if (isLast) { lwSubmit(); return; }
+    LEAVE_WIZARD.stepIndex++;
+    lwRenderCurrentStep();
+  });
+
+  document.getElementById("leaveWizardNextBtn").addEventListener("click", () => {
+    const stepDef = LEAVE_WIZARD_STEPS[LEAVE_WIZARD.stepIndex];
+    if (!stepDef.valid()) {
+      lwShowError(stepDef.errorMsg || "Please complete this step before continuing.");
+      return;
+    }
+    const isLast = LEAVE_WIZARD.stepIndex === LEAVE_WIZARD_STEPS.length - 1;
+    if (isLast) { lwSubmit(); return; }
+    LEAVE_WIZARD.stepIndex++;
+    lwRenderCurrentStep();
+  });
+})();
 
 (async () => {
   ME = await requireSession("staff");
