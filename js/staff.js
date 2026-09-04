@@ -388,58 +388,83 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
   `;
   document.body.appendChild(overlay);
 
-  const LEAVE_WIZARD = { stepIndex: 0 };
+  // Independent state, kept separate from the original (now-hidden) form.
+  // Values only get copied into the real form at the very last step, right
+  // before submitting — the original form and its fields are never touched
+  // or moved, so nothing about its existing validation/upload/reset logic
+  // needs to change.
+  const LW = {
+    stepIndex: 0,
+    values: { type: "annual", start_date: "", end_date: "", reason: "", file: null },
+  };
 
-  function fieldStep(key, title, label, elementId) {
-    return {
-      key, title,
-      render(container) {
-        const lbl = document.createElement("label");
-        lbl.textContent = label;
-        lbl.setAttribute("for", elementId);
-        container.appendChild(lbl);
-        container.appendChild(document.getElementById(elementId));
-      },
-    };
+  function lwField(id, labelText, inputHtml) {
+    return `<label for="${id}">${labelText}</label>${inputHtml}`;
   }
 
-  const LEAVE_WIZARD_STEPS = [
-    { ...fieldStep("type", "Leave type", "Type", "leaveType"), valid: () => !!document.getElementById("leaveType").value },
-    { ...fieldStep("start_date", "Start date", "Start date", "startDate"),
-      valid: () => !!document.getElementById("startDate").value,
-      errorMsg: "Please select a start date." },
-    { ...fieldStep("end_date", "End date", "End date", "endDate"),
-      valid: () => {
-        const s = document.getElementById("startDate").value;
-        const eVal = document.getElementById("endDate").value;
-        return !!eVal && eVal >= s;
+  const LW_STEPS = [
+    {
+      key: "type", title: "Leave type",
+      render(container) {
+        container.innerHTML = lwField("lw_type", t("typeLabel"), `
+          <select id="lw_type">
+            <option value="annual" ${LW.values.type === "annual" ? "selected" : ""}>${t("typeAnnual")}</option>
+            <option value="sick" ${LW.values.type === "sick" ? "selected" : ""}>${t("typeSick")}</option>
+            <option value="unpaid" ${LW.values.type === "unpaid" ? "selected" : ""}>${t("typeUnpaid")}</option>
+            <option value="other" ${LW.values.type === "other" ? "selected" : ""}>${t("typeOther")}</option>
+          </select>
+        `);
       },
-      errorMsg: "Please select a valid end date (on or after the start date)." },
-    { ...fieldStep("reason", "Reason (optional)", "Reason", "reason"),
-      valid: () => true, skippable: true },
+      save() { LW.values.type = document.getElementById("lw_type").value; },
+      valid() { return true; },
+    },
+    {
+      key: "start_date", title: "Start date",
+      render(container) {
+        container.innerHTML = lwField("lw_start", t("startDateLabel"), `<input type="date" id="lw_start" value="${LW.values.start_date}">`);
+      },
+      save() { LW.values.start_date = document.getElementById("lw_start").value; },
+      valid() { return !!LW.values.start_date || !!document.getElementById("lw_start").value; },
+      errorMsg: "Please select a start date.",
+    },
+    {
+      key: "end_date", title: "End date",
+      render(container) {
+        container.innerHTML = lwField("lw_end", t("endDateLabel"), `<input type="date" id="lw_end" value="${LW.values.end_date}">`);
+      },
+      save() { LW.values.end_date = document.getElementById("lw_end").value; },
+      valid() {
+        const v = document.getElementById("lw_end").value;
+        return !!v && v >= LW.values.start_date;
+      },
+      errorMsg: "Please select a valid end date (on or after the start date).",
+    },
+    {
+      key: "reason", title: "Reason (optional)", skippable: true,
+      render(container) {
+        container.innerHTML = lwField("lw_reason", t("reasonOptionalLabel"), `<textarea id="lw_reason" rows="3">${LW.values.reason}</textarea>`);
+      },
+      save() { LW.values.reason = document.getElementById("lw_reason").value.trim(); },
+      valid() { return true; },
+    },
     {
       key: "document", title: "Attach supporting document",
       render(container) {
-        const isSick = document.getElementById("leaveType").value === "sick";
-        const note = document.createElement("p");
-        note.className = "help-text";
-        note.style.margin = "0 0 10px";
-        note.textContent = isSick
-          ? "A supporting document is required for sick leave."
-          : "Attach a supporting document if you have one. This is optional — click Skip if you don't want to attach anything.";
-        container.appendChild(note);
-        const lbl = document.createElement("label");
-        lbl.id = "documentLabel";
-        lbl.textContent = isSick ? t("attachDocRequiredLabel") : t("attachDocOptionalLabel");
-        lbl.setAttribute("for", "document");
-        container.appendChild(lbl);
-        container.appendChild(document.getElementById("document"));
+        const isSick = LW.values.type === "sick";
+        container.innerHTML = `
+          <p class="help-text" style="margin:0 0 10px">${isSick
+            ? "A supporting document is required for sick leave."
+            : "Attach a supporting document if you have one. This is optional — click Skip if you don't want to attach anything."}</p>
+          <label for="lw_document">${isSick ? t("attachDocRequiredLabel") : t("attachDocOptionalLabel")}</label>
+          <input type="file" id="lw_document" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+        `;
+        document.getElementById("lw_document").addEventListener("change", (e) => {
+          LW.values.file = e.target.files[0] || null;
+        });
       },
-      valid: () => {
-        const isSick = document.getElementById("leaveType").value === "sick";
-        return !isSick || !!document.getElementById("document").files[0];
-      },
-      skippable: () => document.getElementById("leaveType").value !== "sick",
+      save() {},
+      valid() { return LW.values.type !== "sick" || !!LW.values.file; },
+      skippable() { return LW.values.type !== "sick"; },
       errorMsg: "A supporting document is required for sick leave.",
     },
   ];
@@ -451,8 +476,8 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
   }
 
   function lwRenderCurrentStep() {
-    const stepDef = LEAVE_WIZARD_STEPS[LEAVE_WIZARD.stepIndex];
-    document.getElementById("leaveWizardStepCounter").textContent = `Step ${LEAVE_WIZARD.stepIndex + 1} of ${LEAVE_WIZARD_STEPS.length}`;
+    const stepDef = LW_STEPS[LW.stepIndex];
+    document.getElementById("leaveWizardStepCounter").textContent = `Step ${LW.stepIndex + 1} of ${LW_STEPS.length}`;
     document.getElementById("leaveWizardTitle").textContent = stepDef.title;
     document.getElementById("leaveWizardError").classList.remove("show");
 
@@ -460,36 +485,47 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
     body.innerHTML = "";
     stepDef.render(body);
 
-    document.getElementById("leaveWizardBackBtn").style.display = LEAVE_WIZARD.stepIndex === 0 ? "none" : "";
+    document.getElementById("leaveWizardBackBtn").style.display = LW.stepIndex === 0 ? "none" : "";
 
     const isSkippable = typeof stepDef.skippable === "function" ? stepDef.skippable() : !!stepDef.skippable;
     document.getElementById("leaveWizardSkipBtn").style.display = isSkippable ? "" : "none";
 
-    const isLast = LEAVE_WIZARD.stepIndex === LEAVE_WIZARD_STEPS.length - 1;
+    const isLast = LW.stepIndex === LW_STEPS.length - 1;
     document.getElementById("leaveWizardNextBtn").textContent = isLast ? "Submit request" : "Next ›";
   }
 
   function lwSubmit() {
+    // Bridge collected values into the real (hidden) form fields, then
+    // submit it through its existing, unmodified logic.
+    document.getElementById("startDate").value = LW.values.start_date;
+    document.getElementById("endDate").value = LW.values.end_date;
+    document.getElementById("leaveType").value = LW.values.type;
+    document.getElementById("reason").value = LW.values.reason;
+
+    const fileInput = document.getElementById("document");
+    if (LW.values.file) {
+      const dt = new DataTransfer();
+      dt.items.add(LW.values.file);
+      fileInput.files = dt.files;
+    } else {
+      fileInput.value = "";
+    }
+
     document.getElementById("leaveWizardOverlay").style.display = "none";
     document.getElementById("leaveForm").requestSubmit();
   }
 
   document.getElementById("openLeaveWizardBtn").addEventListener("click", () => {
-    LEAVE_WIZARD.stepIndex = 0;
-    // These fields were moved out of #leaveForm into the wizard steps, so
-    // form.reset() (called after a successful submit) no longer reaches
-    // them — clear them manually here to avoid stale data on reopen.
-    document.getElementById("startDate").value = "";
-    document.getElementById("endDate").value = "";
-    document.getElementById("leaveType").selectedIndex = 0;
-    document.getElementById("reason").value = "";
-    document.getElementById("document").value = "";
+    LW.stepIndex = 0;
+    LW.values = { type: "annual", start_date: "", end_date: "", reason: "", file: null };
     document.getElementById("leaveWizardOverlay").style.display = "flex";
     lwRenderCurrentStep();
   });
 
   document.getElementById("leaveWizardBackBtn").addEventListener("click", () => {
-    LEAVE_WIZARD.stepIndex = Math.max(0, LEAVE_WIZARD.stepIndex - 1);
+    const stepDef = LW_STEPS[LW.stepIndex];
+    if (stepDef.save) stepDef.save();
+    LW.stepIndex = Math.max(0, LW.stepIndex - 1);
     lwRenderCurrentStep();
   });
 
@@ -498,21 +534,24 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
   });
 
   document.getElementById("leaveWizardSkipBtn").addEventListener("click", () => {
-    const isLast = LEAVE_WIZARD.stepIndex === LEAVE_WIZARD_STEPS.length - 1;
+    const isLast = LW.stepIndex === LW_STEPS.length - 1;
     if (isLast) { lwSubmit(); return; }
-    LEAVE_WIZARD.stepIndex++;
+    const stepDef = LW_STEPS[LW.stepIndex];
+    if (stepDef.save) stepDef.save();
+    LW.stepIndex++;
     lwRenderCurrentStep();
   });
 
   document.getElementById("leaveWizardNextBtn").addEventListener("click", () => {
-    const stepDef = LEAVE_WIZARD_STEPS[LEAVE_WIZARD.stepIndex];
+    const stepDef = LW_STEPS[LW.stepIndex];
+    if (stepDef.save) stepDef.save();
     if (!stepDef.valid()) {
       lwShowError(stepDef.errorMsg || "Please complete this step before continuing.");
       return;
     }
-    const isLast = LEAVE_WIZARD.stepIndex === LEAVE_WIZARD_STEPS.length - 1;
+    const isLast = LW.stepIndex === LW_STEPS.length - 1;
     if (isLast) { lwSubmit(); return; }
-    LEAVE_WIZARD.stepIndex++;
+    LW.stepIndex++;
     lwRenderCurrentStep();
   });
 })();
