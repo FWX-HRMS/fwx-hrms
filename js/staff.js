@@ -407,7 +407,7 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
         <button type="button" class="btn btn-danger" id="leaveWizardCancelBtn" style="width:120px">Cancel</button>
         <button type="button" class="btn btn-blue" id="leaveWizardBackBtn" style="width:120px; display:none">‹ Back</button>
         <button type="button" class="btn btn-blue" id="leaveWizardSkipBtn" style="width:120px; display:none">Skip</button>
-        <button type="button" class="btn btn-primary" id="leaveWizardNextBtn" style="width:160px">Next ›</button>
+        <button type="button" class="btn btn-blue" id="leaveWizardNextBtn" style="width:160px">Next ›</button>
       </div>
     </div>
   `;

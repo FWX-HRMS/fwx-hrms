@@ -1154,6 +1154,11 @@ fwxTableAlignObserver.observe(document.body, { childList: true, subtree: true })
 function applyPaginationButtonStyle(root) {
   const buttons = (root || document).querySelectorAll('button[id$="PrevBtn"], button[id$="NextBtn"]');
   buttons.forEach(btn => {
+    // Wizard step navigation (e.g. empWizardNextBtn, leaveWizardNextBtn)
+    // shares the same "...NextBtn"/"...PrevBtn" suffix convention as table
+    // pagination, but should keep its own Back(blue)/Next(green) colors —
+    // only genuine table pagination buttons get the grey style.
+    if (/wizard/i.test(btn.id)) return;
     btn.classList.remove("btn-blue", "btn-primary", "btn-danger");
     if (!btn.classList.contains("btn-paginate")) btn.classList.add("btn-paginate");
   });
