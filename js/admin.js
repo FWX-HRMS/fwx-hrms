@@ -430,6 +430,8 @@ async function openContractCreateModal(employeeId) {
   delete document.getElementById("contractCreateForm").dataset.editContractId;
   document.getElementById("contractCreateTitle").textContent = t("createContractTitle");
   document.getElementById("contractCreateBtn").textContent = t("prepareContractBtn");
+  document.getElementById("contractCreateEmployeeInfo").textContent =
+    `${e.full_name} · #${e.file_number}${e.client_company ? " · " + e.client_company : ""}`;
 
   // Pull whatever we already have on file for this employee so the admin
   // isn't retyping data that's already stored. Anything not on file (job
@@ -856,6 +858,10 @@ document.getElementById("contractEditBtn").addEventListener("click", () => {
   document.getElementById("contractCreateForm").dataset.editContractId = c.id;
   document.getElementById("contractCreateTitle").textContent = t("editContractFormTitle");
   document.getElementById("contractCreateBtn").textContent = t("saveChangesBtn");
+  const editEmp = DIRECTORY.find(x => x.id === c.employee_id);
+  document.getElementById("contractCreateEmployeeInfo").textContent = editEmp
+    ? `${editEmp.full_name} · #${editEmp.file_number}${editEmp.client_company ? " · " + editEmp.client_company : ""}`
+    : "";
   document.getElementById("contractCreateOverlay").style.display = "flex";
 });
 document.getElementById("contractViewToggleBtn").addEventListener("click", () => {
@@ -1686,7 +1692,7 @@ const EMP_WIZARD_STEPS = [
     valid() { return true; },
   },
   {
-    key: "phone", title: "Phone number", required: false,
+    key: "phone", title: "Phone number", required: true,
     render(container) {
       const prefix = EMP_WIZARD.values.phone_prefix || "+962";
       container.innerHTML = `
@@ -1703,11 +1709,12 @@ const EMP_WIZARD_STEPS = [
       EMP_WIZARD.values.phone_prefix = document.getElementById("ew_phone_prefix").value;
       EMP_WIZARD.values.phone_number = document.getElementById("ew_phone_number").value.trim();
     },
-    valid() { return true; },
+    valid() { return !!EMP_WIZARD.values.phone_number; },
+    errorMsg: "Please enter a phone number.",
   },
   ewSimpleField("hiring_date", t("hiringDateLabel"), t("hiringDateLabel"), "date", true),
   ewSimpleField("job_title", "Job Title", "Job Title", "text", false),
-  ewSimpleField("contract_period_months", "Contract period (months)", "Contract period (months)", "number", false),
+  ewSimpleField("contract_period_months", "Contract period (months)", "Contract period (months)", "number", true),
   ewSimpleField("salary", "Salary (JOD/month)", "Salary (JOD/month)", "number", false),
   {
     ...ewSimpleField("carryover", t("carryoverLabel"), t("carryoverLabel"), "number", false),
@@ -2011,7 +2018,7 @@ async function ewRenderCurrentStep() {
   cancelBtn.style.display = "";
   nextBtn.style.display = "";
 
-  const SKIPPABLE_STEPS = ["documents_staging", "contract_period_months", "salary", "address", "job_title"];
+  const SKIPPABLE_STEPS = ["documents_staging", "dob", "salary", "address", "education", "job_title"];
 
   if (SKIPPABLE_STEPS.includes(stepDef.key)) {
     skipBtn.textContent = "Skip";
@@ -2072,7 +2079,7 @@ document.getElementById("empWizardSkipBtn").addEventListener("click", async () =
     return;
   }
 
-  if (stepDef.key === "contract_period_months" || stepDef.key === "salary" || stepDef.key === "address" || stepDef.key === "job_title") {
+  if (stepDef.key === "dob" || stepDef.key === "salary" || stepDef.key === "address" || stepDef.key === "education" || stepDef.key === "job_title") {
     // Skip without saving whatever's typed in the box — just move on.
     EMP_WIZARD.stepIndex++;
     await ewRenderCurrentStep();
