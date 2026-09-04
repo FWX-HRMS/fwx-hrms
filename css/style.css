@@ -259,12 +259,12 @@ button{
 }
 .btn-blue:hover{ background:#1d4ed8; }
 .btn-paginate{
-  background:#6d28d9;
+  background:#64748b;
   color:#fff;
-  border-color:#6d28d9;
+  border-color:#64748b;
 }
-.btn-paginate:hover{ background:#5b21b6; }
-.btn-paginate:disabled{ background:#c4b5e6; border-color:#c4b5e6; cursor:not-allowed; }
+.btn-paginate:hover{ background:#475569; }
+.btn-paginate:disabled{ background:#cbd5e1; border-color:#cbd5e1; cursor:not-allowed; }
 .error-msg{
   background:var(--brick-soft);
   color:var(--brick);
