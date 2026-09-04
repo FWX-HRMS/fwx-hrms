@@ -135,7 +135,7 @@
       <textarea id="warningReason" rows="4" required></textarea>
       <div style="display:flex; gap:10px; margin-top:14px">
         <button type="submit" class="btn btn-primary" id="warningCreateBtn" style="width:220px" data-i18n="prepareWarningBtn">Prepare Warning</button>
-        <button type="button" class="btn btn-danger" id="warningCreateCancelBtn" style="width:220px" data-i18n="cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="warningCreateCancelBtn" data-confirm-close="1" style="width:220px" data-i18n="cancel">Cancel</button>
       </div>
       <div class="error-msg" id="warningCreateError"></div>
     </form>
@@ -147,7 +147,7 @@
   <div class="modal-box" style="max-width:760px">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
       <h2 style="margin:0" id="warningViewTitle" data-i18n="warningDetailsTitle">Warning</h2>
-      <button type="button" class="btn btn-blue btn-sm" id="closeWarningViewBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-blue btn-sm" id="closeWarningViewBtn" data-confirm-close="1" data-i18n="close">Close</button>
     </div>
     <p class="help-text" id="warningStatusLine" style="margin:0 0 12px"></p>
     <textarea id="warningTextArea" rows="10" dir="rtl" style="width:100%; font-family:inherit; font-size:14px; text-align:right; padding:12px; line-height:1.8;"></textarea>
@@ -203,7 +203,7 @@
       </div>
       <div style="display:flex; gap:10px; margin-top:6px">
         <button type="submit" class="btn btn-primary" id="contractCreateBtn" style="width:220px" data-i18n="prepareContractBtn">Prepare Contract</button>
-        <button type="button" class="btn btn-danger" id="contractCreateCancelBtn" style="width:220px" data-i18n="cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="contractCreateCancelBtn" data-confirm-close="1" style="width:220px" data-i18n="cancel">Cancel</button>
       </div>
       <div class="error-msg" id="contractCreateError"></div>
     </form>
@@ -215,7 +215,7 @@
   <div class="modal-box" style="max-width:760px">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px">
       <h2 style="margin:0" id="contractViewTitle" data-i18n="contractDetailsTitle">Contract</h2>
-      <button type="button" class="btn btn-blue btn-sm" id="closeContractViewBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-blue btn-sm" id="closeContractViewBtn" data-confirm-close="1" data-i18n="close">Close</button>
     </div>
     <p class="help-text" id="contractStatusLine" style="margin:0 0 12px"></p>
     <textarea id="contractTextArea" rows="12" dir="rtl" style="width:100%; font-family:inherit; font-size:14px; text-align:right; padding:12px; line-height:1.8;"></textarea>
@@ -239,7 +239,7 @@
   <div class="modal-box">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
       <h2 style="margin:0" id="editEmployeeTitle" data-i18n="editEmployeeTitle">Edit employee</h2>
-      <button type="button" class="btn btn-blue btn-sm" id="closeEditBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-blue btn-sm" id="closeEditBtn" data-confirm-close="1" data-i18n="close">Close</button>
     </div>
     <form id="editForm">
       <div class="field-row">
@@ -329,7 +329,7 @@
       </div>
       <div style="display:flex; gap:10px; margin-top:6px">
         <button type="submit" class="btn btn-primary" id="editSaveBtn" style="width:220px" data-i18n="save">Save</button>
-        <button type="button" class="btn btn-danger" id="cancelEditBtn" style="width:220px" data-i18n="cancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="cancelEditBtn" data-confirm-close="1" style="width:220px" data-i18n="cancel">Cancel</button>
       </div>
       <div class="error-msg" id="editError"></div>
     </form>
@@ -341,7 +341,7 @@
   <div class="modal-box">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
       <h2 style="margin:0" id="detailsTitle" data-i18n="employeeDetailsTitle">Employee details</h2>
-      <button type="button" class="btn btn-blue btn-sm" id="closeDetailsBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-blue btn-sm" id="closeDetailsBtn" data-confirm-close="1" data-i18n="close">Close</button>
     </div>
     <div id="detailsBody"></div>
     <h3 style="margin:20px 0 8px; font-size:14.5px" data-i18n="leaveHistoryTitle">Leave history</h3>
@@ -389,7 +389,7 @@
     </label>
     <div class="error-msg" id="rangeFormatError"></div>
     <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:18px">
-      <button type="button" class="btn btn-danger btn-sm" id="rangeCancelBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-danger btn-sm" id="rangeCancelBtn" data-confirm-close="1" data-i18n="cancel">Cancel</button>
       <button type="button" class="btn btn-primary btn-sm" id="rangeGenerateBtn" data-i18n="generateBtnLabel">Generate</button>
     </div>
   </div>
@@ -408,7 +408,7 @@
     </select>
     <div class="error-msg" id="freezeReasonError"></div>
     <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:18px">
-      <button type="button" class="btn btn-danger btn-sm" id="freezeCancelBtn" data-i18n="cancel">Cancel</button>
+      <button type="button" class="btn btn-danger btn-sm" id="freezeCancelBtn" data-confirm-close="1" data-i18n="cancel">Cancel</button>
       <button type="button" class="btn btn-primary btn-sm" id="freezeConfirmBtn" data-i18n="freezeConfirmBtn">Freeze account</button>
     </div>
   </div>
@@ -419,7 +419,7 @@
   <div class="modal-box" style="max-width:460px">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
       <h2 style="margin:0">Add New Supervisor</h2>
-      <button type="button" class="btn btn-blue btn-sm" id="closeAddSupervisorAdminBtn" data-i18n="close">Close</button>
+      <button type="button" class="btn btn-blue btn-sm" id="closeAddSupervisorAdminBtn" data-confirm-close="1" data-i18n="close">Close</button>
     </div>
     <form id="addSupervisorAdminForm">
       <label for="supAdminFullName" data-i18n="fullNameLabel">Full name</label>
