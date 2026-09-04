@@ -1590,11 +1590,12 @@ function yearsSinceHire(dateStr) {
 
 const EMP_WIZARD = {
   stepIndex: 0,
+  phase: "steps", // "steps" | "done"
   values: {},
+  stagedFiles: [],
   employeeId: null,
   fileNumber: null,
   password: null,
-  documents: [],
 };
 
 function ewSimpleField(key, title, label, type, required) {
@@ -1678,31 +1679,29 @@ const EMP_WIZARD_STEPS = [
     valid() { return !!EMP_WIZARD.values.supervisor_file_number; },
   },
   {
-    key: "documents", title: "Documents",
+    // Last step: staging only — nothing is uploaded yet, no employee exists yet.
+    // Files are held client-side and only actually uploaded once the admin
+    // clicks "Create employee" (or discarded entirely if they click "Skip").
+    key: "documents_staging", title: "Documents",
     render(container) {
       container.innerHTML = `
-        <div class="success-msg show" style="margin-bottom:16px">
-          <p style="margin:0 0 6px"><strong>${t("employeeCreatedMsg")}</strong></p>
-          <p style="margin:0">${t("fileNumColonLabel")} <strong>${EMP_WIZARD.fileNumber}</strong></p>
-          <p style="margin:0">${t("initialPasswordColonLabel")} <strong>${EMP_WIZARD.password}</strong></p>
-          <p style="margin:8px 0 0"><button type="button" class="btn btn-blue btn-sm" id="ewCopyCredsBtn">${t("copyDetailsBtn")}</button></p>
-        </div>
-        <p style="margin:0 0 10px">Please upload the employee's CV and certificates (up to 5 documents).</p>
+        <p style="margin:0 0 10px">Attach the employee's CV and certificates, up to 5 documents. This is optional — click Skip if you don't want to attach anything.</p>
         <input type="file" id="ewDocFile" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-        <div id="ewDocList" style="margin-top:14px"></div>
+        <div id="ewDocStagingList" style="margin-top:14px"></div>
       `;
-      document.getElementById("ewCopyCredsBtn").onclick = () => {
-        navigator.clipboard.writeText(
-          `${t("fileNumColonLabel")} ${EMP_WIZARD.fileNumber}\n${t("initialPasswordColonLabel")} ${EMP_WIZARD.password}\nSign in at: ${window.location.origin}`
-        );
-        showToast(t("copiedToast"));
-      };
       document.getElementById("ewDocFile").addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (file) ewUploadFile(file);
+        const files = Array.from(e.target.files || []);
+        for (const file of files) {
+          if (EMP_WIZARD.stagedFiles.length >= 5) {
+            ewShowError("Maximum of 5 documents allowed per employee.");
+            break;
+          }
+          EMP_WIZARD.stagedFiles.push(file);
+        }
         e.target.value = "";
+        ewRenderStagedList();
       });
-      ewRenderDocumentsList();
+      ewRenderStagedList();
     },
     save() {},
     valid() { return true; },
@@ -1719,64 +1718,122 @@ function ewShowError(msg) {
   box.classList.add("show");
 }
 
-async function ewUploadFile(file) {
-  if (EMP_WIZARD.documents.length >= 5) {
-    ewShowError("Maximum of 5 documents allowed per employee.");
+function ewRenderStagedList() {
+  const listEl = document.getElementById("ewDocStagingList");
+  if (!listEl) return;
+  listEl.innerHTML = EMP_WIZARD.stagedFiles.length
+    ? EMP_WIZARD.stagedFiles.map((f, i) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border)">
+        <span style="font-size:13.5px">${f.name}</span>
+        <button type="button" class="btn btn-danger btn-sm" data-remove-staged="${i}">${t("deleteBtn")}</button>
+      </div>
+    `).join("")
+    : `<p class="help-text" style="margin:0">No documents selected yet.</p>`;
+
+  listEl.querySelectorAll("button[data-remove-staged]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      EMP_WIZARD.stagedFiles.splice(Number(btn.dataset.removeStaged), 1);
+      ewRenderStagedList();
+    });
+  });
+}
+
+// Creates the employee, then uploads whatever is in stagedFiles (which may
+// be empty, whether because the admin skipped or just attached nothing).
+async function ewFinalizeCreation(triggerBtn) {
+  document.getElementById("empWizardError").classList.remove("show");
+  setBtnLoading(triggerBtn, true, t("creating"));
+
+  const v = EMP_WIZARD.values;
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: {
+      action: "create_employee",
+      full_name: v.full_name,
+      email: v.email,
+      phone_number: v.phone || null,
+      dob: v.dob || null,
+      role: "staff",
+      hiring_date: v.hiring_date,
+      department: v.department,
+      client_company: v.company,
+      supervisor_file_number: v.supervisor_file_number,
+      carryover_balance: v.carryover || 0,
+      taken_this_year: v.taken_this_year || 0,
+    }
+  });
+
+  if (error || (data && data.error)) {
+    setBtnLoading(triggerBtn, false);
+    ewShowError((data && data.error) ? data.error : t("somethingWrongCreating"));
     return;
   }
-  document.getElementById("empWizardError").classList.remove("show");
 
+  EMP_WIZARD.employeeId = data.target_id;
+  EMP_WIZARD.fileNumber = data.file_number;
+  EMP_WIZARD.password = data.password;
+
+  const uploadErrors = [];
+  for (const file of EMP_WIZARD.stagedFiles) {
+    const result = await ewUploadStagedFile(file);
+    if (!result.ok) uploadErrors.push(`${file.name}: ${result.error}`);
+  }
+
+  setBtnLoading(triggerBtn, false);
+  EMP_WIZARD.phase = "done";
+  ewRenderDoneScreen(uploadErrors);
+}
+
+async function ewUploadStagedFile(file) {
   const { data: urlData, error: urlErr } = await db.functions.invoke("clever-action", {
     body: { action: "get_upload_url", target_id: EMP_WIZARD.employeeId, file_name: file.name }
   });
   if (urlErr || (urlData && urlData.error)) {
-    ewShowError((urlData && urlData.error) ? urlData.error : "Could not prepare upload.");
-    return;
+    return { ok: false, error: (urlData && urlData.error) || "Could not prepare upload." };
   }
 
   const { error: upErr } = await db.storage.from("employee-documents").uploadToSignedUrl(urlData.path, urlData.token, file);
   if (upErr) {
-    ewShowError(upErr.message || "Upload failed.");
-    return;
+    return { ok: false, error: upErr.message || "Upload failed." };
   }
 
   const { data: recData, error: recErr } = await db.functions.invoke("clever-action", {
     body: { action: "record_document", target_id: EMP_WIZARD.employeeId, file_name: file.name, storage_path: urlData.path }
   });
   if (recErr || (recData && recData.error)) {
-    ewShowError((recData && recData.error) ? recData.error : "Could not save document record.");
-    return;
+    return { ok: false, error: (recData && recData.error) || "Could not save document record." };
   }
 
-  await ewRefreshDocuments();
+  return { ok: true };
 }
 
-async function ewRefreshDocuments() {
-  const { data } = await db.functions.invoke("clever-action", {
-    body: { action: "list_documents", target_id: EMP_WIZARD.employeeId }
-  });
-  EMP_WIZARD.documents = (data && data.documents) || [];
-  ewRenderDocumentsList();
-}
+function ewRenderDoneScreen(uploadErrors) {
+  document.getElementById("empWizardStepCounter").textContent = "";
+  document.getElementById("empWizardTitle").textContent = "";
+  document.getElementById("empWizardError").classList.remove("show");
 
-function ewRenderDocumentsList() {
-  const listEl = document.getElementById("ewDocList");
-  if (!listEl) return;
-  listEl.innerHTML = EMP_WIZARD.documents.length
-    ? EMP_WIZARD.documents.map(d => `
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border)">
-        <a href="${d.view_url || "#"}" target="_blank" style="font-size:13.5px">${d.file_name}</a>
-        <button type="button" class="btn btn-danger btn-sm" data-remove-doc="${d.id}">${t("deleteBtn")}</button>
-      </div>
-    `).join("")
-    : `<p class="help-text" style="margin:0">No documents uploaded yet.</p>`;
+  const body = document.getElementById("empWizardBody");
+  body.innerHTML = `
+    <div class="success-msg show" style="margin-bottom:16px">
+      <p style="margin:0 0 6px"><strong>${t("employeeCreatedMsg")}</strong></p>
+      <p style="margin:0">${t("fileNumColonLabel")} <strong>${EMP_WIZARD.fileNumber}</strong></p>
+      <p style="margin:0">${t("initialPasswordColonLabel")} <strong>${EMP_WIZARD.password}</strong></p>
+      <p style="margin:8px 0 0"><button type="button" class="btn btn-blue btn-sm" id="ewCopyCredsBtn">${t("copyDetailsBtn")}</button></p>
+    </div>
+    ${uploadErrors && uploadErrors.length ? `<div class="error-msg show">Some documents could not be uploaded: ${uploadErrors.join("; ")}</div>` : ""}
+  `;
+  document.getElementById("ewCopyCredsBtn").onclick = () => {
+    navigator.clipboard.writeText(
+      `${t("fileNumColonLabel")} ${EMP_WIZARD.fileNumber}\n${t("initialPasswordColonLabel")} ${EMP_WIZARD.password}\nSign in at: ${window.location.origin}`
+    );
+    showToast(t("copiedToast"));
+  };
 
-  listEl.querySelectorAll("button[data-remove-doc]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      await db.functions.invoke("clever-action", { body: { action: "delete_document", document_id: btn.dataset.removeDoc } });
-      await ewRefreshDocuments();
-    });
-  });
+  document.getElementById("empWizardBackBtn").style.display = "none";
+  document.getElementById("empWizardSkipBtn").style.display = "none";
+  document.getElementById("empWizardCancelBtn").style.display = "none";
+  const nextBtn = document.getElementById("empWizardNextBtn");
+  nextBtn.textContent = "Done";
+  nextBtn.style.width = "160px";
 }
 
 async function ewRenderCurrentStep() {
@@ -1793,17 +1850,19 @@ async function ewRenderCurrentStep() {
   await stepDef.render(body);
 
   const backBtn = document.getElementById("empWizardBackBtn");
+  const skipBtn = document.getElementById("empWizardSkipBtn");
   const nextBtn = document.getElementById("empWizardNextBtn");
   const cancelBtn = document.getElementById("empWizardCancelBtn");
 
-  if (stepDef.key === "documents") {
-    backBtn.style.display = "none";
-    cancelBtn.style.display = "none";
-    nextBtn.textContent = "Done";
+  backBtn.style.display = EMP_WIZARD.stepIndex === 0 ? "none" : "";
+  cancelBtn.style.display = "";
+
+  if (stepDef.key === "documents_staging") {
+    skipBtn.style.display = "";
+    nextBtn.textContent = "Create employee";
   } else {
-    backBtn.style.display = EMP_WIZARD.stepIndex === 0 ? "none" : "";
-    cancelBtn.style.display = "";
-    nextBtn.textContent = stepDef.key === "supervisor" ? t("createBtn") : "Next ›";
+    skipBtn.style.display = "none";
+    nextBtn.textContent = "Next ›";
   }
 }
 
@@ -1820,15 +1879,20 @@ document.getElementById("empWizardCancelBtn").addEventListener("click", async ()
   }
 });
 
-document.getElementById("empWizardNextBtn").addEventListener("click", async () => {
-  const steps = ewVisibleSteps();
-  const stepDef = steps[EMP_WIZARD.stepIndex];
+document.getElementById("empWizardSkipBtn").addEventListener("click", async () => {
+  EMP_WIZARD.stagedFiles = [];
+  await ewFinalizeCreation(document.getElementById("empWizardSkipBtn"));
+});
 
-  if (stepDef.key === "documents") {
+document.getElementById("empWizardNextBtn").addEventListener("click", async () => {
+  if (EMP_WIZARD.phase === "done") {
     document.getElementById("empWizardOverlay").style.display = "none";
     await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
     return;
   }
+
+  const steps = ewVisibleSteps();
+  const stepDef = steps[EMP_WIZARD.stepIndex];
 
   if (stepDef.save) stepDef.save();
   if (stepDef.valid && !stepDef.valid()) {
@@ -1836,39 +1900,8 @@ document.getElementById("empWizardNextBtn").addEventListener("click", async () =
     return;
   }
 
-  if (stepDef.key === "supervisor") {
-    const nextBtn = document.getElementById("empWizardNextBtn");
-    setBtnLoading(nextBtn, true, t("creating"));
-    const v = EMP_WIZARD.values;
-    const { data, error } = await db.functions.invoke("clever-action", {
-      body: {
-        action: "create_employee",
-        full_name: v.full_name,
-        email: v.email,
-        phone_number: v.phone || null,
-        dob: v.dob || null,
-        role: "staff",
-        hiring_date: v.hiring_date,
-        department: v.department,
-        client_company: v.company,
-        supervisor_file_number: v.supervisor_file_number,
-        carryover_balance: v.carryover || 0,
-        taken_this_year: v.taken_this_year || 0,
-      }
-    });
-    setBtnLoading(nextBtn, false);
-
-    if (error || (data && data.error)) {
-      ewShowError((data && data.error) ? data.error : t("somethingWrongCreating"));
-      return;
-    }
-
-    EMP_WIZARD.employeeId = data.target_id;
-    EMP_WIZARD.fileNumber = data.file_number;
-    EMP_WIZARD.password = data.password;
-    EMP_WIZARD.documents = [];
-    EMP_WIZARD.stepIndex++;
-    await ewRenderCurrentStep();
+  if (stepDef.key === "documents_staging") {
+    await ewFinalizeCreation(document.getElementById("empWizardNextBtn"));
     return;
   }
 
@@ -1878,15 +1911,16 @@ document.getElementById("empWizardNextBtn").addEventListener("click", async () =
 
 document.getElementById("showAddFormBtn").addEventListener("click", async () => {
   EMP_WIZARD.stepIndex = 0;
+  EMP_WIZARD.phase = "steps";
   EMP_WIZARD.values = {
     full_name: "", dob: "", email: "", phone: "", hiring_date: "",
     carryover: 0, taken_this_year: 0,
     company: COMPANY_FILTER || "", department: "", supervisor_file_number: "",
   };
+  EMP_WIZARD.stagedFiles = [];
   EMP_WIZARD.employeeId = null;
   EMP_WIZARD.fileNumber = null;
   EMP_WIZARD.password = null;
-  EMP_WIZARD.documents = [];
   document.getElementById("empWizardOverlay").style.display = "flex";
   await ewRenderCurrentStep();
 });
