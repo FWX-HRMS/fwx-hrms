@@ -1774,6 +1774,7 @@ const EMP_WIZARD_STEPS = [
         }
         e.target.value = "";
         ewRenderStagedList();
+        ewUpdateDocStepNextVisibility();
       });
       ewRenderStagedList();
     },
@@ -1833,8 +1834,18 @@ function ewRenderStagedList() {
     btn.addEventListener("click", () => {
       EMP_WIZARD.stagedFiles.splice(Number(btn.dataset.removeStaged), 1);
       ewRenderStagedList();
+      ewUpdateDocStepNextVisibility();
     });
   });
+}
+
+// On the Upload Documents step, "Next" only appears once at least one file
+// has been attached — before that, Skip is the only way forward without
+// attaching anything.
+function ewUpdateDocStepNextVisibility() {
+  const nextBtn = document.getElementById("empWizardNextBtn");
+  if (!nextBtn) return;
+  nextBtn.style.display = EMP_WIZARD.stagedFiles.length > 0 ? "" : "none";
 }
 
 function ewRenderSpinner(message) {
@@ -1994,6 +2005,9 @@ async function ewRenderCurrentStep() {
     skipBtn.style.width = "120px";
     skipBtn.style.display = "";
     nextBtn.textContent = "Next ›";
+    if (stepDef.key === "documents_staging") {
+      ewUpdateDocStepNextVisibility();
+    }
   } else if (stepDef.key === "review") {
     skipBtn.style.display = "none";
     nextBtn.textContent = "Create employee";
