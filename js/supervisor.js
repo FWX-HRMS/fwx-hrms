@@ -1,4 +1,35 @@
 let ME = null;
+
+// Reusable search bar injector — creates a 🔍 search input right above the
+// given table (if not already present) and wires it to re-render on input.
+// Works without needing the HTML file, so it can be dropped onto any table.
+function ensureTableSearch(tbodyId, inputId, onQuery) {
+  let input = document.getElementById(inputId);
+  if (input) return input;
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return null;
+  const table = tbody.closest("table");
+  if (!table) return null;
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:relative; max-width:340px; margin-bottom:14px";
+  wrap.innerHTML = `
+    <span style="position:absolute; inset-inline-start:12px; top:50%; transform:translateY(-50%); pointer-events:none; opacity:.55">🔍</span>
+    <input type="text" id="${inputId}" placeholder="Name, file #, company, or role" style="width:100%; padding-inline-start:36px">
+  `;
+  table.parentNode.insertBefore(wrap, table);
+  input = document.getElementById(inputId);
+  input.addEventListener("input", onQuery);
+  return input;
+}
+
+function matchesTableSearch(query, fileNumber, company, role, name) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  return (fileNumber || "").toLowerCase().includes(q) ||
+         (company || "").toLowerCase().includes(q) ||
+         (role || "").toLowerCase().includes(q) ||
+         (name || "").toLowerCase().includes(q);
+}
 let TEAM_BY_ID = {};
 let TEAM_BALANCE_ROWS = [];
 let PENDING_REQUESTS = [];
@@ -95,11 +126,17 @@ function renderUsers() {
   const body = document.getElementById("usersBody");
   const empty = document.getElementById("noUsers");
   body.innerHTML = "";
-  empty.style.display = TEAM_LIST.length ? "none" : "block";
+
+  ensureTableSearch("usersBody", "usersSearchInput", () => { USERS_PAGE = 0; renderUsers(); });
+  const query = (document.getElementById("usersSearchInput") || {}).value || "";
+  const filteredTeam = query
+    ? TEAM_LIST.filter(e => matchesTableSearch(query, e.file_number, e.client_company, e.role, e.full_name))
+    : TEAM_LIST;
+  empty.style.display = filteredTeam.length ? "none" : "block";
 
   const balByEmployeeId = Object.fromEntries(TEAM_BALANCE_ROWS.map(r => [r.employee_id, r]));
   const start = USERS_PAGE * PAGE_SIZE;
-  const pageItems = TEAM_LIST.slice(start, start + PAGE_SIZE);
+  const pageItems = filteredTeam.slice(start, start + PAGE_SIZE);
   for (const e of pageItems) {
     const bal = balByEmployeeId[e.id];
     const tr = document.createElement("tr");
@@ -119,7 +156,7 @@ function renderUsers() {
     `;
     body.appendChild(tr);
   }
-  updatePaginationControls("users", USERS_PAGE, TEAM_LIST.length);
+  updatePaginationControls("users", USERS_PAGE, filteredTeam.length);
 }
 
 async function loadBalances() {
@@ -398,16 +435,32 @@ async function loadTeamWarnings() {
   document.getElementById("teamWarningsPanel").style.display = "";
 
   const { data, error } = await db.from("warnings").select("*").order("sent_at", { ascending: false });
+  if (error || !data) {
+    document.getElementById("noTeamWarnings").style.display = "block";
+    return;
+  }
+  TEAM_WARNINGS_LIST = data.filter(w => TEAM_BY_ID[w.employee_id]);
+  TEAM_WARNINGS_PAGE = 0;
+  renderTeamWarnings();
+}
+
+function renderTeamWarnings() {
   const body = document.getElementById("teamWarningsBody");
   const empty = document.getElementById("noTeamWarnings");
   body.innerHTML = "";
 
-  if (error || !data) { empty.style.display = "block"; return; }
-  TEAM_WARNINGS_LIST = data.filter(w => TEAM_BY_ID[w.employee_id]);
-  empty.style.display = TEAM_WARNINGS_LIST.length ? "none" : "block";
+  ensureTableSearch("teamWarningsBody", "teamWarningsSearchInput", () => { TEAM_WARNINGS_PAGE = 0; renderTeamWarnings(); });
+  const query = (document.getElementById("teamWarningsSearchInput") || {}).value || "";
+  const filtered = query
+    ? TEAM_WARNINGS_LIST.filter(w => {
+        const emp = TEAM_BY_ID[w.employee_id];
+        return matchesTableSearch(query, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name);
+      })
+    : TEAM_WARNINGS_LIST;
+  empty.style.display = filtered.length ? "none" : "block";
 
   const start = TEAM_WARNINGS_PAGE * PAGE_SIZE;
-  const pageItems = TEAM_WARNINGS_LIST.slice(start, start + PAGE_SIZE);
+  const pageItems = filtered.slice(start, start + PAGE_SIZE);
   for (const w of pageItems) {
     const emp = TEAM_BY_ID[w.employee_id];
     const tr = document.createElement("tr");
@@ -422,7 +475,7 @@ async function loadTeamWarnings() {
     `;
     body.appendChild(tr);
   }
-  updatePaginationControls("teamWarnings", TEAM_WARNINGS_PAGE, TEAM_WARNINGS_LIST.length);
+  updatePaginationControls("teamWarnings", TEAM_WARNINGS_PAGE, filtered.length);
   body.querySelectorAll("button[data-view-team-warning]").forEach(btn => {
     btn.addEventListener("click", () => {
       const w = TEAM_WARNINGS_LIST.find(x => x.id === btn.dataset.viewTeamWarning);
@@ -519,17 +572,33 @@ async function loadAdminContracts() {
   document.getElementById("adminContractsPanel").style.display = "";
 
   const { data, error } = await db.from("contracts").select("*").order("created_at", { ascending: false });
+  if (error || !data) {
+    document.getElementById("noAdminContracts").style.display = "block";
+    return;
+  }
+  ADMIN_CONTRACTS_LIST = data;
+  ADMIN_CONTRACTS_PAGE = 0;
+  renderAdminContracts();
+}
+
+function renderAdminContracts() {
   const body = document.getElementById("adminContractsBody");
   const empty = document.getElementById("noAdminContracts");
   body.innerHTML = "";
 
-  if (error || !data) { empty.style.display = "block"; return; }
-  ADMIN_CONTRACTS_LIST = data;
-  empty.style.display = data.length ? "none" : "block";
-
   const byId = TEAM_BY_ID;
+  ensureTableSearch("adminContractsBody", "adminContractsSearchInput", () => { ADMIN_CONTRACTS_PAGE = 0; renderAdminContracts(); });
+  const acQuery = (document.getElementById("adminContractsSearchInput") || {}).value || "";
+  const filteredContracts = acQuery
+    ? ADMIN_CONTRACTS_LIST.filter(c => {
+        const emp = byId[c.employee_id];
+        return matchesTableSearch(acQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name);
+      })
+    : ADMIN_CONTRACTS_LIST;
+  empty.style.display = filteredContracts.length ? "none" : "block";
+
   const start = ADMIN_CONTRACTS_PAGE * PAGE_SIZE;
-  const pageItems = data.slice(start, start + PAGE_SIZE);
+  const pageItems = filteredContracts.slice(start, start + PAGE_SIZE);
   for (const c of pageItems) {
     const emp = byId[c.employee_id];
     const tr = document.createElement("tr");
@@ -544,7 +613,7 @@ async function loadAdminContracts() {
     `;
     body.appendChild(tr);
   }
-  updatePaginationControls("adminContracts", ADMIN_CONTRACTS_PAGE, ADMIN_CONTRACTS_LIST.length);
+  updatePaginationControls("adminContracts", ADMIN_CONTRACTS_PAGE, filteredContracts.length);
   body.querySelectorAll("button[data-view-admin-contract]").forEach(btn => {
     btn.addEventListener("click", () => {
       window.location.href = `admin.html?tab=contracts&contractId=${encodeURIComponent(btn.dataset.viewAdminContract)}`;
@@ -557,17 +626,33 @@ async function loadAdminWarnings() {
   document.getElementById("adminWarningsPanel").style.display = "";
 
   const { data, error } = await db.from("warnings").select("*").order("created_at", { ascending: false });
+  if (error || !data) {
+    document.getElementById("noAdminWarnings").style.display = "block";
+    return;
+  }
+  ADMIN_WARNINGS_LIST = data;
+  ADMIN_WARNINGS_PAGE = 0;
+  renderAdminWarnings();
+}
+
+function renderAdminWarnings() {
   const body = document.getElementById("adminWarningsBody");
   const empty = document.getElementById("noAdminWarnings");
   body.innerHTML = "";
 
-  if (error || !data) { empty.style.display = "block"; return; }
-  ADMIN_WARNINGS_LIST = data;
-  empty.style.display = data.length ? "none" : "block";
-
   const byId = TEAM_BY_ID;
+  ensureTableSearch("adminWarningsBody", "adminWarningsSearchInput", () => { ADMIN_WARNINGS_PAGE = 0; renderAdminWarnings(); });
+  const awQuery = (document.getElementById("adminWarningsSearchInput") || {}).value || "";
+  const filteredWarnings = awQuery
+    ? ADMIN_WARNINGS_LIST.filter(w => {
+        const emp = byId[w.employee_id];
+        return matchesTableSearch(awQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name);
+      })
+    : ADMIN_WARNINGS_LIST;
+  empty.style.display = filteredWarnings.length ? "none" : "block";
+
   const start = ADMIN_WARNINGS_PAGE * PAGE_SIZE;
-  const pageItems = data.slice(start, start + PAGE_SIZE);
+  const pageItems = filteredWarnings.slice(start, start + PAGE_SIZE);
   for (const w of pageItems) {
     const emp = byId[w.employee_id];
     const tr = document.createElement("tr");
@@ -582,7 +667,7 @@ async function loadAdminWarnings() {
     `;
     body.appendChild(tr);
   }
-  updatePaginationControls("adminWarnings", ADMIN_WARNINGS_PAGE, ADMIN_WARNINGS_LIST.length);
+  updatePaginationControls("adminWarnings", ADMIN_WARNINGS_PAGE, filteredWarnings.length);
   body.querySelectorAll("button[data-view-admin-warning]").forEach(btn => {
     btn.addEventListener("click", () => {
       window.location.href = `admin.html?tab=warnings&warningId=${encodeURIComponent(btn.dataset.viewAdminWarning)}`;
