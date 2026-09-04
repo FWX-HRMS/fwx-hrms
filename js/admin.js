@@ -767,8 +767,17 @@ document.getElementById("warningSendBtn").addEventListener("click", async () => 
 });
 
 document.getElementById("warningDownloadBtn").addEventListener("click", () => {
-  const text = document.getElementById("warningTextArea").value;
+  let text = document.getElementById("warningTextArea").value;
   const overlay = document.getElementById("warningViewOverlay");
+  const warningId = overlay.dataset.warningId;
+  const warning = WARNINGS_LIST.find(w => w.id === warningId);
+  if (warning && warning.acknowledged_at) {
+    const isArabicDoc = containsArabic(text);
+    const ackLine = isArabicDoc
+      ? `\n\n---\nتم إقرار الموظف بالاطلاع على هذا الإنذار بتاريخ ${fmtDate(warning.acknowledged_at.slice(0,10))}.`
+      : `\n\n---\nAcknowledged by employee on ${fmtDate(warning.acknowledged_at.slice(0,10))}.`;
+    text += ackLine;
+  }
   downloadContractPDF("Warning", overlay.dataset.fileNumber, overlay.dataset.employeeName, text);
 });
 
