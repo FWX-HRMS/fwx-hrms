@@ -219,7 +219,7 @@ async function loadDashboardWarnings() {
       <td>${ME.file_number}</td>
       <td>${ME.client_company || "—"}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
-      <td>${warningStatusBadge(w.status)}</td>
+      <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
       <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-dash-warning="${w.id}">${t("view")}</button></td>
     `;
@@ -240,6 +240,20 @@ function ensureAckWarningBtn() {
   return btn;
 }
 
+function ensureAckWarningNote() {
+  let note = document.getElementById("ackWarningNote");
+  if (!note) {
+    note = document.createElement("div");
+    note.id = "ackWarningNote";
+    note.className = "success-msg";
+    note.style.marginTop = "10px";
+    note.style.fontWeight = "600";
+    const display = document.getElementById("docTextDisplay");
+    display.parentNode.insertBefore(note, display.nextSibling);
+  }
+  return note;
+}
+
 async function acknowledgeWarning(warning, btn) {
   setBtnLoading(btn, true);
   const { data, error } = await db.functions.invoke("clever-action", {
@@ -252,6 +266,9 @@ async function acknowledgeWarning(warning, btn) {
   }
   warning.acknowledged_at = new Date().toISOString();
   btn.style.display = "none";
+  const note = ensureAckWarningNote();
+  note.textContent = `Acknowledged on ${fmtDate(warning.acknowledged_at.slice(0,10))}`;
+  note.classList.add("show");
   showToast("Warning acknowledged.");
 }
 
@@ -270,11 +287,19 @@ async function acknowledgeWarning(warning, btn) {
       convertBtn.textContent = DOC_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
 
       // Pending acknowledgment: show Acknowledge alongside Close. Once
-      // acknowledged, only Close remains from then on.
+      // acknowledged, only Close remains, with a clear confirmation note.
       const ackBtn = ensureAckWarningBtn();
       const needsAck = w.status === "sent" && !w.acknowledged_at;
       ackBtn.style.display = needsAck ? "" : "none";
       ackBtn.onclick = () => acknowledgeWarning(w, ackBtn);
+
+      const ackNote = ensureAckWarningNote();
+      if (w.acknowledged_at) {
+        ackNote.textContent = `Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}`;
+        ackNote.classList.add("show");
+      } else {
+        ackNote.classList.remove("show");
+      }
 
       document.getElementById("docViewOverlay").style.display = "flex";
     });

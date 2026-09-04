@@ -379,6 +379,20 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
 let TEAM_WARNINGS_LIST = [];
 let TEAM_WARNINGS_PAGE = 0;
 
+function ensureTeamWarningAckNote() {
+  let note = document.getElementById("teamWarningAckNote");
+  if (!note) {
+    note = document.createElement("div");
+    note.id = "teamWarningAckNote";
+    note.className = "success-msg show";
+    note.style.marginTop = "10px";
+    note.style.fontWeight = "600";
+    const display = document.getElementById("teamWarningTextDisplay");
+    display.parentNode.insertBefore(note, display.nextSibling);
+  }
+  return note;
+}
+
 async function loadTeamWarnings() {
   if (ME.role !== "supervisor") { document.getElementById("teamWarningsPanel").style.display = "none"; return; }
   document.getElementById("teamWarningsPanel").style.display = "";
@@ -402,7 +416,7 @@ async function loadTeamWarnings() {
       <td>${emp.file_number}</td>
       <td>${emp.client_company || "—"}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
-      <td>${warningStatusBadge(w.status)}</td>
+      <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
       <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-team-warning="${w.id}">${t("view")}</button></td>
     `;
@@ -417,6 +431,9 @@ async function loadTeamWarnings() {
       document.getElementById("teamWarningViewTitle").textContent = emp ? emp.full_name : t("warningDetailsTitle");
       const display = document.getElementById("teamWarningTextDisplay");
       display.textContent = w.warning_text || w.reason;
+      const ackNote = ensureTeamWarningAckNote();
+      ackNote.textContent = w.acknowledged_at ? `Acknowledged by employee on ${fmtDate(w.acknowledged_at.slice(0,10))}` : "";
+      ackNote.style.display = w.acknowledged_at ? "" : "none";
       TEAM_WARNING_ALT_TEXT = w.warning_text_alt || "";
       TEAM_WARNING_LANG = w.language === "en" ? "en" : "ar";
       display.dir = TEAM_WARNING_LANG === "ar" ? "rtl" : "ltr";
@@ -558,7 +575,7 @@ async function loadAdminWarnings() {
       <td>${emp ? emp.full_name : "—"}</td>
       <td>${emp ? emp.file_number : "—"}</td>
       <td>${emp ? (emp.client_company || "—") : "—"}</td>
-      <td>${warningStatusBadge(w.status)}</td>
+      <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
       <td>${fmtDate(w.created_at ? w.created_at.slice(0,10) : null)}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-admin-warning="${w.id}">${t("view")}</button></td>
