@@ -95,7 +95,6 @@ function applyTab(tab) {
   const isContracts = tab === "contracts";
   const isWarnings = tab === "warnings";
   document.getElementById("directoryPanel").style.display = (isLeave || isContracts || isWarnings) ? "none" : "";
-  document.getElementById("addPanel").style.display = "none";
   document.getElementById("leavePanel").style.display = isLeave ? "" : "none";
   document.getElementById("contractsPanel").style.display = isContracts ? "" : "none";
   document.getElementById("warningsPanel").style.display = isWarnings ? "" : "none";
@@ -1810,8 +1809,11 @@ document.getElementById("empWizardBackBtn").addEventListener("click", async () =
 });
 
 document.getElementById("empWizardCancelBtn").addEventListener("click", async () => {
-  if (!(await showConfirm(t("cancel"), "Any information entered so far will be lost. Are you sure you want to cancel?", t("cancel"), true))) return;
   document.getElementById("empWizardOverlay").style.display = "none";
+  const confirmed = await showConfirm(t("cancel"), "Any information entered so far will be lost. Are you sure you want to cancel?", t("cancel"), true);
+  if (!confirmed) {
+    document.getElementById("empWizardOverlay").style.display = "flex";
+  }
 });
 
 document.getElementById("empWizardNextBtn").addEventListener("click", async () => {
