@@ -47,12 +47,22 @@ function showToast(msg) {
 }
 
 // ---------- Custom confirm/info modal (replaces browser confirm()/alert()) ----------
-function showInfo(title, messageHTML) {
+function showInfo(title, messageHTML, copyText = null) {
   return new Promise((resolve) => {
     document.getElementById("actionTitle").textContent = title;
     document.getElementById("actionMessage").innerHTML = messageHTML;
     const btns = document.getElementById("actionButtons");
     btns.innerHTML = "";
+    if (copyText) {
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "btn btn-blue btn-sm";
+      copyBtn.textContent = t("copyDetailsBtn");
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(copyText);
+        showToast(t("copiedToast"));
+      };
+      btns.appendChild(copyBtn);
+    }
     const ok = document.createElement("button");
     ok.className = "btn btn-primary btn-sm";
     ok.textContent = t("okBtn");
@@ -1264,7 +1274,8 @@ async function resetPassword(id, employee) {
 
   await showInfo(
     t("newPasswordGeneratedTitle"),
-    tv("newPasswordGeneratedMsg", { name: employee.full_name, fileNumber: employee.file_number, password: data.password })
+    tv("newPasswordGeneratedMsg", { name: employee.full_name, fileNumber: employee.file_number, password: data.password }),
+    `${t("fileNumColonLabel")} ${employee.file_number}\n${t("initialPasswordColonLabel")} ${data.password}`
   );
 }
 
