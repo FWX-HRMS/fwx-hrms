@@ -967,7 +967,7 @@ function showLogoutConfirm() {
     document.getElementById("fwxLogoutConfirmMsg").textContent = t("logoutConfirmMsg");
     const cancelBtn = document.getElementById("fwxLogoutCancelBtn");
     const confirmBtn = document.getElementById("fwxLogoutConfirmBtn");
-    cancelBtn.textContent = t("cancel");
+    cancelBtn.textContent = "Discard";
     confirmBtn.textContent = t("logout");
     cancelBtn.onclick = () => { overlay.style.display = "none"; resolve(false); };
     confirmBtn.onclick = () => { overlay.style.display = "none"; resolve(true); };

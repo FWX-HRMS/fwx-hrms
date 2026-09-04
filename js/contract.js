@@ -197,21 +197,12 @@ function openContractView(id) {
     signedBox.style.display = "none";
     sigImg.style.display = "none";
     downloadBtn.style.display = "none";
-    actionArea.style.display = "block";
-    // After the employee has commented, everything in the action area is
-    // disabled (except Convert/Close) until admin responds — prevents
-    // double-submitting comments or signing while feedback is pending.
+    // After the employee has commented, the entire action area (comment box
+    // and sign section) is hidden — only the contract text and Close button
+    // remain — until admin re-shares the contract.
     const isWaiting = c.status === "commented";
+    actionArea.style.display = isWaiting ? "none" : "block";
     waitingBox.style.display = isWaiting ? "block" : "none";
-    document.getElementById("commentText").disabled = isWaiting;
-    document.getElementById("submitCommentBtn").disabled = isWaiting;
-    document.getElementById("sigModeDrawBtn").disabled = isWaiting;
-    document.getElementById("sigModeUploadBtn").disabled = isWaiting;
-    document.getElementById("clearSignatureBtn").disabled = isWaiting;
-    document.getElementById("signatureFileInput").disabled = isWaiting;
-    document.getElementById("signContractBtn").disabled = isWaiting;
-    document.getElementById("signatureCanvas").style.pointerEvents = isWaiting ? "none" : "";
-    document.getElementById("signatureCanvas").style.opacity = isWaiting ? "0.5" : "1";
   }
 
   document.getElementById("commentText").value = "";
@@ -299,8 +290,8 @@ document.getElementById("submitCommentBtn").addEventListener("click", async () =
 
   showToast(t("commentsSentToast"));
   suppressNextContractPopup = true;
+  document.getElementById("contractViewOverlay").style.display = "none";
   await loadContracts();
-  openContractView(CONTRACT.id);
 });
 
 document.getElementById("signContractBtn").addEventListener("click", async () => {
