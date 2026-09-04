@@ -14,7 +14,7 @@ function ensureTableSearch(tbodyId, inputId, onQuery) {
   wrap.style.cssText = "position:relative; max-width:340px; margin-bottom:14px";
   wrap.innerHTML = `
     <span style="position:absolute; inset-inline-start:12px; top:50%; transform:translateY(-50%); pointer-events:none; opacity:.55">🔍</span>
-    <input type="text" id="${inputId}" placeholder="Name, file #, company, or role" style="width:100%; padding-inline-start:36px">
+    <input type="text" id="${inputId}" placeholder="Name, file #, company, role, or department" style="width:100%; padding-inline-start:36px">
   `;
   table.parentNode.insertBefore(wrap, table);
   input = document.getElementById(inputId);
@@ -22,13 +22,14 @@ function ensureTableSearch(tbodyId, inputId, onQuery) {
   return input;
 }
 
-function matchesTableSearch(query, fileNumber, company, role, name) {
+function matchesTableSearch(query, fileNumber, company, role, name, department) {
   if (!query) return true;
   const q = query.toLowerCase();
   return (fileNumber || "").toLowerCase().includes(q) ||
          (company || "").toLowerCase().includes(q) ||
          (role || "").toLowerCase().includes(q) ||
-         (name || "").toLowerCase().includes(q);
+         (name || "").toLowerCase().includes(q) ||
+         (department || "").toLowerCase().includes(q);
 }
 let TEAM_BY_ID = {};
 let TEAM_BALANCE_ROWS = [];
@@ -130,7 +131,7 @@ function renderUsers() {
   ensureTableSearch("usersBody", "usersSearchInput", () => { USERS_PAGE = 0; renderUsers(); });
   const query = (document.getElementById("usersSearchInput") || {}).value || "";
   const filteredTeam = query
-    ? TEAM_LIST.filter(e => matchesTableSearch(query, e.file_number, e.client_company, e.role, e.full_name))
+    ? TEAM_LIST.filter(e => matchesTableSearch(query, e.file_number, e.client_company, e.role, e.full_name, e.department))
     : TEAM_LIST;
   empty.style.display = filteredTeam.length ? "none" : "block";
 
@@ -188,10 +189,19 @@ function renderPending() {
   const pendingBody = document.getElementById("pendingBody");
   const noPending = document.getElementById("noPending");
   pendingBody.innerHTML = "";
-  noPending.style.display = PENDING_REQUESTS.length ? "none" : "block";
+
+  ensureTableSearch("pendingBody", "pendingSearchInput", () => { PENDING_PAGE = 0; renderPending(); });
+  const pendingQuery = (document.getElementById("pendingSearchInput") || {}).value || "";
+  const filteredPending = pendingQuery
+    ? PENDING_REQUESTS.filter(r => {
+        const emp = TEAM_BY_ID[r.employee_id];
+        return matchesTableSearch(pendingQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
+      })
+    : PENDING_REQUESTS;
+  noPending.style.display = filteredPending.length ? "none" : "block";
 
   const start = PENDING_PAGE * PAGE_SIZE;
-  const pageItems = PENDING_REQUESTS.slice(start, start + PAGE_SIZE);
+  const pageItems = filteredPending.slice(start, start + PAGE_SIZE);
 
   for (const r of pageItems) {
     const emp = TEAM_BY_ID[r.employee_id];
@@ -208,7 +218,7 @@ function renderPending() {
       <td>${r.days_requested}</td>
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${r.reason ? r.reason : "—"}</td>
-      <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">${t("view")}</button>` : "—"}</td>
+      <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">View Attachment</button>` : "—"}</td>
       ${actionsCell}
     `;
     pendingBody.appendChild(tr);
@@ -242,17 +252,26 @@ function renderPending() {
     });
   });
 
-  updatePaginationControls("pending", PENDING_PAGE, PENDING_REQUESTS.length);
+  updatePaginationControls("pending", PENDING_PAGE, filteredPending.length);
 }
 
 function renderHistory() {
   const historyBody = document.getElementById("historyBody");
   const noHistory = document.getElementById("noHistory");
   historyBody.innerHTML = "";
-  noHistory.style.display = HISTORY_REQUESTS.length ? "none" : "block";
+
+  ensureTableSearch("historyBody", "historySearchInput", () => { HISTORY_PAGE = 0; renderHistory(); });
+  const historyQuery = (document.getElementById("historySearchInput") || {}).value || "";
+  const filteredHistory = historyQuery
+    ? HISTORY_REQUESTS.filter(r => {
+        const emp = TEAM_BY_ID[r.employee_id];
+        return matchesTableSearch(historyQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
+      })
+    : HISTORY_REQUESTS;
+  noHistory.style.display = filteredHistory.length ? "none" : "block";
 
   const start = HISTORY_PAGE * PAGE_SIZE;
-  const pageItems = HISTORY_REQUESTS.slice(start, start + PAGE_SIZE);
+  const pageItems = filteredHistory.slice(start, start + PAGE_SIZE);
 
   for (const r of pageItems) {
     const emp = TEAM_BY_ID[r.employee_id];
@@ -267,7 +286,7 @@ function renderHistory() {
     historyBody.appendChild(tr);
   }
 
-  updatePaginationControls("history", HISTORY_PAGE, HISTORY_REQUESTS.length);
+  updatePaginationControls("history", HISTORY_PAGE, filteredHistory.length);
 }
 
 document.getElementById("pendingPrevBtn").addEventListener("click", () => { if (PENDING_PAGE > 0) { PENDING_PAGE--; renderPending(); } });
@@ -276,8 +295,8 @@ document.getElementById("historyPrevBtn").addEventListener("click", () => { if (
 document.getElementById("historyNextBtn").addEventListener("click", () => { if ((HISTORY_PAGE + 1) * PAGE_SIZE < HISTORY_REQUESTS.length) { HISTORY_PAGE++; renderHistory(); } });
 document.getElementById("usersPrevBtn").addEventListener("click", () => { if (USERS_PAGE > 0) { USERS_PAGE--; renderUsers(); } });
 document.getElementById("usersNextBtn").addEventListener("click", () => { if ((USERS_PAGE + 1) * PAGE_SIZE < TEAM_LIST.length) { USERS_PAGE++; renderUsers(); } });
-document.getElementById("teamWarningsPrevBtn").addEventListener("click", () => { if (TEAM_WARNINGS_PAGE > 0) { TEAM_WARNINGS_PAGE--; loadTeamWarnings(); } });
-document.getElementById("teamWarningsNextBtn").addEventListener("click", () => { if ((TEAM_WARNINGS_PAGE + 1) * PAGE_SIZE < TEAM_WARNINGS_LIST.length) { TEAM_WARNINGS_PAGE++; loadTeamWarnings(); } });
+document.getElementById("teamWarningsPrevBtn").addEventListener("click", () => { if (TEAM_WARNINGS_PAGE > 0) { TEAM_WARNINGS_PAGE--; renderTeamWarnings(); } });
+document.getElementById("teamWarningsNextBtn").addEventListener("click", () => { if ((TEAM_WARNINGS_PAGE + 1) * PAGE_SIZE < TEAM_WARNINGS_LIST.length) { TEAM_WARNINGS_PAGE++; renderTeamWarnings(); } });
 
 function showDateRangePrompt(title) {
   return new Promise((resolve) => {
@@ -454,7 +473,7 @@ function renderTeamWarnings() {
   const filtered = query
     ? TEAM_WARNINGS_LIST.filter(w => {
         const emp = TEAM_BY_ID[w.employee_id];
-        return matchesTableSearch(query, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name);
+        return matchesTableSearch(query, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : TEAM_WARNINGS_LIST;
   empty.style.display = filtered.length ? "none" : "block";
@@ -592,7 +611,7 @@ function renderAdminContracts() {
   const filteredContracts = acQuery
     ? ADMIN_CONTRACTS_LIST.filter(c => {
         const emp = byId[c.employee_id];
-        return matchesTableSearch(acQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name);
+        return matchesTableSearch(acQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : ADMIN_CONTRACTS_LIST;
   empty.style.display = filteredContracts.length ? "none" : "block";
@@ -646,7 +665,7 @@ function renderAdminWarnings() {
   const filteredWarnings = awQuery
     ? ADMIN_WARNINGS_LIST.filter(w => {
         const emp = byId[w.employee_id];
-        return matchesTableSearch(awQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name);
+        return matchesTableSearch(awQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : ADMIN_WARNINGS_LIST;
   empty.style.display = filteredWarnings.length ? "none" : "block";
@@ -701,10 +720,10 @@ document.getElementById("docConvertBtn").addEventListener("click", () => {
   display.style.textAlign = DOC_LANG === "ar" ? "right" : "left";
   document.getElementById("docConvertBtn").textContent = DOC_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
 });
-document.getElementById("adminContractsPrevBtn").addEventListener("click", () => { if (ADMIN_CONTRACTS_PAGE > 0) { ADMIN_CONTRACTS_PAGE--; loadAdminContracts(); } });
-document.getElementById("adminContractsNextBtn").addEventListener("click", () => { if ((ADMIN_CONTRACTS_PAGE + 1) * PAGE_SIZE < ADMIN_CONTRACTS_LIST.length) { ADMIN_CONTRACTS_PAGE++; loadAdminContracts(); } });
-document.getElementById("adminWarningsPrevBtn").addEventListener("click", () => { if (ADMIN_WARNINGS_PAGE > 0) { ADMIN_WARNINGS_PAGE--; loadAdminWarnings(); } });
-document.getElementById("adminWarningsNextBtn").addEventListener("click", () => { if ((ADMIN_WARNINGS_PAGE + 1) * PAGE_SIZE < ADMIN_WARNINGS_LIST.length) { ADMIN_WARNINGS_PAGE++; loadAdminWarnings(); } });
+document.getElementById("adminContractsPrevBtn").addEventListener("click", () => { if (ADMIN_CONTRACTS_PAGE > 0) { ADMIN_CONTRACTS_PAGE--; renderAdminContracts(); } });
+document.getElementById("adminContractsNextBtn").addEventListener("click", () => { if ((ADMIN_CONTRACTS_PAGE + 1) * PAGE_SIZE < ADMIN_CONTRACTS_LIST.length) { ADMIN_CONTRACTS_PAGE++; renderAdminContracts(); } });
+document.getElementById("adminWarningsPrevBtn").addEventListener("click", () => { if (ADMIN_WARNINGS_PAGE > 0) { ADMIN_WARNINGS_PAGE--; renderAdminWarnings(); } });
+document.getElementById("adminWarningsNextBtn").addEventListener("click", () => { if ((ADMIN_WARNINGS_PAGE + 1) * PAGE_SIZE < ADMIN_WARNINGS_LIST.length) { ADMIN_WARNINGS_PAGE++; renderAdminWarnings(); } });
 
 async function refreshAll() {
   await loadTeam();

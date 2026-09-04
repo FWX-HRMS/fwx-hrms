@@ -175,13 +175,14 @@ async function loadLeaveRequests() {
   renderLeaveRequests();
 }
 
-function matchesTableSearch(query, fileNumber, company, role, name) {
+function matchesTableSearch(query, fileNumber, company, role, name, department) {
   if (!query) return true;
   const q = query.toLowerCase();
   return (fileNumber || "").toLowerCase().includes(q) ||
          (company || "").toLowerCase().includes(q) ||
          (role || "").toLowerCase().includes(q) ||
-         (name || "").toLowerCase().includes(q);
+         (name || "").toLowerCase().includes(q) ||
+         (department || "").toLowerCase().includes(q);
 }
 
 function renderLeaveRequests() {
@@ -194,7 +195,7 @@ function renderLeaveRequests() {
   const filteredLeave = leaveQuery
     ? LEAVE_REQUESTS_LIST.filter(r => {
         const emp = byId[r.employee_id];
-        return matchesTableSearch(leaveQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name);
+        return matchesTableSearch(leaveQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : LEAVE_REQUESTS_LIST;
 
@@ -315,7 +316,7 @@ function renderDirectory() {
     : DIRECTORY.filter(e => e.role === "staff");
   if (COMPANY_FILTER) allRows = allRows.filter(e => e.client_company === COMPANY_FILTER);
   const directoryQuery = document.getElementById("directorySearchInput").value.trim();
-  if (directoryQuery) allRows = allRows.filter(e => matchesTableSearch(directoryQuery, e.file_number, e.client_company, e.role, e.full_name));
+  if (directoryQuery) allRows = allRows.filter(e => matchesTableSearch(directoryQuery, e.file_number, e.client_company, e.role, e.full_name, e.department));
 
   const start = DIRECTORY_PAGE * PAGE_SIZE;
   const rows = allRows.slice(start, start + PAGE_SIZE);
@@ -588,7 +589,7 @@ function renderWarnings() {
   const filteredWarnings = warningsQuery
     ? WARNINGS_LIST.filter(w => {
         const emp = byId[w.employee_id];
-        return matchesTableSearch(warningsQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name);
+        return matchesTableSearch(warningsQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : WARNINGS_LIST;
   empty.style.display = filteredWarnings.length ? "none" : "block";
@@ -801,7 +802,7 @@ function renderContracts() {
   const filteredContracts = contractsQuery
     ? CONTRACTS_LIST.filter(c => {
         const emp = byId[c.employee_id];
-        return matchesTableSearch(contractsQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name);
+        return matchesTableSearch(contractsQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : CONTRACTS_LIST;
   empty.style.display = filteredContracts.length ? "none" : "block";
