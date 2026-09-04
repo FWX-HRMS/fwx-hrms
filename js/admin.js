@@ -1810,7 +1810,7 @@ document.getElementById("empWizardBackBtn").addEventListener("click", async () =
 
 document.getElementById("empWizardCancelBtn").addEventListener("click", async () => {
   document.getElementById("empWizardOverlay").style.display = "none";
-  const confirmed = await showConfirm(t("cancel"), "Any information entered so far will be lost. Are you sure you want to cancel?", t("cancel"), true);
+  const confirmed = await showConfirm(t("cancel"), "Any information entered so far will be lost. Are you sure you want to cancel?", "Discard", true);
   if (!confirmed) {
     document.getElementById("empWizardOverlay").style.display = "flex";
   }
