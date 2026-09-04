@@ -1062,6 +1062,7 @@ async function renderArabicPagesToPdf(doc, text, logo) {
 
   let i = 0;
   let pageIndex = 0;
+  let lastContentBottomMm = firstPageTopMm;
   while (i < allLines.length || pageIndex === 0) {
     const linesThisPage = pageIndex === 0 ? firstPageLines : laterPageLines;
     const pageLines = allLines.slice(i, i + linesThisPage);
@@ -1092,20 +1093,24 @@ async function renderArabicPagesToPdf(doc, text, logo) {
 
       const imgHeightMm = canvas.height / pxPerMm;
       doc.addImage(canvas.toDataURL("image/png"), "PNG", marginMm, yStartMm, contentWidthMm, imgHeightMm);
+      lastContentBottomMm = yStartMm + imgHeightMm;
     }
 
     pageIndex++;
-    if (allLines.length === 0) break;
+    if (allLines.length === 0) return lastContentBottomMm;
   }
+
+  return lastContentBottomMm;
 }
 
 async function downloadContractPDF(kind, fileNumber, employeeName, text, signatureImage) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const logo = await loadLogoDataURL();
+  let lastY;
 
   if (containsArabic(text)) {
-    await renderArabicPagesToPdf(doc, text, logo);
+    lastY = await renderArabicPagesToPdf(doc, text, logo);
   } else {
     let y = 20;
     if (logo) {
@@ -1123,22 +1128,46 @@ async function downloadContractPDF(kind, fileNumber, employeeName, text, signatu
       doc.text(line, 14, y);
       y += 6;
     }
+    lastY = y;
   }
 
   if (signatureImage) {
-    doc.addPage();
-    doc.setFontSize(12);
-    doc.setTextColor(27, 36, 48);
-    doc.text("Employee Signature", 14, 24);
+    const marginMm = 14;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    let imgWidth = 60, imgHeight = 20;
+    let imageOk = true;
     try {
       const imgProps = doc.getImageProperties(signatureImage);
-      const maxWidth = 100;
-      const imgWidth = Math.min(maxWidth, imgProps.width);
-      const imgHeight = (imgProps.height / imgProps.width) * imgWidth;
-      doc.addImage(signatureImage, 14, 34, imgWidth, imgHeight);
+      const maxWidth = 80;
+      imgWidth = Math.min(maxWidth, imgProps.width);
+      imgHeight = (imgProps.height / imgProps.width) * imgWidth;
     } catch (e) {
-      doc.setFontSize(10);
-      doc.text("(Signature image could not be embedded)", 14, 40);
+      imageOk = false;
+    }
+
+    const labelHeight = 8;
+    const gapBeforeBlock = 10;
+    const blockHeight = labelHeight + imgHeight + 5;
+
+    let sigY = lastY + gapBeforeBlock;
+    if (sigY + blockHeight > pageHeight - marginMm) {
+      doc.addPage();
+      sigY = marginMm + 10;
+    }
+
+    doc.setFontSize(11);
+    doc.setTextColor(27, 36, 48);
+    doc.text("Employee Signature:", marginMm, sigY);
+    if (imageOk) {
+      try {
+        doc.addImage(signatureImage, marginMm, sigY + 4, imgWidth, imgHeight);
+      } catch (e) {
+        doc.setFontSize(9);
+        doc.text("(Signature image could not be embedded)", marginMm, sigY + 10);
+      }
+    } else {
+      doc.setFontSize(9);
+      doc.text("(Signature image could not be embedded)", marginMm, sigY + 10);
     }
   }
 
