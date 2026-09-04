@@ -11,7 +11,7 @@ function ensureTableSearch(tbodyId, inputId, onQuery) {
   const table = tbody.closest("table");
   if (!table) return null;
   const wrap = document.createElement("div");
-  wrap.style.cssText = "position:relative; max-width:340px; margin-bottom:14px";
+  wrap.style.cssText = "position:relative; max-width:480px; margin-bottom:14px";
   wrap.innerHTML = `
     <span style="position:absolute; inset-inline-start:12px; top:50%; transform:translateY(-50%); pointer-events:none; opacity:.55">🔍</span>
     <input type="text" id="${inputId}" placeholder="Name, file #, company, role, or department" style="width:100%; padding-inline-start:36px">
