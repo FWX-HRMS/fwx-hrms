@@ -1,142 +1,4 @@
 let ME = null;
-
-const DEPARTMENTS_BY_COMPANY = {
-  "Umniah": ["Battery Rescue Power Planning", "Transmission & OMC", "Network Maintenance", "Network- Power & Energy Planning", "RA Network", "Transport Planning", "Transmission", "Rent Site", "Civil", "TDD Visit", "Wherhouse", "Tele Sales", "Direct Sales", "Preventive Maintenance", "N.W Rollout Acceptance", "Network Planning & Maintenance", "Drive Test", "MDS", "Selection", "Quality", "Data Centre", "Office"],
-  "Zain": ["Fiber acceptance", "Fiber Support", "FiberTech", "Power", "Bunker", "Tele Sales", "Direct Sales", "Shop Maintenance", "IBS", "TXM", "Network Maintenance", "Preventive Maintenance", "Data Centre", "Office"],
-  "Fiber-Tech": ["Field", "Rollout and Acceptance", "Fiber"],
-};
-const DEFAULT_DEPARTMENTS = ["Technical", "Sales", "Marketing", "HR", "Finance", "IT", "Administration"];
-
-function populateDepartmentOptions(selectEl, companyName, selectedValue) {
-  const list = DEPARTMENTS_BY_COMPANY[companyName] || DEFAULT_DEPARTMENTS;
-  const current = selectedValue !== undefined ? selectedValue : selectEl.value;
-  const placeholder = `<option value="">Select department…</option>`;
-  selectEl.innerHTML = placeholder + list.map(d => `<option value="${d}">${d}</option>`).join("");
-  if (current && list.includes(current)) selectEl.value = current;
-}
-
-// Admin-only: adding a new supervisor account is an org-wide action, so this
-// button/modal only appears for admins viewing Team Overview, not for
-// regular supervisors managing their own direct reports.
-function ensureAddSupervisorUI() {
-  if (ME.role !== "admin") return;
-  if (document.getElementById("showAddSupervisorTeamBtn")) return;
-
-  const usersBody = document.getElementById("usersBody");
-  if (!usersBody) return;
-  const panel = usersBody.closest(".panel");
-  const usersHeading = panel ? panel.querySelector("h2") : null;
-  if (!usersHeading) return;
-
-  const btn = document.createElement("button");
-  btn.type = "button";
-  btn.id = "showAddSupervisorTeamBtn";
-  btn.className = "btn btn-primary";
-  btn.textContent = "+ Add Supervisor";
-  btn.style.cssText = "width:200px; margin-inline-start:12px";
-  usersHeading.parentNode.insertBefore(btn, usersHeading.nextSibling);
-
-  const overlay = document.createElement("div");
-  overlay.id = "addSupervisorTeamOverlay";
-  overlay.className = "modal-overlay";
-  overlay.style.display = "none";
-  overlay.innerHTML = `
-    <div class="modal-box" style="max-width:460px">
-      <h2 style="margin:0 0 14px">Add New Supervisor</h2>
-      <form id="addSupervisorTeamForm">
-        <label for="supTeamFullName">Full name</label>
-        <input type="text" id="supTeamFullName" required>
-        <label for="supTeamEmail" style="margin-top:12px">Email</label>
-        <input type="text" id="supTeamEmail" required>
-        <label for="supTeamCompany" style="margin-top:12px">Company client</label>
-        <select id="supTeamCompany" required><option value="">Select company…</option></select>
-        <label for="supTeamDepartment" style="margin-top:12px">Department</label>
-        <select id="supTeamDepartment" required></select>
-        <div style="display:flex; gap:10px; margin-top:18px">
-          <button type="button" class="btn btn-danger" id="cancelAddSupervisorTeamBtn" style="width:220px">Cancel</button>
-          <button type="submit" class="btn btn-primary" id="addSupervisorTeamBtn" style="width:220px">Create</button>
-        </div>
-        <div class="error-msg" id="addSupervisorTeamError"></div>
-      </form>
-      <div class="success-msg" id="supervisorTeamCredentialsBox" style="margin-top:20px">
-        <p style="margin:0 0 8px"><strong>Supervisor created. Share these with them — they can change the password after logging in.</strong></p>
-        <p style="margin:0">File number: <strong id="supTeamCredFileNumber"></strong></p>
-        <p style="margin:0">Initial password: <strong id="supTeamCredPassword"></strong></p>
-        <p style="margin:8px 0 0"><button type="button" class="btn btn-blue btn-sm" id="copySupTeamCredsBtn">Copy details</button></p>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  btn.addEventListener("click", async () => {
-    document.getElementById("addSupervisorTeamForm").reset();
-    document.getElementById("addSupervisorTeamForm").style.display = "";
-    document.getElementById("addSupervisorTeamError").classList.remove("show");
-    document.getElementById("supervisorTeamCredentialsBox").classList.remove("show");
-
-    const companySelect = document.getElementById("supTeamCompany");
-    const { data: companies } = await db.from("client_companies").select("name").order("name");
-    companySelect.innerHTML = `<option value="">Select company…</option>` +
-      (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
-    populateDepartmentOptions(document.getElementById("supTeamDepartment"), "", null);
-
-    overlay.style.display = "flex";
-  });
-
-  document.getElementById("cancelAddSupervisorTeamBtn").addEventListener("click", () => {
-    overlay.style.display = "none";
-  });
-
-  document.getElementById("supTeamCompany").addEventListener("change", (e) => {
-    populateDepartmentOptions(document.getElementById("supTeamDepartment"), e.target.value, null);
-  });
-
-  document.getElementById("addSupervisorTeamForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const errBox = document.getElementById("addSupervisorTeamError");
-    const credBox = document.getElementById("supervisorTeamCredentialsBox");
-    errBox.classList.remove("show");
-    credBox.classList.remove("show");
-
-    const full_name = document.getElementById("supTeamFullName").value.trim();
-    const email = document.getElementById("supTeamEmail").value.trim();
-    const client_company = document.getElementById("supTeamCompany").value;
-    const department = document.getElementById("supTeamDepartment").value;
-
-    if (!client_company) {
-      errBox.textContent = "Please select a company.";
-      errBox.classList.add("show");
-      return;
-    }
-
-    const submitBtn = document.getElementById("addSupervisorTeamBtn");
-    setBtnLoading(submitBtn, true, "Creating…");
-
-    const { data, error } = await db.functions.invoke("clever-action", {
-      body: { action: "create_employee", full_name, email, role: "supervisor", department, client_company }
-    });
-
-    setBtnLoading(submitBtn, false);
-
-    if (error || (data && data.error)) {
-      errBox.textContent = (data && data.error) ? data.error : "Something went wrong creating this supervisor.";
-      errBox.classList.add("show");
-      return;
-    }
-
-    document.getElementById("supTeamCredFileNumber").textContent = data.file_number;
-    document.getElementById("supTeamCredPassword").textContent = data.password;
-    credBox.classList.add("show");
-    document.getElementById("addSupervisorTeamForm").style.display = "none";
-    document.getElementById("copySupTeamCredsBtn").onclick = () => {
-      navigator.clipboard.writeText(`File number: ${data.file_number}\nInitial password: ${data.password}\nSign in at: ${window.location.origin}`);
-      showToast(t("copiedToast"));
-    };
-
-    await refreshAll();
-  });
-}
-
 // Reusable search bar injector — creates a 🔍 search input right above the
 // given table (if not already present) and wires it to re-render on input.
 // Works without needing the HTML file, so it can be dropped onto any table.
@@ -260,11 +122,35 @@ async function loadTeam() {
   return data;
 }
 
+function supervisorNameFor(e) {
+  if (e.role === "supervisor") return "—";
+  if (!e.supervisor_id) return "—";
+  if (e.supervisor_id === ME.id) return ME.full_name;
+  const sup = TEAM_BY_ID[e.supervisor_id];
+  return sup ? sup.full_name : "—";
+}
+
+function ensureUsersSupervisorHeader() {
+  const body = document.getElementById("usersBody");
+  const table = body && body.closest("table");
+  const headerRow = table && table.querySelector("thead tr");
+  if (!headerRow || headerRow.dataset.supervisorColAdded) return;
+  // Department is the 5th header cell (index 4) in this table's existing
+  // column order — insert Supervisor right after it, before Prev. Year Balance.
+  const departmentTh = headerRow.children[4];
+  if (!departmentTh) return;
+  const th = document.createElement("th");
+  th.textContent = "Supervisor";
+  departmentTh.parentNode.insertBefore(th, departmentTh.nextSibling);
+  headerRow.dataset.supervisorColAdded = "1";
+}
+
 function renderUsers() {
   const body = document.getElementById("usersBody");
   const empty = document.getElementById("noUsers");
   body.innerHTML = "";
 
+  ensureUsersSupervisorHeader();
   ensureTableSearch("usersBody", "usersSearchInput", () => { USERS_PAGE = 0; renderUsers(); });
   const query = (document.getElementById("usersSearchInput") || {}).value || "";
   const filteredTeam = query
@@ -284,6 +170,7 @@ function renderUsers() {
       <td style="text-transform:capitalize">${e.role}</td>
       <td>${e.client_company || "—"}</td>
       <td>${e.department || "—"}</td>
+      <td>${supervisorNameFor(e)}</td>
       <td>${e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0}</td>
       <td>${bal ? bal.annual_entitlement : "—"}</td>
       <td>${bal ? bal.taken : "—"}</td>
@@ -905,5 +792,4 @@ async function refreshAll() {
   if (ME.role === "admin") document.getElementById("clientsLink").style.display = "";
   document.getElementById("pendingActionsHeader").textContent = ME.role === "admin" ? t("colStatus") : "";
   await refreshAll();
-  ensureAddSupervisorUI();
 })();
