@@ -297,6 +297,7 @@ function checkNewContractPopup(contract) {
   document.getElementById("newContractOverlay").style.display = "flex";
   sessionStorage.setItem(seenKey, "1");
 }
+document.getElementById("closeNewContractBtn").dataset.skipConfirm = "1";
 document.getElementById("closeNewContractBtn").addEventListener("click", () => {
   document.getElementById("newContractOverlay").style.display = "none";
 });
@@ -341,6 +342,7 @@ async function checkNewDocsNotification() {
     warningBox.style.display = "none";
   }
 }
+document.getElementById("closeNewWarningBtn").dataset.skipConfirm = "1";
 document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
   document.getElementById("newWarningOverlay").style.display = "none";
 });
