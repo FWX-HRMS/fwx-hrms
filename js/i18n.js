@@ -1075,3 +1075,73 @@ function hideGlobalSpinner() {
 // Apply immediately so static markup is translated before the page-specific
 // script runs (which may itself call t() while building dynamic content).
 applyTranslations();
+
+// ------------------------------------------------------------
+// System-wide: center-align any table column whose cells are purely numeric
+// (e.g. "14", "4.98", or a "—" placeholder standing in for a number),
+// leaving genuine text columns left-aligned — which is already the default
+// everywhere (th{text-align:left} in style.css, and browsers default td to
+// left too). Column headers are aligned to match their own column's data.
+// Works automatically on every table on every page (admin, supervisor,
+// employee), including tables built or re-rendered dynamically after load —
+// no per-table code changes needed anywhere.
+function isNumericCellContent(text) {
+  const trimmed = (text || "").trim();
+  if (trimmed === "" || trimmed === "—" || trimmed === "-") return true;
+  return /^-?\d+(\.\d+)?%?$/.test(trimmed);
+}
+
+function alignNumericTableColumns(root) {
+  const tables = (root || document).querySelectorAll("table");
+  tables.forEach(table => {
+    const bodyRows = table.querySelectorAll("tbody tr");
+    if (bodyRows.length === 0) return;
+
+    const colCount = Math.max(...Array.from(bodyRows).map(r => r.children.length));
+    const numericVotes = new Array(colCount).fill(0);
+    const totalVotes = new Array(colCount).fill(0);
+
+    bodyRows.forEach(row => {
+      Array.from(row.children).forEach((td, i) => {
+        if (td.querySelector("button, a, input, select, textarea")) return;
+        totalVotes[i]++;
+        if (isNumericCellContent(td.textContent)) numericVotes[i]++;
+      });
+    });
+
+    for (let i = 0; i < colCount; i++) {
+      const isNumericCol = totalVotes[i] > 0 && numericVotes[i] === totalVotes[i];
+      if (!isNumericCol) continue;
+      bodyRows.forEach(row => {
+        const td = row.children[i];
+        if (td && !td.querySelector("button, a, input, select, textarea")) {
+          td.style.textAlign = "center";
+        }
+      });
+      const headerRow = table.querySelector("thead tr");
+      if (headerRow && headerRow.children[i]) {
+        headerRow.children[i].style.textAlign = "center";
+      }
+    }
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => alignNumericTableColumns(document));
+
+// Tables are usually rebuilt via body.innerHTML="" followed by many
+// appendChild(tr) calls in a tight loop — debounce so we re-align once
+// after that burst settles, rather than on every single row insert.
+const fwxTableAlignObserver = new MutationObserver((mutations) => {
+  let shouldRealign = false;
+  for (const m of mutations) {
+    m.addedNodes.forEach(node => {
+      if (node.nodeType !== 1) return;
+      if (node.tagName === "TR" || (node.querySelectorAll && node.querySelectorAll("tr").length)) shouldRealign = true;
+    });
+  }
+  if (shouldRealign) {
+    clearTimeout(fwxTableAlignObserver._pending);
+    fwxTableAlignObserver._pending = setTimeout(() => alignNumericTableColumns(document), 50);
+  }
+});
+fwxTableAlignObserver.observe(document.body, { childList: true, subtree: true });
