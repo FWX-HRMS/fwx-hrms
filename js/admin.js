@@ -1695,6 +1695,7 @@ const EMP_WIZARD_STEPS = [
     valid() { return true; },
   },
   ewSimpleField("hiring_date", t("hiringDateLabel"), t("hiringDateLabel"), "date", true),
+  ewSimpleField("job_title", "Job Title", "Job Title", "text", false),
   ewSimpleField("contract_period_months", "Contract period (months)", "Contract period (months)", "number", false),
   ewSimpleField("salary", "Salary (JOD/month)", "Salary (JOD/month)", "number", false),
   {
@@ -1795,6 +1796,7 @@ const EMP_WIZARD_STEPS = [
           <p><strong>Education:</strong> ${v.education ? escapeHtml(v.education) : "—"}</p>
           <p><strong>Phone:</strong> ${escapeHtml(phoneDisplay)}</p>
           <p><strong>${t("hiringDateLabel")}:</strong> ${v.hiring_date || "—"}</p>
+          <p><strong>Job Title:</strong> ${v.job_title ? escapeHtml(v.job_title) : "—"}</p>
           <p><strong>Contract period:</strong> ${v.contract_period_months ? v.contract_period_months + " months" : "—"}</p>
           <p><strong>Salary:</strong> ${v.salary ? v.salary + " JOD" : "—"}</p>
           <p><strong>${t("companyClientLabel")}:</strong> ${escapeHtml(v.company)}</p>
@@ -1998,7 +2000,7 @@ async function ewRenderCurrentStep() {
   cancelBtn.style.display = "";
   nextBtn.style.display = "";
 
-  const SKIPPABLE_STEPS = ["documents_staging", "contract_period_months", "salary", "address"];
+  const SKIPPABLE_STEPS = ["documents_staging", "contract_period_months", "salary", "address", "job_title"];
 
   if (SKIPPABLE_STEPS.includes(stepDef.key)) {
     skipBtn.textContent = "Skip";
@@ -2038,6 +2040,9 @@ document.getElementById("empWizardSkipBtn").addEventListener("click", async () =
     // whatever was entered earlier in this same wizard run.
     document.getElementById("empWizardOverlay").style.display = "none";
     await openContractCreateModal(EMP_WIZARD.employeeId);
+    if (EMP_WIZARD.values.job_title) {
+      document.getElementById("contractJobTitle").value = EMP_WIZARD.values.job_title;
+    }
     if (EMP_WIZARD.values.contract_period_months) {
       document.getElementById("contractPeriodMonths").value = EMP_WIZARD.values.contract_period_months;
     }
@@ -2056,7 +2061,7 @@ document.getElementById("empWizardSkipBtn").addEventListener("click", async () =
     return;
   }
 
-  if (stepDef.key === "contract_period_months" || stepDef.key === "salary" || stepDef.key === "address") {
+  if (stepDef.key === "contract_period_months" || stepDef.key === "salary" || stepDef.key === "address" || stepDef.key === "job_title") {
     // Skip without saving whatever's typed in the box — just move on.
     EMP_WIZARD.stepIndex++;
     await ewRenderCurrentStep();
@@ -2096,7 +2101,7 @@ document.getElementById("showAddFormBtn").addEventListener("click", async () => 
     phone_prefix: "+962", phone_number: "", hiring_date: "",
     contract_period_months: "", salary: "",
     carryover: 0, taken_this_year: 0,
-    company: COMPANY_FILTER || "", department: "", supervisor_file_number: "",
+    company: COMPANY_FILTER || "", department: "", supervisor_file_number: "", job_title: "",
   };
   EMP_WIZARD.stagedFiles = [];
   EMP_WIZARD.employeeId = null;
