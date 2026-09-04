@@ -219,7 +219,7 @@ function renderLeaveRequests() {
       <td>${r.days_requested}</td>
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${r.reason ? r.reason : "—"}</td>
-      <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">${t("view")}</button>` : "—"}</td>
+      <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">View Attachment</button>` : "—"}</td>
       <td>${badgeFor(r.status)}</td>
       <td><button type="button" class="btn btn-danger btn-sm" data-delete-leave="${r.id}">${t("deleteBtn")}</button></td>
     `;
