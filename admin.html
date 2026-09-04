@@ -63,97 +63,6 @@
       </div>
     </div>
 
-    <div class="panel" id="addPanel" style="display:none">
-      <h2 id="addPanelTitle" data-i18n="newEmployeeDetailsTitle">New employee details</h2>
-      <form id="addForm">
-        <div class="field-row">
-          <div>
-            <label for="fullName" data-i18n="fullNameLabel">Full name</label>
-            <input type="text" id="fullName" required>
-          </div>
-          <div></div>
-        </div>
-        <div class="field-row">
-          <div>
-            <label for="email" data-i18n="emailLabel">Email</label>
-            <input type="text" id="email" required>
-          </div>
-          <div></div>
-        </div>
-        <div class="field-row" id="hiringDateRow">
-          <div>
-            <label for="hiringDate" data-i18n="hiringDateLabel">Hiring date</label>
-            <input type="date" id="hiringDate">
-          </div>
-          <div></div>
-        </div>
-        <div class="field-row" id="entitlementRow">
-          <div>
-            <label for="annualEntitlement" data-i18n="annualEntitlementLabel">Annual entitlement (days)</label>
-            <input type="number" id="annualEntitlement" min="0" step="1">
-            <p class="help-text" style="margin:4px 0 0" data-i18n="entitlementAutoNote">Auto-calculated from hiring date — you can override it.</p>
-          </div>
-          <div>
-            <label for="carryoverBalance" data-i18n="carryoverLabel">Previous year remaining balance (days)</label>
-            <input type="number" id="carryoverBalance" min="0" step="1" value="0">
-          </div>
-        </div>
-        <div class="field-row" id="takenThisYearRow" style="display:none">
-          <div>
-            <label for="takenThisYear" data-i18n="takenThisYearLabel">Leave already taken this year (days)</label>
-            <input type="number" id="takenThisYear" min="0" step="1" value="0">
-            <p class="help-text" style="margin:4px 0 0" data-i18n="takenThisYearNote">Only needed if there's no previous year balance to draw from.</p>
-          </div>
-          <div></div>
-        </div>
-        <div class="field-row">
-          <div>
-            <label for="clientCompany" data-i18n="companyClientLabel">Company client</label>
-            <select id="clientCompany">
-              <option value="" data-i18n="selectCompanyPlaceholder">Select a company…</option>
-            </select>
-          </div>
-          <div>
-            <label for="department" data-i18n="departmentLabel">Department</label>
-            <select id="department"></select>
-          </div>
-        </div>
-        <div class="field-row" id="roleRow">
-          <div id="roleField">
-            <label for="role" data-i18n="roleLabel">Role</label>
-            <select id="role">
-              <option value="staff" data-i18n="roleStaff">Staff</option>
-              <option value="supervisor" data-i18n="roleSupervisor">Supervisor</option>
-            </select>
-          </div>
-          <div></div>
-        </div>
-        <div class="field-row">
-          <div id="supervisorField">
-            <label for="supervisor" data-i18n="assignSupervisorLabel">Assign to supervisor</label>
-            <select id="supervisor">
-              <option value="" data-i18n="selectSupervisorPlaceholder">Select a supervisor…</option>
-            </select>
-          </div>
-          <div></div>
-        </div>
-        <div style="display:flex; gap:10px; margin-top:6px">
-          <button type="submit" class="btn btn-primary" id="addBtn" style="width:220px" data-i18n="createBtn">Create</button>
-          <button type="button" class="btn btn-danger" id="cancelAddBtn" style="width:220px" data-i18n="cancel">Cancel</button>
-        </div>
-
-        <p class="help-text" style="margin:20px 0 0" data-i18n="entitlementHelpText">Leave entitlement is calculated automatically from hiring date: 14 annual + 14 sick days for 5 years of service or less, 21 annual + 14 sick days for more than 5 years.</p>
-        <div class="error-msg" id="addError"></div>
-      </form>
-
-      <div class="success-msg" id="credentialsBox" style="margin-top:20px">
-        <p style="margin:0 0 8px"><strong data-i18n="employeeCreatedMsg">Employee created. Share these with them — they can change the password after logging in.</strong></p>
-        <p style="margin:0"><span data-i18n="fileNumColonLabel">File number:</span> <strong id="credFileNumber"></strong></p>
-        <p style="margin:0"><span data-i18n="initialPasswordColonLabel">Initial password:</span> <strong id="credPassword"></strong></p>
-        <p style="margin:8px 0 0"><button type="button" class="btn btn-blue btn-sm" id="copyCredsBtn" data-i18n="copyDetailsBtn">Copy details</button></p>
-      </div>
-    </div>
-
     <div class="panel" id="leavePanel" style="display:none">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px">
         <h2 style="margin:0" data-i18n="leaveRequestsTitle">Leave Requests</h2>
@@ -532,6 +441,25 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Add Employee wizard -->
+<div id="empWizardOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:520px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px">
+      <h2 style="margin:0" id="empWizardTitle">New employee</h2>
+    </div>
+    <p class="help-text" style="margin:0 0 18px" id="empWizardStepCounter"></p>
+
+    <div id="empWizardBody"></div>
+    <div class="error-msg" id="empWizardError"></div>
+
+    <div style="display:flex; gap:10px; margin-top:20px">
+      <button type="button" class="btn btn-blue" id="empWizardBackBtn" style="width:120px">‹ Back</button>
+      <button type="button" class="btn btn-primary" id="empWizardNextBtn" style="width:160px">Next ›</button>
+      <button type="button" class="btn btn-danger" id="empWizardCancelBtn" style="width:120px" data-i18n="cancel">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <script src="js/supabaseClient.js"></script>
 <script src="js/auth-guard.js"></script>
