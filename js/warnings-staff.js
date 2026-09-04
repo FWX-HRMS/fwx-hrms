@@ -40,7 +40,7 @@ async function loadWarnings() {
       <td>${ME.file_number}</td>
       <td>${ME.client_company || "—"}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
-      <td>${warningStatusBadge(w.status)}</td>
+      <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
       <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-warning="${w.id}">${t("view")}</button></td>
     `;
@@ -49,6 +49,54 @@ async function loadWarnings() {
   body.querySelectorAll("button[data-view-warning]").forEach(btn => {
     btn.addEventListener("click", () => openWarningView(btn.dataset.viewWarning));
   });
+}
+
+function ensureAckWarningBtn() {
+  let btn = document.getElementById("ackWarningBtn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "ackWarningBtn";
+    btn.className = "btn btn-primary btn-sm";
+    btn.textContent = "Acknowledge";
+    btn.style.marginInlineEnd = "8px";
+    const closeBtn = document.getElementById("closeWarningViewBtn");
+    closeBtn.parentNode.insertBefore(btn, closeBtn);
+  }
+  return btn;
+}
+
+function ensureAckWarningNote() {
+  let note = document.getElementById("ackWarningNote");
+  if (!note) {
+    note = document.createElement("div");
+    note.id = "ackWarningNote";
+    note.className = "success-msg";
+    note.style.marginTop = "10px";
+    note.style.fontWeight = "600";
+    const display = document.getElementById("warningTextDisplay");
+    display.parentNode.insertBefore(note, display.nextSibling);
+  }
+  return note;
+}
+
+async function acknowledgeWarning(warning, btn) {
+  setBtnLoading(btn, true);
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "acknowledge_warning", warning_id: warning.id }
+  });
+  setBtnLoading(btn, false);
+  if (error || (data && data.error)) {
+    showToast("Could not acknowledge this warning. Please try again.");
+    return;
+  }
+  warning.acknowledged_at = new Date().toISOString();
+  btn.style.display = "none";
+  const note = ensureAckWarningNote();
+  note.textContent = `Acknowledged on ${fmtDate(warning.acknowledged_at.slice(0,10))}`;
+  note.classList.add("show");
+  showToast("Warning acknowledged.");
+  await loadWarnings();
 }
 
 function openWarningView(id) {
@@ -61,6 +109,20 @@ function openWarningView(id) {
   display.dir = WARNING_LANG === "ar" ? "rtl" : "ltr";
   display.style.textAlign = WARNING_LANG === "ar" ? "right" : "left";
   updateWarningConvertBtnLabel();
+
+  const ackBtn = ensureAckWarningBtn();
+  const needsAck = w.status === "sent" && !w.acknowledged_at;
+  ackBtn.style.display = needsAck ? "" : "none";
+  ackBtn.onclick = () => acknowledgeWarning(w, ackBtn);
+
+  const ackNote = ensureAckWarningNote();
+  if (w.acknowledged_at) {
+    ackNote.textContent = `Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}`;
+    ackNote.classList.add("show");
+  } else {
+    ackNote.classList.remove("show");
+  }
+
   document.getElementById("warningViewOverlay").style.display = "flex";
 }
 document.getElementById("closeWarningViewBtn").addEventListener("click", () => {
