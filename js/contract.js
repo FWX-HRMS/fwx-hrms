@@ -219,20 +219,98 @@ document.getElementById("closeContractViewBtn").addEventListener("click", () => 
   document.getElementById("contractViewOverlay").style.display = "none";
 });
 
+function containsArabic(text) {
+  return /[\u0600-\u06FF]/.test(text || "");
+}
+
+// jsPDF's built-in fonts have no Arabic glyphs and don't apply Arabic text
+// shaping/RTL layout — rendering Arabic via doc.text() produces mojibake.
+// Draw it onto a canvas instead (the browser shapes Arabic correctly) and
+// place that image into the PDF, page by page.
+function renderArabicPagesToPdf(doc, text) {
+  const pageWidthMm = doc.internal.pageSize.getWidth();
+  const pageHeightMm = doc.internal.pageSize.getHeight();
+  const marginMm = 14;
+  const contentWidthMm = pageWidthMm - marginMm * 2;
+
+  const scale = 3;
+  const pxPerMm = 3.7795 * scale;
+  const canvasWidthPx = Math.round(contentWidthMm * pxPerMm);
+  const lineHeightPx = Math.round(7 * pxPerMm);
+  const fontSizePx = Math.round(4.2 * pxPerMm);
+
+  const measureCanvas = document.createElement("canvas");
+  const mctx = measureCanvas.getContext("2d");
+  mctx.font = `${fontSizePx}px Tahoma, Arial, sans-serif`;
+  mctx.direction = "rtl";
+
+  const allLines = [];
+  for (const para of text.split("\n")) {
+    if (para.trim() === "") { allLines.push(""); continue; }
+    const words = para.split(" ");
+    let current = "";
+    for (const word of words) {
+      const test = current ? current + " " + word : word;
+      if (mctx.measureText(test).width > canvasWidthPx && current) {
+        allLines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) allLines.push(current);
+  }
+
+  const linesPerPage = Math.floor(((pageHeightMm - marginMm * 2) * pxPerMm) / lineHeightPx);
+  let i = 0;
+  let pageIndex = 0;
+  while (i < allLines.length || pageIndex === 0) {
+    const pageLines = allLines.slice(i, i + linesPerPage);
+    i += linesPerPage;
+    if (pageIndex > 0) doc.addPage();
+
+    if (pageLines.length > 0) {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvasWidthPx;
+      canvas.height = pageLines.length * lineHeightPx;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#1b2430";
+      ctx.font = `${fontSizePx}px Tahoma, Arial, sans-serif`;
+      ctx.direction = "rtl";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      pageLines.forEach((line, idx) => ctx.fillText(line, canvas.width, idx * lineHeightPx));
+
+      const imgHeightMm = canvas.height / pxPerMm;
+      doc.addImage(canvas.toDataURL("image/png"), "PNG", marginMm, marginMm, contentWidthMm, imgHeightMm);
+    }
+    pageIndex++;
+    if (allLines.length === 0) break;
+  }
+}
+
 document.getElementById("downloadContractBtn").addEventListener("click", () => {
   const text = document.getElementById("contractTextDisplay").textContent;
   const { jsPDF } = window.jspdf || {};
   if (!jsPDF) { showToast("PDF library not loaded"); return; }
   const doc = new jsPDF();
-  doc.setFontSize(11);
-  const lines = doc.splitTextToSize(text, 180);
-  let y = 20;
-  const pageHeight = doc.internal.pageSize.getHeight();
-  for (const line of lines) {
-    if (y > pageHeight - 15) { doc.addPage(); y = 20; }
-    doc.text(line, 14, y);
-    y += 6;
+
+  if (containsArabic(text)) {
+    renderArabicPagesToPdf(doc, text);
+  } else {
+    doc.setFontSize(11);
+    const lines = doc.splitTextToSize(text, 180);
+    let y = 20;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    for (const line of lines) {
+      if (y > pageHeight - 15) { doc.addPage(); y = 20; }
+      doc.text(line, 14, y);
+      y += 6;
+    }
   }
+
   const safeName = (ME.full_name || "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   const safeFileNumber = (ME.file_number || "").replace(/[^a-zA-Z0-9]+/g, "_");
   doc.save(`Contract-${safeFileNumber}-${safeName}.pdf`);

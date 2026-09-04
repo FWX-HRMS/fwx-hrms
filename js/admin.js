@@ -937,26 +937,119 @@ document.getElementById("contractDownloadBtn").addEventListener("click", () => {
   downloadContractPDF("Contract", overlay.dataset.fileNumber, overlay.dataset.employeeName, text);
 });
 
+function containsArabic(text) {
+  return /[\u0600-\u06FF]/.test(text || "");
+}
+
+// jsPDF's built-in fonts have no Arabic glyphs and it doesn't apply Arabic
+// text shaping/RTL layout at all — rendering Arabic through doc.text()
+// produces mojibake. Instead, we draw the Arabic text onto an HTML canvas
+// (the browser's own text engine correctly shapes and right-aligns Arabic)
+// and place that rendered image into the PDF, page by page.
+async function renderArabicPagesToPdf(doc, text, logo) {
+  const pageWidthMm = doc.internal.pageSize.getWidth();
+  const pageHeightMm = doc.internal.pageSize.getHeight();
+  const marginMm = 14;
+  const contentWidthMm = pageWidthMm - marginMm * 2;
+
+  const scale = 3; // render at higher pixel density for crisp text
+  const pxPerMm = 3.7795 * scale;
+  const canvasWidthPx = Math.round(contentWidthMm * pxPerMm);
+  const lineHeightPx = Math.round(7 * pxPerMm);
+  const fontSizePx = Math.round(4.2 * pxPerMm);
+
+  const measureCanvas = document.createElement("canvas");
+  const mctx = measureCanvas.getContext("2d");
+  mctx.font = `${fontSizePx}px Tahoma, Arial, sans-serif`;
+  mctx.direction = "rtl";
+
+  const allLines = [];
+  for (const para of text.split("\n")) {
+    if (para.trim() === "") { allLines.push(""); continue; }
+    const words = para.split(" ");
+    let current = "";
+    for (const word of words) {
+      const test = current ? current + " " + word : word;
+      if (mctx.measureText(test).width > canvasWidthPx && current) {
+        allLines.push(current);
+        current = word;
+      } else {
+        current = test;
+      }
+    }
+    if (current) allLines.push(current);
+  }
+
+  const firstPageTopMm = logo ? 32 : marginMm;
+  const laterPageTopMm = marginMm;
+  const firstPageLines = Math.floor(((pageHeightMm - firstPageTopMm - marginMm) * pxPerMm) / lineHeightPx);
+  const laterPageLines = Math.floor(((pageHeightMm - laterPageTopMm - marginMm) * pxPerMm) / lineHeightPx);
+
+  let i = 0;
+  let pageIndex = 0;
+  while (i < allLines.length || pageIndex === 0) {
+    const linesThisPage = pageIndex === 0 ? firstPageLines : laterPageLines;
+    const pageLines = allLines.slice(i, i + linesThisPage);
+    i += linesThisPage;
+
+    if (pageIndex > 0) doc.addPage();
+
+    let yStartMm = pageIndex === 0 ? firstPageTopMm : laterPageTopMm;
+    if (logo && pageIndex === 0) {
+      const logoHeight = 14;
+      const logoWidth = (logo.w / logo.h) * logoHeight;
+      doc.addImage(logo.dataUrl, "PNG", pageWidthMm - marginMm - logoWidth, 10, logoWidth, logoHeight);
+    }
+
+    if (pageLines.length > 0) {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvasWidthPx;
+      canvas.height = pageLines.length * lineHeightPx;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#1b2430";
+      ctx.font = `${fontSizePx}px Tahoma, Arial, sans-serif`;
+      ctx.direction = "rtl";
+      ctx.textAlign = "right";
+      ctx.textBaseline = "top";
+      pageLines.forEach((line, idx) => ctx.fillText(line, canvas.width, idx * lineHeightPx));
+
+      const imgHeightMm = canvas.height / pxPerMm;
+      doc.addImage(canvas.toDataURL("image/png"), "PNG", marginMm, yStartMm, contentWidthMm, imgHeightMm);
+    }
+
+    pageIndex++;
+    if (allLines.length === 0) break;
+  }
+}
+
 async function downloadContractPDF(kind, fileNumber, employeeName, text) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const logo = await loadLogoDataURL();
-  let y = 20;
-  if (logo) {
-    const logoHeight = 14;
-    const logoWidth = (logo.w / logo.h) * logoHeight;
-    doc.addImage(logo.dataUrl, "PNG", 14, 10, logoWidth, logoHeight);
-    y = 32;
+
+  if (containsArabic(text)) {
+    await renderArabicPagesToPdf(doc, text, logo);
+  } else {
+    let y = 20;
+    if (logo) {
+      const logoHeight = 14;
+      const logoWidth = (logo.w / logo.h) * logoHeight;
+      doc.addImage(logo.dataUrl, "PNG", 14, 10, logoWidth, logoHeight);
+      y = 32;
+    }
+    doc.setFontSize(11);
+    doc.setTextColor(27, 36, 48);
+    const lines = doc.splitTextToSize(text, 180);
+    const pageHeight = doc.internal.pageSize.getHeight();
+    for (const line of lines) {
+      if (y > pageHeight - 15) { doc.addPage(); y = 20; }
+      doc.text(line, 14, y);
+      y += 6;
+    }
   }
-  doc.setFontSize(11);
-  doc.setTextColor(27, 36, 48);
-  const lines = doc.splitTextToSize(text, 180);
-  const pageHeight = doc.internal.pageSize.getHeight();
-  for (const line of lines) {
-    if (y > pageHeight - 15) { doc.addPage(); y = 20; }
-    doc.text(line, 14, y);
-    y += 6;
-  }
+
   const safeName = (employeeName || "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   const safeFileNumber = (fileNumber || "").replace(/[^a-zA-Z0-9]+/g, "_");
   doc.save(`${kind}-${safeFileNumber}-${safeName}.pdf`);
