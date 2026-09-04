@@ -420,6 +420,16 @@ async function openContractCreateModal(employeeId) {
   delete document.getElementById("contractCreateForm").dataset.editContractId;
   document.getElementById("contractCreateTitle").textContent = t("createContractTitle");
   document.getElementById("contractCreateBtn").textContent = t("prepareContractBtn");
+
+  // Pull whatever we already have on file for this employee so the admin
+  // isn't retyping data that's already stored. Anything not on file (job
+  // title, contract period) is simply left blank for the admin to fill in.
+  document.getElementById("contractDob").value = e.dob || "";
+  document.getElementById("contractEducation").value = e.education || "";
+  document.getElementById("contractAddress").value = e.address || "";
+  document.getElementById("contractSalary").value = e.salary || "";
+  document.getElementById("contractStartDate").value = e.hiring_date || "";
+
   document.getElementById("contractCreateOverlay").style.display = "flex";
 }
 document.getElementById("contractCreateCancelBtn").addEventListener("click", () => {
@@ -1146,6 +1156,7 @@ async function openEditModal(id) {
   document.getElementById("editNationality").value = e.nationality || "";
   document.getElementById("editEducation").value = e.education || "";
   document.getElementById("editSalary").value = e.salary ?? "";
+  document.getElementById("editAddress").value = e.address || "";
   document.getElementById("editError").classList.remove("show");
 
   const roleSelect = document.getElementById("editRole");
@@ -1199,6 +1210,7 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
   const nationality = document.getElementById("editNationality").value.trim() || null;
   const education = document.getElementById("editEducation").value.trim() || null;
   const salary = document.getElementById("editSalary").value !== "" ? Number(document.getElementById("editSalary").value) : null;
+  const address = document.getElementById("editAddress").value.trim() || null;
 
   if (!client_company) {
     errBox.textContent = t("pleaseSelectCompany");
@@ -1215,7 +1227,7 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
   setBtnLoading(btn, true, t("saving"));
 
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "update_employee", target_id, full_name, email, hiring_date, department, client_company, role, supervisor_file_number, annual_entitlement_override, carryover_balance, dob, nationality, education, salary, taken_this_year }
+    body: { action: "update_employee", target_id, full_name, email, hiring_date, department, client_company, role, supervisor_file_number, annual_entitlement_override, carryover_balance, dob, nationality, address, education, salary, taken_this_year }
   });
 
   setBtnLoading(btn, false);
@@ -1648,6 +1660,20 @@ const EMP_WIZARD_STEPS = [
     valid() { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(EMP_WIZARD.values.email); },
     errorMsg: "Please enter a valid email address (e.g. name@example.com).",
   },
+  ewSimpleField("address", "Address", "Address", "text", false),
+  {
+    key: "education", title: "Education", required: false,
+    render(container) {
+      const val = EMP_WIZARD.values.education || "";
+      const options = ["School", "Diploma", "Bachelor's Degree", "Master's Degree", "PhD"];
+      container.innerHTML = `<label>Education</label><select id="ew_education">
+        <option value="">Select…</option>
+        ${options.map(o => `<option value="${o}" ${o === val ? "selected" : ""}>${o}</option>`).join("")}
+      </select>`;
+    },
+    save() { EMP_WIZARD.values.education = document.getElementById("ew_education").value; },
+    valid() { return true; },
+  },
   {
     key: "phone", title: "Phone number", required: false,
     render(container) {
@@ -1764,6 +1790,8 @@ const EMP_WIZARD_STEPS = [
           <p><strong>${t("fullNameLabel")}:</strong> ${escapeHtml(v.full_name)}</p>
           <p><strong>${t("colDob")}:</strong> ${v.dob || "—"}</p>
           <p><strong>${t("emailLabel")}:</strong> ${escapeHtml(v.email)}</p>
+          <p><strong>Address:</strong> ${v.address ? escapeHtml(v.address) : "—"}</p>
+          <p><strong>Education:</strong> ${v.education ? escapeHtml(v.education) : "—"}</p>
           <p><strong>Phone:</strong> ${escapeHtml(phoneDisplay)}</p>
           <p><strong>${t("hiringDateLabel")}:</strong> ${v.hiring_date || "—"}</p>
           <p><strong>Contract period:</strong> ${v.contract_period_months ? v.contract_period_months + " months" : "—"}</p>
@@ -1841,6 +1869,9 @@ async function ewFinalizeCreation() {
       email: v.email,
       phone_number,
       dob: v.dob || null,
+      address: v.address || null,
+      education: v.education || null,
+      salary: v.salary ? Number(v.salary) : null,
       role: "staff",
       hiring_date: v.hiring_date,
       department: v.department,
@@ -1956,7 +1987,7 @@ async function ewRenderCurrentStep() {
   cancelBtn.style.display = "";
   nextBtn.style.display = "";
 
-  const SKIPPABLE_STEPS = ["documents_staging", "contract_period_months", "salary"];
+  const SKIPPABLE_STEPS = ["documents_staging", "contract_period_months", "salary", "address"];
 
   if (SKIPPABLE_STEPS.includes(stepDef.key)) {
     skipBtn.textContent = "Skip";
@@ -1987,13 +2018,15 @@ document.getElementById("empWizardCancelBtn").addEventListener("click", async ()
 
 document.getElementById("empWizardSkipBtn").addEventListener("click", async () => {
   if (EMP_WIZARD.phase === "done") {
-    // "Share Job Contract" — open the existing contract flow, pre-filled
-    // with whatever the wizard already collected.
+    // "Share Job Contract" — openContractCreateModal now pulls dob/education/
+    // address/salary/start date straight from the employee's stored profile.
+    // Contract period isn't a stored profile field, so fill it in here from
+    // whatever was entered earlier in this same wizard run.
     document.getElementById("empWizardOverlay").style.display = "none";
     await openContractCreateModal(EMP_WIZARD.employeeId);
-    if (EMP_WIZARD.values.dob) document.getElementById("contractDob").value = EMP_WIZARD.values.dob;
-    if (EMP_WIZARD.values.salary) document.getElementById("contractSalary").value = EMP_WIZARD.values.salary;
-    if (EMP_WIZARD.values.contract_period_months) document.getElementById("contractPeriodMonths").value = EMP_WIZARD.values.contract_period_months;
+    if (EMP_WIZARD.values.contract_period_months) {
+      document.getElementById("contractPeriodMonths").value = EMP_WIZARD.values.contract_period_months;
+    }
     return;
   }
 
@@ -2009,7 +2042,7 @@ document.getElementById("empWizardSkipBtn").addEventListener("click", async () =
     return;
   }
 
-  if (stepDef.key === "contract_period_months" || stepDef.key === "salary") {
+  if (stepDef.key === "contract_period_months" || stepDef.key === "salary" || stepDef.key === "address") {
     // Skip without saving whatever's typed in the box — just move on.
     EMP_WIZARD.stepIndex++;
     await ewRenderCurrentStep();
@@ -2045,7 +2078,8 @@ document.getElementById("showAddFormBtn").addEventListener("click", async () => 
   EMP_WIZARD.stepIndex = 0;
   EMP_WIZARD.phase = "steps";
   EMP_WIZARD.values = {
-    full_name: "", dob: "", email: "", phone_prefix: "+962", phone_number: "", hiring_date: "",
+    full_name: "", dob: "", email: "", address: "", education: "",
+    phone_prefix: "+962", phone_number: "", hiring_date: "",
     contract_period_months: "", salary: "",
     carryover: 0, taken_this_year: 0,
     company: COMPANY_FILTER || "", department: "", supervisor_file_number: "",
