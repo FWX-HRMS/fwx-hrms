@@ -570,7 +570,7 @@ function renderWarnings() {
       <td>${emp ? emp.file_number : "—"}</td>
       <td>${emp ? (emp.client_company || "—") : "—"}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
-      <td>${warningStatusBadge(w.status)}</td>
+      <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
       <td>${fmtDate(w.created_at ? w.created_at.slice(0,10) : null)}</td>
       <td>
         <button type="button" class="btn btn-blue btn-sm" data-view-warning="${w.id}">${t("view")}</button>
@@ -628,7 +628,11 @@ function openWarningViewModal(warningId, warningData) {
   document.getElementById("warningViewOverlay").dataset.employeeName = emp ? emp.full_name : "";
 
   const statusLabel = t("warningStatus" + w.status[0].toUpperCase() + w.status.slice(1));
-  document.getElementById("warningStatusLine").textContent = `${t("colStatus")}: ${statusLabel}` + (w.sent_at ? ` — ${fmtDate(w.sent_at.slice(0,10))}` : "");
+  let statusText = `${t("colStatus")}: ${statusLabel}` + (w.sent_at ? ` — ${fmtDate(w.sent_at.slice(0,10))}` : "");
+  if (w.acknowledged_at) {
+    statusText += ` · Acknowledged by employee on ${fmtDate(w.acknowledged_at.slice(0,10))}`;
+  }
+  document.getElementById("warningStatusLine").textContent = statusText;
 
   const isSent = w.status === "sent";
   document.getElementById("warningTextArea").disabled = true;
