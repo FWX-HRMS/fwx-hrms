@@ -1623,13 +1623,14 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
 async function populateSupAdminCompanyOptions() {
   const { data } = await db.from("client_companies").select("name").order("name");
   const select = document.getElementById("supAdminCompany");
-  select.innerHTML = `<option value="">${t("selectCompanyPlaceholder")}</option>`;
+  select.innerHTML = "";
   for (const c of data || []) {
     const opt = document.createElement("option");
     opt.value = c.name;
     opt.textContent = c.name;
     select.appendChild(opt);
   }
+  if (data && data.length) select.value = data[0].name;
 }
 
 document.getElementById("showAddSupervisorAdminBtn").addEventListener("click", async () => {
@@ -1780,10 +1781,9 @@ const EMP_WIZARD_STEPS = [
   {
     key: "education", title: "Education", required: false,
     render(container) {
-      const val = EMP_WIZARD.values.education || "";
       const options = ["School", "Diploma", "Bachelor's Degree", "Master's Degree", "PhD"];
+      const val = EMP_WIZARD.values.education || options[0];
       container.innerHTML = `<label>Education</label><select id="ew_education">
-        <option value="">Select…</option>
         ${options.map(o => `<option value="${o}" ${o === val ? "selected" : ""}>${o}</option>`).join("")}
       </select>`;
     },
@@ -1826,7 +1826,7 @@ const EMP_WIZARD_STEPS = [
   {
     key: "company", title: t("companyClientLabel"), required: true,
     async render(container) {
-      container.innerHTML = `<label>${t("companyClientLabel")}</label><select id="ew_company"><option value="">${t("selectCompanyPlaceholder")}</option></select>`;
+      container.innerHTML = `<label>${t("companyClientLabel")}</label><select id="ew_company"></select>`;
       const sel = document.getElementById("ew_company");
       const { data } = await db.from("client_companies").select("name").order("name");
       for (const c of data || []) {
@@ -1840,6 +1840,8 @@ const EMP_WIZARD_STEPS = [
         sel.disabled = true;
       } else if (EMP_WIZARD.values.company) {
         sel.value = EMP_WIZARD.values.company;
+      } else if (data && data.length) {
+        sel.value = data[0].name;
       }
     },
     save() { EMP_WIZARD.values.company = document.getElementById("ew_company").value; },
@@ -1859,12 +1861,14 @@ const EMP_WIZARD_STEPS = [
     render(container) {
       const matches = supervisorsForCompany(EMP_WIZARD.values.company);
       container.innerHTML = `<label>${t("assignSupervisorLabel")}</label><select id="ew_supervisor">
-        <option value="">${matches.length ? t("selectSupervisorPlaceholder") : t("noSupervisorsYetPlaceholder")}</option>
+        ${matches.length ? "" : `<option value="">${t("noSupervisorsYetPlaceholder")}</option>`}
         ${matches.map(s => `<option value="${s.file_number}">${s.full_name} (#${s.file_number})</option>`).join("")}
       </select>`;
+      const sel = document.getElementById("ew_supervisor");
       if (EMP_WIZARD.values.supervisor_file_number) {
-        const sel = document.getElementById("ew_supervisor");
         sel.value = EMP_WIZARD.values.supervisor_file_number;
+      } else if (matches.length) {
+        sel.value = matches[0].file_number;
       }
     },
     save() { EMP_WIZARD.values.supervisor_file_number = document.getElementById("ew_supervisor").value || null; },
