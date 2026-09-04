@@ -39,6 +39,11 @@ document.getElementById("contractsNextBtn").addEventListener("click", () => { CO
 document.getElementById("warningsPrevBtn").addEventListener("click", () => { if (WARNINGS_PAGE > 0) { WARNINGS_PAGE--; renderWarnings(); } });
 document.getElementById("warningsNextBtn").addEventListener("click", () => { WARNINGS_PAGE++; renderWarnings(); });
 
+document.getElementById("directorySearchInput").addEventListener("input", () => { DIRECTORY_PAGE = 0; renderDirectory(); });
+document.getElementById("leaveRequestsSearchInput").addEventListener("input", () => { LEAVE_REQUESTS_PAGE = 0; renderLeaveRequests(); });
+document.getElementById("contractsSearchInput").addEventListener("input", () => { CONTRACTS_PAGE = 0; renderContracts(); });
+document.getElementById("warningsSearchInput").addEventListener("input", () => { WARNINGS_PAGE = 0; renderWarnings(); });
+
 function showToast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -170,21 +175,37 @@ async function loadLeaveRequests() {
   renderLeaveRequests();
 }
 
+function matchesTableSearch(query, fileNumber, company, role) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  return (fileNumber || "").toLowerCase().includes(q) ||
+         (company || "").toLowerCase().includes(q) ||
+         (role || "").toLowerCase().includes(q);
+}
+
 function renderLeaveRequests() {
   const body = document.getElementById("leaveRequestsBody");
   const empty = document.getElementById("noLeaveRequests");
   body.innerHTML = "";
 
-  if (LEAVE_REQUESTS_LIST.length === 0) {
+  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  const leaveQuery = document.getElementById("leaveRequestsSearchInput").value.trim();
+  const filteredLeave = leaveQuery
+    ? LEAVE_REQUESTS_LIST.filter(r => {
+        const emp = byId[r.employee_id];
+        return matchesTableSearch(leaveQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role);
+      })
+    : LEAVE_REQUESTS_LIST;
+
+  if (filteredLeave.length === 0) {
     empty.style.display = "block";
     updatePaginationControls("leaveRequests", 0, 0);
     return;
   }
   empty.style.display = "none";
 
-  const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
   const start = LEAVE_REQUESTS_PAGE * PAGE_SIZE;
-  const rows = LEAVE_REQUESTS_LIST.slice(start, start + PAGE_SIZE);
+  const rows = filteredLeave.slice(start, start + PAGE_SIZE);
 
   for (const r of rows) {
     const emp = byId[r.employee_id];
@@ -204,7 +225,7 @@ function renderLeaveRequests() {
     body.appendChild(tr);
   }
 
-  updatePaginationControls("leaveRequests", LEAVE_REQUESTS_PAGE, LEAVE_REQUESTS_LIST.length);
+  updatePaginationControls("leaveRequests", LEAVE_REQUESTS_PAGE, filteredLeave.length);
 
   body.querySelectorAll("button[data-doc]").forEach(btn => {
     btn.addEventListener("click", async () => {
@@ -262,7 +283,8 @@ const DEFAULT_DEPARTMENTS = ["Technical", "Sales", "Marketing", "HR", "Finance",
 function populateDepartmentOptions(selectEl, companyName, selectedValue) {
   const list = DEPARTMENTS_BY_COMPANY[companyName] || DEFAULT_DEPARTMENTS;
   const current = selectedValue !== undefined ? selectedValue : selectEl.value;
-  selectEl.innerHTML = list.map(d => `<option value="${d}">${d}</option>`).join("");
+  const placeholder = `<option value="">Select department…</option>`;
+  selectEl.innerHTML = placeholder + list.map(d => `<option value="${d}">${d}</option>`).join("");
   if (current && list.includes(current)) selectEl.value = current;
 }
 
@@ -291,6 +313,8 @@ function renderDirectory() {
     ? DIRECTORY.filter(e => e.role === "supervisor")
     : DIRECTORY.filter(e => e.role === "staff");
   if (COMPANY_FILTER) allRows = allRows.filter(e => e.client_company === COMPANY_FILTER);
+  const directoryQuery = document.getElementById("directorySearchInput").value.trim();
+  if (directoryQuery) allRows = allRows.filter(e => matchesTableSearch(directoryQuery, e.file_number, e.client_company, e.role));
 
   const start = DIRECTORY_PAGE * PAGE_SIZE;
   const rows = allRows.slice(start, start + PAGE_SIZE);
@@ -557,11 +581,19 @@ function renderWarnings() {
   const body = document.getElementById("warningsBody");
   const empty = document.getElementById("noWarnings");
   body.innerHTML = "";
-  empty.style.display = WARNINGS_LIST.length ? "none" : "block";
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  const warningsQuery = document.getElementById("warningsSearchInput").value.trim();
+  const filteredWarnings = warningsQuery
+    ? WARNINGS_LIST.filter(w => {
+        const emp = byId[w.employee_id];
+        return matchesTableSearch(warningsQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role);
+      })
+    : WARNINGS_LIST;
+  empty.style.display = filteredWarnings.length ? "none" : "block";
+
   const start = WARNINGS_PAGE * PAGE_SIZE;
-  const pageItems = WARNINGS_LIST.slice(start, start + PAGE_SIZE);
+  const pageItems = filteredWarnings.slice(start, start + PAGE_SIZE);
   for (const w of pageItems) {
     const emp = byId[w.employee_id];
     const tr = document.createElement("tr");
@@ -579,7 +611,7 @@ function renderWarnings() {
     `;
     body.appendChild(tr);
   }
-  updatePaginationControls("warnings", WARNINGS_PAGE, WARNINGS_LIST.length);
+  updatePaginationControls("warnings", WARNINGS_PAGE, filteredWarnings.length);
   body.querySelectorAll("button[data-view-warning]").forEach(btn => {
     btn.addEventListener("click", () => openWarningViewModal(btn.dataset.viewWarning));
   });
@@ -743,11 +775,19 @@ function renderContracts() {
   const body = document.getElementById("contractsBody");
   const empty = document.getElementById("noContracts");
   body.innerHTML = "";
-  empty.style.display = CONTRACTS_LIST.length ? "none" : "block";
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  const contractsQuery = document.getElementById("contractsSearchInput").value.trim();
+  const filteredContracts = contractsQuery
+    ? CONTRACTS_LIST.filter(c => {
+        const emp = byId[c.employee_id];
+        return matchesTableSearch(contractsQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role);
+      })
+    : CONTRACTS_LIST;
+  empty.style.display = filteredContracts.length ? "none" : "block";
+
   const start = CONTRACTS_PAGE * PAGE_SIZE;
-  const pageItems = CONTRACTS_LIST.slice(start, start + PAGE_SIZE);
+  const pageItems = filteredContracts.slice(start, start + PAGE_SIZE);
   for (const c of pageItems) {
     const emp = byId[c.employee_id];
     const tr = document.createElement("tr");
@@ -765,7 +805,7 @@ function renderContracts() {
     `;
     body.appendChild(tr);
   }
-  updatePaginationControls("contracts", CONTRACTS_PAGE, CONTRACTS_LIST.length);
+  updatePaginationControls("contracts", CONTRACTS_PAGE, filteredContracts.length);
   body.querySelectorAll("button[data-view-contract]").forEach(btn => {
     btn.addEventListener("click", () => openContractViewModal(btn.dataset.viewContract));
   });
@@ -1413,7 +1453,7 @@ async function deleteEmployee(id, employee) {
 }
 
 function showDateRangePrompt(title) {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     document.getElementById("dateRangeTitle").textContent = title;
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
@@ -1422,6 +1462,13 @@ function showDateRangePrompt(title) {
     document.getElementById("rangeFormatPdf").checked = true;
     document.getElementById("rangeFormatExcel").checked = false;
     document.getElementById("rangeFormatError").classList.remove("show");
+
+    const companySelect = document.getElementById("rangeCompanySelect");
+    const { data: companies } = await db.from("client_companies").select("name").order("name");
+    companySelect.innerHTML = `<option value="">All companies</option>` +
+      (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
+    companySelect.value = COMPANY_FILTER || "";
+
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
     const generateBtn = document.getElementById("rangeGenerateBtn");
@@ -1443,9 +1490,10 @@ function showDateRangePrompt(title) {
       const from = document.getElementById("rangeFromInput").value || null;
       const to = document.getElementById("rangeToInput").value || null;
       const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
+      const company = document.getElementById("rangeCompanySelect").value || null;
       const includeFrozen = document.getElementById("rangeIncludeFrozen").checked;
       cleanup();
-      resolve({ from, to, employeeId, includeFrozen, wantPdf, wantExcel });
+      resolve({ from, to, employeeId, company, includeFrozen, wantPdf, wantExcel });
     };
     const onCancel = () => {
       cleanup();
@@ -1529,7 +1577,8 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     : (ACTIVE_TAB === "supervisors"
         ? DIRECTORY.filter(e => e.role === "supervisor")
         : DIRECTORY.filter(e => e.role !== "admin"));
-  if (!range.employeeId && COMPANY_FILTER) source = source.filter(e => e.client_company === COMPANY_FILTER);
+  const companyToApply = range.company || COMPANY_FILTER;
+  if (!range.employeeId && companyToApply) source = source.filter(e => e.client_company === companyToApply);
   if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
   if (range.to) source = source.filter(e => e.hiring_date && e.hiring_date <= range.to);
   if (!range.includeFrozen) source = source.filter(e => !e.frozen);
@@ -1545,9 +1594,9 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     const bal = BALANCES_BY_ID[e.id] || {};
     return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, fmtDate(e.hiring_date), e.frozen ? fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null) : "—", String(e.carryover_balance ?? 0), String(bal.annual_entitlement ?? "—"), String(bal.taken ?? "—"), String(bal.remaining ?? "—"), String(bal.sick_entitlement ?? "—"), String(bal.sick_taken ?? "—"), String(bal.sick_remaining ?? "—")];
   });
-  const scope = COMPANY_FILTER ? `${COMPANY_FILTER} — ` : "";
+  const scope = companyToApply ? `${companyToApply} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
-  const filenamePrefix = COMPANY_FILTER ? `${COMPANY_FILTER.toLowerCase()}_` : "";
+  const filenamePrefix = companyToApply ? `${companyToApply.toLowerCase()}_` : "";
   const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
   const columns = ["Employee Name", "ID #", "Company", "Department", "Role", "Hiring Date", "Frozen Date", "Prev. Balance", "Annual", "Ann. Taken", "Available Balance", "Sick", "Sick Taken", "Sick Left"];
   const baseFilename = `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report`;
@@ -1578,8 +1627,9 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   let rows = data;
   if (range.employeeId) {
     rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].file_number === range.employeeId);
-  } else if (COMPANY_FILTER) {
-    rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].client_company === COMPANY_FILTER);
+  } else if (range.company || COMPANY_FILTER) {
+    const companyToApply = range.company || COMPANY_FILTER;
+    rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].client_company === companyToApply);
   }
   if (range.from) rows = rows.filter(r => r.end_date >= range.from);
   if (range.to) rows = rows.filter(r => r.start_date <= range.to);
@@ -1604,10 +1654,11 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
     ];
   });
 
-  const scope = COMPANY_FILTER ? `${COMPANY_FILTER} — ` : "";
+  const companyScope = range.company || COMPANY_FILTER;
+  const scope = companyScope ? `${companyScope} — ` : "";
   const rangeNote = (range.from || range.to) ? ` — ${range.from || "…"} to ${range.to || "…"}` : "";
   const columns = ["Employee Name", "Company", "Dates", "Days", "Type", "Status"];
-  const baseFilename = `${COMPANY_FILTER ? COMPANY_FILTER.toLowerCase() + "_" : ""}leave_requests_report`;
+  const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}leave_requests_report`;
 
   if (range.wantPdf) {
     downloadPDF(
@@ -1627,14 +1678,13 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
 async function populateSupAdminCompanyOptions() {
   const { data } = await db.from("client_companies").select("name").order("name");
   const select = document.getElementById("supAdminCompany");
-  select.innerHTML = "";
+  select.innerHTML = `<option value="">${t("selectCompanyPlaceholder")}</option>`;
   for (const c of data || []) {
     const opt = document.createElement("option");
     opt.value = c.name;
     opt.textContent = c.name;
     select.appendChild(opt);
   }
-  if (data && data.length) select.value = data[0].name;
 }
 
 document.getElementById("showAddSupervisorAdminBtn").addEventListener("click", async () => {
@@ -1786,8 +1836,9 @@ const EMP_WIZARD_STEPS = [
     key: "education", title: "Education", required: false,
     render(container) {
       const options = ["School", "Diploma", "Bachelor's Degree", "Master's Degree", "PhD"];
-      const val = EMP_WIZARD.values.education || options[0];
+      const val = EMP_WIZARD.values.education || "";
       container.innerHTML = `<label>Education</label><select id="ew_education">
+        <option value="">Select education…</option>
         ${options.map(o => `<option value="${o}" ${o === val ? "selected" : ""}>${o}</option>`).join("")}
       </select>`;
     },
@@ -1830,7 +1881,7 @@ const EMP_WIZARD_STEPS = [
   {
     key: "company", title: t("companyClientLabel"), required: true,
     async render(container) {
-      container.innerHTML = `<label>${t("companyClientLabel")}</label><select id="ew_company"></select>`;
+      container.innerHTML = `<label>${t("companyClientLabel")}</label><select id="ew_company"><option value="">${t("selectCompanyPlaceholder")}</option></select>`;
       const sel = document.getElementById("ew_company");
       const { data } = await db.from("client_companies").select("name").order("name");
       for (const c of data || []) {
@@ -1844,8 +1895,6 @@ const EMP_WIZARD_STEPS = [
         sel.disabled = true;
       } else if (EMP_WIZARD.values.company) {
         sel.value = EMP_WIZARD.values.company;
-      } else if (data && data.length) {
-        sel.value = data[0].name;
       }
     },
     save() { EMP_WIZARD.values.company = document.getElementById("ew_company").value; },
@@ -1865,14 +1914,11 @@ const EMP_WIZARD_STEPS = [
     render(container) {
       const matches = supervisorsForCompany(EMP_WIZARD.values.company);
       container.innerHTML = `<label>${t("assignSupervisorLabel")}</label><select id="ew_supervisor">
-        ${matches.length ? "" : `<option value="">${t("noSupervisorsYetPlaceholder")}</option>`}
+        <option value="">${matches.length ? t("selectSupervisorPlaceholder") : t("noSupervisorsYetPlaceholder")}</option>
         ${matches.map(s => `<option value="${s.file_number}">${s.full_name} (#${s.file_number})</option>`).join("")}
       </select>`;
-      const sel = document.getElementById("ew_supervisor");
       if (EMP_WIZARD.values.supervisor_file_number) {
-        sel.value = EMP_WIZARD.values.supervisor_file_number;
-      } else if (matches.length) {
-        sel.value = matches[0].file_number;
+        document.getElementById("ew_supervisor").value = EMP_WIZARD.values.supervisor_file_number;
       }
     },
     save() { EMP_WIZARD.values.supervisor_file_number = document.getElementById("ew_supervisor").value || null; },
