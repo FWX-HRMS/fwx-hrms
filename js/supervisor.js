@@ -298,8 +298,22 @@ document.getElementById("usersNextBtn").addEventListener("click", () => { if ((U
 document.getElementById("teamWarningsPrevBtn").addEventListener("click", () => { if (TEAM_WARNINGS_PAGE > 0) { TEAM_WARNINGS_PAGE--; renderTeamWarnings(); } });
 document.getElementById("teamWarningsNextBtn").addEventListener("click", () => { if ((TEAM_WARNINGS_PAGE + 1) * PAGE_SIZE < TEAM_WARNINGS_LIST.length) { TEAM_WARNINGS_PAGE++; renderTeamWarnings(); } });
 
+function ensureRangeCompanySelect() {
+  let select = document.getElementById("rangeCompanySelect");
+  if (select) return select;
+  const employeeIdInput = document.getElementById("rangeEmployeeIdInput");
+  if (!employeeIdInput) return null;
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `
+    <label for="rangeCompanySelect">Company</label>
+    <select id="rangeCompanySelect" style="margin-bottom:14px; width:100%"></select>
+  `;
+  employeeIdInput.parentNode.insertBefore(wrap, employeeIdInput.nextSibling);
+  return document.getElementById("rangeCompanySelect");
+}
+
 function showDateRangePrompt(title) {
-  return new Promise((resolve) => {
+  return new Promise(async (resolve) => {
     document.getElementById("dateRangeTitle").textContent = title;
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
@@ -307,6 +321,14 @@ function showDateRangePrompt(title) {
     document.getElementById("rangeFormatPdf").checked = true;
     document.getElementById("rangeFormatExcel").checked = false;
     document.getElementById("rangeFormatError").classList.remove("show");
+
+    const companySelect = ensureRangeCompanySelect();
+    if (companySelect) {
+      const { data: companies } = await db.from("client_companies").select("name").order("name");
+      companySelect.innerHTML = `<option value="">All companies</option>` +
+        (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
+    }
+
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
     const generateBtn = document.getElementById("rangeGenerateBtn");
@@ -328,8 +350,9 @@ function showDateRangePrompt(title) {
       const from = document.getElementById("rangeFromInput").value || null;
       const to = document.getElementById("rangeToInput").value || null;
       const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
+      const company = (document.getElementById("rangeCompanySelect") || {}).value || null;
       cleanup();
-      resolve({ from, to, employeeId, wantPdf, wantExcel });
+      resolve({ from, to, employeeId, company, wantPdf, wantExcel });
     };
     const onCancel = () => {
       cleanup();
@@ -406,6 +429,9 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   let source = range.employeeId
     ? TEAM_BALANCE_ROWS.filter(r => r.file_number === range.employeeId)
     : TEAM_BALANCE_ROWS;
+  if (!range.employeeId && range.company) {
+    source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.client_company === range.company; });
+  }
   if (range.from) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date >= range.from; });
   if (range.to) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date <= range.to; });
 
@@ -417,18 +443,20 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const rows = source.map(r => [r.full_name, r.file_number, String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
   const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
   const columns = ["Employee Name", "ID #", "Annual", "Taken", "Available Balance", "Pending", "Sick", "Sick Taken", "Sick Remaining"];
+  const scope = range.company ? `${range.company} — ` : "";
+  const filenamePrefix = range.company ? `${range.company.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_` : "";
 
   if (range.wantPdf) {
     downloadPDF(
-      "My Team — Leave Report",
+      `${scope}My Team — Leave Report`,
       `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
       columns,
       rows,
-      "my_team_leave_report.pdf"
+      `${filenamePrefix}my_team_leave_report.pdf`
     );
   }
   if (range.wantExcel) {
-    downloadExcel("My Team — Leave Report", columns, rows, "my_team_leave_report.xlsx");
+    downloadExcel(`${scope}My Team — Leave Report`, columns, rows, `${filenamePrefix}my_team_leave_report.xlsx`);
   }
 });
 
