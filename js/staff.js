@@ -492,6 +492,23 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
       skippable() { return LW.values.type !== "sick"; },
       errorMsg: "A supporting document is required for sick leave.",
     },
+    {
+      key: "review", title: "Review",
+      render(container) {
+        const typeLabels = { annual: "Annual", sick: "Sick", unpaid: "Unpaid", other: "Other" };
+        container.innerHTML = `
+          <div style="font-size:13.5px; line-height:1.9">
+            <p><strong>Type:</strong> ${typeLabels[LW.values.type] || LW.values.type}</p>
+            <p><strong>Start date:</strong> ${LW.values.start_date || "—"}</p>
+            <p><strong>End date:</strong> ${LW.values.end_date || "—"}</p>
+            <p><strong>Reason:</strong> ${LW.values.reason ? LW.values.reason : "—"}</p>
+            <p><strong>Document:</strong> ${LW.values.file ? LW.values.file.name : "None"}</p>
+          </div>
+        `;
+      },
+      save() {},
+      valid() { return true; },
+    },
   ];
 
   function lwShowError(msg) {
@@ -503,7 +520,7 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
   function lwRenderCurrentStep() {
     const stepDef = LW_STEPS[LW.stepIndex];
     document.getElementById("leaveWizardStepCounter").textContent = `Step ${LW.stepIndex + 1} of ${LW_STEPS.length}`;
-    document.getElementById("leaveWizardTitle").textContent = stepDef.title;
+    document.getElementById("leaveWizardTitle").textContent = "Apply for Vacation";
     document.getElementById("leaveWizardError").classList.remove("show");
 
     const body = document.getElementById("leaveWizardBody");
