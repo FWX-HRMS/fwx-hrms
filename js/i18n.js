@@ -952,7 +952,7 @@ function setBtnLoading(btn, loading, loadingLabel) {
       <h2 id="fwxLogoutConfirmTitle" style="margin:0 0 10px"></h2>
       <p id="fwxLogoutConfirmMsg" style="margin:0 0 20px; color:var(--ink-soft); font-size:14.5px"></p>
       <div style="display:flex; gap:10px; justify-content:flex-end">
-        <button type="button" class="btn btn-blue btn-sm" id="fwxLogoutCancelBtn"></button>
+        <button type="button" class="btn btn-blue btn-sm" id="fwxLogoutCancelBtn" data-skip-confirm="1"></button>
         <button type="button" class="btn btn-danger btn-sm" id="fwxLogoutConfirmBtn"></button>
       </div>
     </div>
@@ -1013,9 +1013,27 @@ function showCloseConfirm() {
 // Capture phase runs before the button's own click handler, so we can
 // pause the click, ask for confirmation, and only let the original
 // handler run afterward if the admin actually confirms.
+//
+// Two ways a button gets covered:
+//  1. Explicit opt-in: data-confirm-close="1" on the element.
+//  2. Automatic: any <button> whose id contains "close" or "cancel"
+//     (case-insensitive) — this is how every Close/Cancel button in this
+//     codebase is already named, so this single rule covers the whole
+//     system (admin, supervisor, staff, every page) without needing to
+//     touch each page's HTML individually.
+//
+// Buttons that already have their own bespoke confirm-before-action logic
+// (e.g. the Add Employee wizard's Cancel) should be marked
+// data-skip-confirm="1" so they don't get double-prompted.
 document.addEventListener("click", async function (e) {
-  const btn = e.target.closest("[data-confirm-close]");
+  const btn = e.target.closest("button");
   if (!btn) return;
+  if (btn.dataset.skipConfirm === "1") return;
+
+  const explicitlyMarked = btn.hasAttribute("data-confirm-close");
+  const idLooksLikeCloseCancel = btn.id && /close|cancel/i.test(btn.id);
+  if (!explicitlyMarked && !idLooksLikeCloseCancel) return;
+
   if (btn.dataset.fwxConfirmed === "1") {
     delete btn.dataset.fwxConfirmed;
     return;

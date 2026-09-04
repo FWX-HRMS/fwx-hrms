@@ -222,6 +222,36 @@ async function loadDashboardWarnings() {
     `;
     body.appendChild(tr);
   }
+function ensureAckWarningBtn() {
+  let btn = document.getElementById("ackWarningBtn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.type = "button";
+    btn.id = "ackWarningBtn";
+    btn.className = "btn btn-primary btn-sm";
+    btn.textContent = "Acknowledge";
+    btn.style.marginInlineEnd = "8px";
+    const closeBtn = document.getElementById("closeDocViewBtn");
+    closeBtn.parentNode.insertBefore(btn, closeBtn);
+  }
+  return btn;
+}
+
+async function acknowledgeWarning(warning, btn) {
+  setBtnLoading(btn, true);
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "acknowledge_warning", warning_id: warning.id }
+  });
+  setBtnLoading(btn, false);
+  if (error || (data && data.error)) {
+    showToast("Could not acknowledge this warning. Please try again.");
+    return;
+  }
+  warning.acknowledged_at = new Date().toISOString();
+  btn.style.display = "none";
+  showToast("Warning acknowledged.");
+}
+
   body.querySelectorAll("button[data-view-dash-warning]").forEach(btn => {
     btn.addEventListener("click", () => {
       const w = DASHBOARD_WARNINGS.find(x => x.id === btn.dataset.viewDashWarning);
@@ -235,6 +265,14 @@ async function loadDashboardWarnings() {
       const convertBtn = document.getElementById("docConvertBtn");
       convertBtn.style.display = DOC_ALT_TEXT ? "" : "none";
       convertBtn.textContent = DOC_LANG === "ar" ? t("convertToEnglishBtn") : t("convertToArabicBtn");
+
+      // Pending acknowledgment: show Acknowledge alongside Close. Once
+      // acknowledged, only Close remains from then on.
+      const ackBtn = ensureAckWarningBtn();
+      const needsAck = w.status === "sent" && !w.acknowledged_at;
+      ackBtn.style.display = needsAck ? "" : "none";
+      ackBtn.onclick = () => acknowledgeWarning(w, ackBtn);
+
       document.getElementById("docViewOverlay").style.display = "flex";
     });
   });
