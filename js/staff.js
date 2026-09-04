@@ -89,7 +89,7 @@ async function loadRequests() {
       <td>${r.days_requested}</td>
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${badgeFor(r.status)}</td>
-      <td>${canCancel ? `<button class="btn btn-danger btn-sm" data-id="${r.id}">${t("cancelBtn")}</button>` : ""}</td>
+      <td>${canCancel ? `<button class="btn btn-danger btn-sm" data-id="${r.id}" data-confirm-close="1">${t("cancelBtn")}</button>` : ""}</td>
     `;
     body.appendChild(tr);
   }
