@@ -1014,13 +1014,16 @@ function showCloseConfirm() {
 // pause the click, ask for confirmation, and only let the original
 // handler run afterward if the admin actually confirms.
 //
-// Two ways a button gets covered:
+// "Close" buttons never require confirmation, anywhere in the system —
+// they just dismiss a view or notification, exactly like an OK button.
+// This is id-based ("close" in the button's id) so it automatically covers
+// every Close button on every page, including ones added later, without
+// needing to touch individual HTML files.
+//
+// "Cancel" buttons still verify, since those sit on forms where input
+// could genuinely be lost. A button gets the Cancel treatment via:
 //  1. Explicit opt-in: data-confirm-close="1" on the element.
-//  2. Automatic: any <button> whose id contains "close" or "cancel"
-//     (case-insensitive) — this is how every Close/Cancel button in this
-//     codebase is already named, so this single rule covers the whole
-//     system (admin, supervisor, staff, every page) without needing to
-//     touch each page's HTML individually.
+//  2. Automatic: any <button> whose id contains "cancel" (case-insensitive).
 //
 // Buttons that already have their own bespoke confirm-before-action logic
 // (e.g. the Add Employee wizard's Cancel) should be marked
@@ -1030,9 +1033,12 @@ document.addEventListener("click", async function (e) {
   if (!btn) return;
   if (btn.dataset.skipConfirm === "1") return;
 
+  const idLooksLikeClose = btn.id && /close/i.test(btn.id);
+  if (idLooksLikeClose) return;
+
   const explicitlyMarked = btn.hasAttribute("data-confirm-close");
-  const idLooksLikeCloseCancel = btn.id && /close|cancel/i.test(btn.id);
-  if (!explicitlyMarked && !idLooksLikeCloseCancel) return;
+  const idLooksLikeCancel = btn.id && /cancel/i.test(btn.id);
+  if (!explicitlyMarked && !idLooksLikeCancel) return;
 
   if (btn.dataset.fwxConfirmed === "1") {
     delete btn.dataset.fwxConfirmed;
