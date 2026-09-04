@@ -1826,7 +1826,7 @@ function ewShowCancelConfirm() {
 
     const cancelBtn = document.createElement("button");
     cancelBtn.className = "btn btn-danger btn-sm";
-    cancelBtn.textContent = "Cancel";
+    cancelBtn.textContent = "Yes, Cancel it";
     cancelBtn.onclick = () => { document.getElementById("actionOverlay").style.display = "none"; resolve(true); };
 
     btns.appendChild(discardBtn);
