@@ -404,7 +404,7 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
       <div id="leaveWizardBody"></div>
       <div class="error-msg" id="leaveWizardError"></div>
       <div style="display:flex; gap:10px; margin-top:20px">
-        <button type="button" class="btn btn-danger" id="leaveWizardCancelBtn" style="width:120px">Cancel</button>
+        <button type="button" class="btn btn-danger" id="leaveWizardCancelBtn" data-skip-confirm="1" style="width:120px">Cancel</button>
         <button type="button" class="btn btn-blue" id="leaveWizardBackBtn" style="width:120px; display:none">‹ Back</button>
         <button type="button" class="btn btn-blue" id="leaveWizardSkipBtn" style="width:120px; display:none">Skip</button>
         <button type="button" class="btn btn-blue" id="leaveWizardNextBtn" style="width:160px">Next ›</button>
@@ -554,8 +554,12 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
     lwRenderCurrentStep();
   });
 
-  document.getElementById("leaveWizardCancelBtn").addEventListener("click", () => {
+  document.getElementById("leaveWizardCancelBtn").addEventListener("click", async () => {
     document.getElementById("leaveWizardOverlay").style.display = "none";
+    const confirmed = await showCloseConfirm();
+    if (!confirmed) {
+      document.getElementById("leaveWizardOverlay").style.display = "flex";
+    }
   });
 
   document.getElementById("leaveWizardSkipBtn").addEventListener("click", () => {
