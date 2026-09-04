@@ -37,6 +37,11 @@
       <h2 data-i18n="newClientCompanyTitle">New client company</h2>
       <label for="newCompanyName" data-i18n="companyNameLabel">Company name</label>
       <input type="text" id="newCompanyName" placeholder="e.g. Vodafone" data-i18n-placeholder="companyNamePlaceholder">
+      <label for="newCompanyLogo" style="margin-top:12px">Company logo (optional)</label>
+      <input type="file" id="newCompanyLogo" accept="image/*">
+      <div id="newCompanyLogoPreviewWrap" style="display:none; margin-top:10px">
+        <div class="company-logo-wrap"><img id="newCompanyLogoPreview" class="company-logo"></div>
+      </div>
       <div style="display:flex; gap:10px; margin-top:14px">
         <button type="button" class="btn btn-primary" id="saveCompanyBtn" style="width:140px" data-i18n="addBtn">Add</button>
         <button type="button" class="btn btn-danger" id="cancelCompanyBtn" data-confirm-close="1" style="width:140px" data-i18n="cancel">Cancel</button>
@@ -88,12 +93,50 @@ function showToast(msg) {
 document.getElementById("showAddCompanyBtn").addEventListener("click", () => {
   document.getElementById("addCompanyPanel").style.display = "";
   document.getElementById("newCompanyName").value = "";
+  document.getElementById("newCompanyLogo").value = "";
+  document.getElementById("newCompanyLogoPreviewWrap").style.display = "none";
   document.getElementById("companyError").classList.remove("show");
   document.getElementById("newCompanyName").focus();
 });
 document.getElementById("cancelCompanyBtn").addEventListener("click", () => {
   document.getElementById("addCompanyPanel").style.display = "none";
 });
+
+document.getElementById("newCompanyLogo").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  const wrap = document.getElementById("newCompanyLogoPreviewWrap");
+  if (!file) { wrap.style.display = "none"; return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById("newCompanyLogoPreview").src = reader.result;
+    wrap.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+
+// Resizes the uploaded logo to a consistent square canvas (matching the
+// fixed logo-box size already used across the page) so every company's
+// logo is stored at a normalized size, regardless of the original file's
+// dimensions — keeps storage lean and display uniform.
+function resizeLogoFile(file, maxSize = 300) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = () => { img.src = reader.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => resolve(blob), "image/png", 0.92);
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 document.getElementById("saveCompanyBtn").addEventListener("click", async () => {
   const errBox = document.getElementById("companyError");
@@ -109,7 +152,27 @@ document.getElementById("saveCompanyBtn").addEventListener("click", async () => 
   btn.disabled = true;
   btn.textContent = t("adding");
 
-  const { error } = await db.from("client_companies").insert({ name });
+  let logo_url = null;
+  const logoFile = document.getElementById("newCompanyLogo").files[0];
+  if (logoFile) {
+    try {
+      const resizedBlob = await resizeLogoFile(logoFile);
+      const safeName = name.replace(/[^a-zA-Z0-9]+/g, "_").toLowerCase();
+      const path = `${safeName}-${Date.now()}.png`;
+      const { error: uploadErr } = await db.storage.from("company-logos").upload(path, resizedBlob, { contentType: "image/png" });
+      if (uploadErr) throw uploadErr;
+      const { data: urlData } = db.storage.from("company-logos").getPublicUrl(path);
+      logo_url = urlData.publicUrl;
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = t("addBtn");
+      errBox.textContent = "Could not upload the logo. Please try again.";
+      errBox.classList.add("show");
+      return;
+    }
+  }
+
+  const { error } = await db.from("client_companies").insert({ name, logo_url });
 
   btn.disabled = false;
   btn.textContent = t("addBtn");
@@ -143,7 +206,7 @@ async function loadCompanies() {
     card.className = "company-card";
     card.style.position = "relative";
     card.style.cursor = "pointer";
-    const logoSrc = COMPANY_LOGOS[c.name];
+    const logoSrc = c.logo_url || COMPANY_LOGOS[c.name];
     card.innerHTML = `
       <button type="button" class="company-menu-btn" data-company-menu="${c.id}" title="Options"
         style="position:absolute; top:8px; inset-inline-end:8px; background:rgba(255,255,255,0.18); border:none; color:#fff; font-size:20px; line-height:1; width:32px; height:32px; border-radius:6px; cursor:pointer; z-index:2">⋮</button>
