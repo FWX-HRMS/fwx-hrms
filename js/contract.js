@@ -233,7 +233,9 @@ document.getElementById("downloadContractBtn").addEventListener("click", () => {
     doc.text(line, 14, y);
     y += 6;
   }
-  doc.save("my_contract.pdf");
+  const safeName = (ME.full_name || "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const safeFileNumber = (ME.file_number || "").replace(/[^a-zA-Z0-9]+/g, "_");
+  doc.save(`Contract-${safeFileNumber}-${safeName}.pdf`);
 });
 
 function checkActiveContractNotice(contract) {

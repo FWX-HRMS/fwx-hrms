@@ -624,6 +624,8 @@ function openWarningViewModal(warningId, warningData) {
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
   const emp = byId[w.employee_id];
   document.getElementById("warningViewTitle").textContent = emp ? `${emp.file_number} - ${emp.full_name}` : t("warningDetailsTitle");
+  document.getElementById("warningViewOverlay").dataset.fileNumber = emp ? emp.file_number : "";
+  document.getElementById("warningViewOverlay").dataset.employeeName = emp ? emp.full_name : "";
 
   const statusLabel = t("warningStatus" + w.status[0].toUpperCase() + w.status.slice(1));
   document.getElementById("warningStatusLine").textContent = `${t("colStatus")}: ${statusLabel}` + (w.sent_at ? ` — ${fmtDate(w.sent_at.slice(0,10))}` : "");
@@ -709,8 +711,8 @@ document.getElementById("warningSendBtn").addEventListener("click", async () => 
 
 document.getElementById("warningDownloadBtn").addEventListener("click", () => {
   const text = document.getElementById("warningTextArea").value;
-  const title = document.getElementById("warningViewTitle").textContent;
-  downloadContractPDF(title, text);
+  const overlay = document.getElementById("warningViewOverlay");
+  downloadContractPDF("Warning", overlay.dataset.fileNumber, overlay.dataset.employeeName, text);
 });
 
 function contractStatusBadge(status) {
@@ -807,6 +809,8 @@ function openContractViewModal(contractId, contractData) {
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
   const emp = byId[c.employee_id];
   document.getElementById("contractViewTitle").textContent = emp ? `${emp.file_number} - ${emp.full_name}` : t("contractDetailsTitle");
+  document.getElementById("contractViewOverlay").dataset.fileNumber = emp ? emp.file_number : "";
+  document.getElementById("contractViewOverlay").dataset.employeeName = emp ? emp.full_name : "";
 
   const statusLabel = t("contractStatus" + c.status[0].toUpperCase() + c.status.slice(1));
   document.getElementById("contractStatusLine").textContent = `${t("colStatus")}: ${statusLabel}` + (c.signed_at ? ` — ${t("signedOnLabel")} ${fmtDate(c.signed_at.slice(0,10))}` : "");
@@ -929,11 +933,11 @@ document.getElementById("contractShareBtn").addEventListener("click", async () =
 
 document.getElementById("contractDownloadBtn").addEventListener("click", () => {
   const text = document.getElementById("contractTextArea").value;
-  const title = document.getElementById("contractViewTitle").textContent;
-  downloadContractPDF(title, text);
+  const overlay = document.getElementById("contractViewOverlay");
+  downloadContractPDF("Contract", overlay.dataset.fileNumber, overlay.dataset.employeeName, text);
 });
 
-async function downloadContractPDF(title, text) {
+async function downloadContractPDF(kind, fileNumber, employeeName, text) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   const logo = await loadLogoDataURL();
@@ -953,7 +957,9 @@ async function downloadContractPDF(title, text) {
     doc.text(line, 14, y);
     y += 6;
   }
-  doc.save(`contract_${title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
+  const safeName = (employeeName || "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  const safeFileNumber = (fileNumber || "").replace(/[^a-zA-Z0-9]+/g, "_");
+  doc.save(`${kind}-${safeFileNumber}-${safeName}.pdf`);
 }
 
 function closeActionMenus() {
