@@ -223,88 +223,11 @@ function renderLeaveRequests() {
   });
 }
 
-function computeAnnualEntitlementClientSide(hiringDateStr) {
-  if (!hiringDateStr) return 14;
-  const hire = new Date(hiringDateStr);
-  const years = (Date.now() - hire.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-  return years >= 5 ? 21 : 14;
-}
-function toggleTakenThisYearField() {
-  const carryover = Number(document.getElementById("carryoverBalance").value) || 0;
-  const row = document.getElementById("takenThisYearRow");
-  row.style.display = carryover === 0 ? "" : "none";
-  if (carryover > 0) document.getElementById("takenThisYear").value = 0;
-}
-document.getElementById("carryoverBalance").addEventListener("input", toggleTakenThisYearField);
-
-document.getElementById("hiringDate").addEventListener("change", (e) => {
-  document.getElementById("annualEntitlement").value = computeAnnualEntitlementClientSide(e.target.value);
-});
-
-function toggleSupervisorField() {
-  const role = document.getElementById("role").value;
-  document.getElementById("supervisorField").style.display = (role === "staff") ? "" : "none";
-}
-document.getElementById("role").addEventListener("change", toggleSupervisorField);
-
-document.getElementById("showAddFormBtn").addEventListener("click", () => {
-  document.getElementById("addPanel").style.display = "";
-  const roleSelect = document.getElementById("role");
-  const companySelect = document.getElementById("clientCompany");
-  if (COMPANY_FILTER) {
-    companySelect.value = COMPANY_FILTER;
-    companySelect.disabled = true;
-  } else {
-    companySelect.value = "";
-    companySelect.disabled = false;
-  }
-  if (ACTIVE_TAB === "supervisors") {
-    roleSelect.value = "supervisor";
-    document.getElementById("roleField").style.display = "none";
-  } else {
-    roleSelect.value = "staff";
-    document.getElementById("roleField").style.display = "";
-  }
-  toggleSupervisorField();
-  populateSupervisorOptions();
-  populateDepartmentOptions(document.getElementById("department"), companySelect.value, null);
-  document.getElementById("annualEntitlement").value = computeAnnualEntitlementClientSide(document.getElementById("hiringDate").value);
-  document.getElementById("carryoverBalance").value = 0;
-  document.getElementById("takenThisYear").value = 0;
-  document.getElementById("hiringDateRow").style.display = ACTIVE_TAB === "supervisors" ? "none" : "";
-  document.getElementById("entitlementRow").style.display = ACTIVE_TAB === "supervisors" ? "none" : "";
-  if (ACTIVE_TAB === "supervisors") {
-    document.getElementById("takenThisYearRow").style.display = "none";
-  } else {
-    toggleTakenThisYearField();
-  }
-  document.getElementById("addPanel").scrollIntoView({ behavior: "smooth" });
-});
-document.getElementById("cancelAddBtn").addEventListener("click", () => {
-  document.getElementById("addPanel").style.display = "none";
-  document.getElementById("addForm").reset();
-  document.getElementById("credentialsBox").classList.remove("show");
-});
 document.getElementById("closeDetailsBtn").addEventListener("click", () => {
   document.getElementById("detailsOverlay").style.display = "none";
 });
 
 // ---------- Data loading ----------
-async function loadCompanyOptions() {
-  const { data, error } = await db.from("client_companies").select("name").order("name");
-  const select = document.getElementById("clientCompany");
-  const current = select.value;
-  select.innerHTML = `<option value="">${t("selectCompanyPlaceholder")}</option>`;
-  if (error || !data) return;
-  for (const c of data) {
-    const opt = document.createElement("option");
-    opt.value = c.name;
-    opt.textContent = c.name;
-    select.appendChild(opt);
-  }
-  if (current) select.value = current;
-}
-
 async function loadSupervisors() {
   const { data, error } = await db
     .from("employees")
@@ -314,29 +237,12 @@ async function loadSupervisors() {
 
   if (error || !data) return;
   SUPERVISORS = data;
-  populateSupervisorOptions();
 }
 
-function populateSupervisorOptions() {
-  const companyFilter = document.getElementById("clientCompany").value;
-  const select = document.getElementById("supervisor");
-
-  if (!companyFilter) {
-    select.innerHTML = `<option value="">${t("selectCompanyFirstPlaceholder")}</option>`;
-    return;
-  }
-
-  const matches = SUPERVISORS.filter(s => s.client_company === companyFilter);
-  select.innerHTML = matches.length
-    ? `<option value="">${t("selectSupervisorPlaceholder")}</option>`
-    : `<option value="">${t("noSupervisorsYetPlaceholder")}</option>`;
-  for (const s of matches) {
-    const opt = document.createElement("option");
-    opt.value = s.file_number;
-    opt.textContent = `${s.full_name} (#${s.file_number})`;
-    select.appendChild(opt);
-  }
+function supervisorsForCompany(companyName) {
+  return SUPERVISORS.filter(s => s.client_company === companyName);
 }
+
 const DEPARTMENTS_BY_COMPANY = {
   "Umniah": ["Battery Rescue Power Planning", "Transmission & OMC", "Network Maintenance", "Network- Power & Energy Planning", "RA Network", "Transport Planning", "Transmission", "Rent Site", "Civil", "TDD Visit", "Wherhouse", "Tele Sales", "Direct Sales", "Preventive Maintenance", "N.W Rollout Acceptance", "Network Planning & Maintenance", "Drive Test", "MDS", "Selection", "Quality", "Data Centre", "Office"],
   "Zain": ["Fiber acceptance", "Fiber Support", "FiberTech", "Power", "Bunker", "Tele Sales", "Direct Sales", "Shop Maintenance", "IBS", "TXM", "Network Maintenance", "Preventive Maintenance", "Data Centre", "Office"],
@@ -350,11 +256,6 @@ function populateDepartmentOptions(selectEl, companyName, selectedValue) {
   selectEl.innerHTML = list.map(d => `<option value="${d}">${d}</option>`).join("");
   if (current && list.includes(current)) selectEl.value = current;
 }
-
-document.getElementById("clientCompany").addEventListener("change", populateSupervisorOptions);
-document.getElementById("clientCompany").addEventListener("change", () => {
-  populateDepartmentOptions(document.getElementById("department"), document.getElementById("clientCompany").value, null);
-});
 
 async function loadBalances() {
   const { data, error } = await db.from("leave_balances").select("*");
@@ -1592,70 +1493,6 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   }
 });
 
-document.getElementById("addForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const errBox = document.getElementById("addError");
-  const credBox = document.getElementById("credentialsBox");
-  errBox.classList.remove("show");
-  credBox.classList.remove("show");
-
-  const full_name = document.getElementById("fullName").value.trim();
-
-  const email = document.getElementById("email").value.trim();
-  const hiring_date = document.getElementById("hiringDate").value || null;
-  const annual_entitlement_override = document.getElementById("annualEntitlement").value !== "" ? Number(document.getElementById("annualEntitlement").value) : null;
-  const carryover_balance = document.getElementById("carryoverBalance").value !== "" ? Number(document.getElementById("carryoverBalance").value) : 0;
-  const taken_this_year = carryover_balance === 0 && document.getElementById("takenThisYear").value !== "" ? Number(document.getElementById("takenThisYear").value) : 0;
-  const client_company = document.getElementById("clientCompany").value;
-  const department = document.getElementById("department").value;
-  const role = document.getElementById("role").value;
-  const supervisor_file_number = document.getElementById("supervisor").value || null;
-
-  if (!client_company) {
-    errBox.textContent = t("pleaseSelectCompany");
-    errBox.classList.add("show");
-    return;
-  }
-
-  if (role === "staff" && !supervisor_file_number) {
-    errBox.textContent = t("pleaseAssignSupervisor");
-    errBox.classList.add("show");
-    return;
-  }
-
-  const btn = document.getElementById("addBtn");
-  setBtnLoading(btn, true, t("creating"));
-
-  const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "create_employee", full_name, email, role, hiring_date, department, client_company, supervisor_file_number, annual_entitlement_override, carryover_balance, taken_this_year }
-  });
-
-  setBtnLoading(btn, false);
-
-  if (error || (data && data.error)) {
-    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongCreating");
-    errBox.classList.add("show");
-    return;
-  }
-
-  document.getElementById("credFileNumber").textContent = data.file_number;
-  document.getElementById("credPassword").textContent = data.password;
-  credBox.classList.add("show");
-  document.getElementById("copyCredsBtn").onclick = () => {
-    navigator.clipboard.writeText(
-      `${t("fileNumColonLabel")} ${data.file_number}\n${t("initialPasswordColonLabel")} ${data.password}\nSign in at: ${window.location.origin}`
-    );
-    showToast(t("copiedToast"));
-  };
-
-  document.getElementById("addForm").reset();
-  if (COMPANY_FILTER) document.getElementById("clientCompany").value = COMPANY_FILTER;
-  toggleSupervisorField();
-  populateSupervisorOptions();
-
-  await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
-});
-
 async function populateSupAdminCompanyOptions() {
   const { data } = await db.from("client_companies").select("name").order("name");
   const select = document.getElementById("supAdminCompany");
@@ -1741,6 +1578,313 @@ document.getElementById("addSupervisorAdminForm").addEventListener("submit", asy
   await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
 });
 
+// ================= Add Employee wizard =================
+function yearsSinceHire(dateStr) {
+  if (!dateStr) return 0;
+  const hire = new Date(dateStr);
+  return (Date.now() - hire.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+}
+
+const EMP_WIZARD = {
+  stepIndex: 0,
+  values: {},
+  employeeId: null,
+  fileNumber: null,
+  password: null,
+  documents: [],
+};
+
+function ewSimpleField(key, title, label, type, required) {
+  return {
+    key, title, required,
+    render(container) {
+      const val = EMP_WIZARD.values[key] ?? (type === "number" ? 0 : "");
+      container.innerHTML = `<label for="ew_${key}">${label}</label><input type="${type}" id="ew_${key}" value="${String(val).replace(/"/g, "&quot;")}" ${type === "number" ? 'min="0" step="1"' : ""}>`;
+      const input = document.getElementById(`ew_${key}`);
+      setTimeout(() => input.focus(), 0);
+    },
+    save() {
+      const input = document.getElementById(`ew_${key}`);
+      EMP_WIZARD.values[key] = type === "number" ? (Number(input.value) || 0) : input.value.trim();
+    },
+    valid() {
+      return required ? !!EMP_WIZARD.values[key] : true;
+    },
+  };
+}
+
+const EMP_WIZARD_STEPS = [
+  ewSimpleField("full_name", t("fullNameLabel"), t("fullNameLabel"), "text", true),
+  ewSimpleField("dob", t("colDob"), t("colDob"), "date", false),
+  ewSimpleField("email", t("emailLabel"), t("emailLabel"), "text", true),
+  ewSimpleField("phone", "Phone number", "Phone number", "text", false),
+  ewSimpleField("hiring_date", t("hiringDateLabel"), t("hiringDateLabel"), "date", true),
+  {
+    ...ewSimpleField("carryover", t("carryoverLabel"), t("carryoverLabel"), "number", false),
+    showIf: (v) => yearsSinceHire(v.hiring_date) >= 1,
+  },
+  {
+    ...ewSimpleField("taken_this_year", t("takenThisYearLabel"), t("takenThisYearLabel"), "number", false),
+    showIf: (v) => !(yearsSinceHire(v.hiring_date) >= 1 && Number(v.carryover) > 0),
+  },
+  {
+    key: "company", title: t("companyClientLabel"), required: true,
+    async render(container) {
+      container.innerHTML = `<label>${t("companyClientLabel")}</label><select id="ew_company"><option value="">${t("selectCompanyPlaceholder")}</option></select>`;
+      const sel = document.getElementById("ew_company");
+      const { data } = await db.from("client_companies").select("name").order("name");
+      for (const c of data || []) {
+        const opt = document.createElement("option");
+        opt.value = c.name;
+        opt.textContent = c.name;
+        sel.appendChild(opt);
+      }
+      if (COMPANY_FILTER) {
+        sel.value = COMPANY_FILTER;
+        sel.disabled = true;
+      } else if (EMP_WIZARD.values.company) {
+        sel.value = EMP_WIZARD.values.company;
+      }
+    },
+    save() { EMP_WIZARD.values.company = document.getElementById("ew_company").value; },
+    valid() { return !!EMP_WIZARD.values.company; },
+  },
+  {
+    key: "department", title: t("departmentLabel"), required: true,
+    render(container) {
+      container.innerHTML = `<label>${t("departmentLabel")}</label><select id="ew_department"></select>`;
+      populateDepartmentOptions(document.getElementById("ew_department"), EMP_WIZARD.values.company, EMP_WIZARD.values.department || null);
+    },
+    save() { EMP_WIZARD.values.department = document.getElementById("ew_department").value; },
+    valid() { return !!EMP_WIZARD.values.department; },
+  },
+  {
+    key: "supervisor", title: t("assignSupervisorLabel"), required: true,
+    render(container) {
+      const matches = supervisorsForCompany(EMP_WIZARD.values.company);
+      container.innerHTML = `<label>${t("assignSupervisorLabel")}</label><select id="ew_supervisor">
+        <option value="">${matches.length ? t("selectSupervisorPlaceholder") : t("noSupervisorsYetPlaceholder")}</option>
+        ${matches.map(s => `<option value="${s.file_number}">${s.full_name} (#${s.file_number})</option>`).join("")}
+      </select>`;
+      if (EMP_WIZARD.values.supervisor_file_number) {
+        const sel = document.getElementById("ew_supervisor");
+        sel.value = EMP_WIZARD.values.supervisor_file_number;
+      }
+    },
+    save() { EMP_WIZARD.values.supervisor_file_number = document.getElementById("ew_supervisor").value || null; },
+    valid() { return !!EMP_WIZARD.values.supervisor_file_number; },
+  },
+  {
+    key: "documents", title: "Documents",
+    render(container) {
+      container.innerHTML = `
+        <div class="success-msg show" style="margin-bottom:16px">
+          <p style="margin:0 0 6px"><strong>${t("employeeCreatedMsg")}</strong></p>
+          <p style="margin:0">${t("fileNumColonLabel")} <strong>${EMP_WIZARD.fileNumber}</strong></p>
+          <p style="margin:0">${t("initialPasswordColonLabel")} <strong>${EMP_WIZARD.password}</strong></p>
+          <p style="margin:8px 0 0"><button type="button" class="btn btn-blue btn-sm" id="ewCopyCredsBtn">${t("copyDetailsBtn")}</button></p>
+        </div>
+        <p style="margin:0 0 10px">Please upload the employee's CV and certificates (up to 5 documents).</p>
+        <input type="file" id="ewDocFile" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+        <div id="ewDocList" style="margin-top:14px"></div>
+      `;
+      document.getElementById("ewCopyCredsBtn").onclick = () => {
+        navigator.clipboard.writeText(
+          `${t("fileNumColonLabel")} ${EMP_WIZARD.fileNumber}\n${t("initialPasswordColonLabel")} ${EMP_WIZARD.password}\nSign in at: ${window.location.origin}`
+        );
+        showToast(t("copiedToast"));
+      };
+      document.getElementById("ewDocFile").addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) ewUploadFile(file);
+        e.target.value = "";
+      });
+      ewRenderDocumentsList();
+    },
+    save() {},
+    valid() { return true; },
+  },
+];
+
+function ewVisibleSteps() {
+  return EMP_WIZARD_STEPS.filter(s => !s.showIf || s.showIf(EMP_WIZARD.values));
+}
+
+function ewShowError(msg) {
+  const box = document.getElementById("empWizardError");
+  box.textContent = msg;
+  box.classList.add("show");
+}
+
+async function ewUploadFile(file) {
+  if (EMP_WIZARD.documents.length >= 5) {
+    ewShowError("Maximum of 5 documents allowed per employee.");
+    return;
+  }
+  document.getElementById("empWizardError").classList.remove("show");
+
+  const { data: urlData, error: urlErr } = await db.functions.invoke("clever-action", {
+    body: { action: "get_upload_url", target_id: EMP_WIZARD.employeeId, file_name: file.name }
+  });
+  if (urlErr || (urlData && urlData.error)) {
+    ewShowError((urlData && urlData.error) ? urlData.error : "Could not prepare upload.");
+    return;
+  }
+
+  const { error: upErr } = await db.storage.from("employee-documents").uploadToSignedUrl(urlData.path, urlData.token, file);
+  if (upErr) {
+    ewShowError(upErr.message || "Upload failed.");
+    return;
+  }
+
+  const { data: recData, error: recErr } = await db.functions.invoke("clever-action", {
+    body: { action: "record_document", target_id: EMP_WIZARD.employeeId, file_name: file.name, storage_path: urlData.path }
+  });
+  if (recErr || (recData && recData.error)) {
+    ewShowError((recData && recData.error) ? recData.error : "Could not save document record.");
+    return;
+  }
+
+  await ewRefreshDocuments();
+}
+
+async function ewRefreshDocuments() {
+  const { data } = await db.functions.invoke("clever-action", {
+    body: { action: "list_documents", target_id: EMP_WIZARD.employeeId }
+  });
+  EMP_WIZARD.documents = (data && data.documents) || [];
+  ewRenderDocumentsList();
+}
+
+function ewRenderDocumentsList() {
+  const listEl = document.getElementById("ewDocList");
+  if (!listEl) return;
+  listEl.innerHTML = EMP_WIZARD.documents.length
+    ? EMP_WIZARD.documents.map(d => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border)">
+        <a href="${d.view_url || "#"}" target="_blank" style="font-size:13.5px">${d.file_name}</a>
+        <button type="button" class="btn btn-danger btn-sm" data-remove-doc="${d.id}">${t("deleteBtn")}</button>
+      </div>
+    `).join("")
+    : `<p class="help-text" style="margin:0">No documents uploaded yet.</p>`;
+
+  listEl.querySelectorAll("button[data-remove-doc]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      await db.functions.invoke("clever-action", { body: { action: "delete_document", document_id: btn.dataset.removeDoc } });
+      await ewRefreshDocuments();
+    });
+  });
+}
+
+async function ewRenderCurrentStep() {
+  const steps = ewVisibleSteps();
+  if (EMP_WIZARD.stepIndex >= steps.length) EMP_WIZARD.stepIndex = steps.length - 1;
+  const stepDef = steps[EMP_WIZARD.stepIndex];
+
+  document.getElementById("empWizardStepCounter").textContent = `Step ${EMP_WIZARD.stepIndex + 1} of ${steps.length}`;
+  document.getElementById("empWizardTitle").textContent = stepDef.title;
+  document.getElementById("empWizardError").classList.remove("show");
+
+  const body = document.getElementById("empWizardBody");
+  body.innerHTML = "";
+  await stepDef.render(body);
+
+  const backBtn = document.getElementById("empWizardBackBtn");
+  const nextBtn = document.getElementById("empWizardNextBtn");
+  const cancelBtn = document.getElementById("empWizardCancelBtn");
+
+  if (stepDef.key === "documents") {
+    backBtn.style.display = "none";
+    cancelBtn.style.display = "none";
+    nextBtn.textContent = "Done";
+  } else {
+    backBtn.style.display = EMP_WIZARD.stepIndex === 0 ? "none" : "";
+    cancelBtn.style.display = "";
+    nextBtn.textContent = stepDef.key === "supervisor" ? t("createBtn") : "Next ›";
+  }
+}
+
+document.getElementById("empWizardBackBtn").addEventListener("click", async () => {
+  EMP_WIZARD.stepIndex = Math.max(0, EMP_WIZARD.stepIndex - 1);
+  await ewRenderCurrentStep();
+});
+
+document.getElementById("empWizardCancelBtn").addEventListener("click", async () => {
+  if (!(await showConfirm(t("cancel"), "Any information entered so far will be lost. Are you sure you want to cancel?", t("cancel"), true))) return;
+  document.getElementById("empWizardOverlay").style.display = "none";
+});
+
+document.getElementById("empWizardNextBtn").addEventListener("click", async () => {
+  const steps = ewVisibleSteps();
+  const stepDef = steps[EMP_WIZARD.stepIndex];
+
+  if (stepDef.key === "documents") {
+    document.getElementById("empWizardOverlay").style.display = "none";
+    await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
+    return;
+  }
+
+  if (stepDef.save) stepDef.save();
+  if (stepDef.valid && !stepDef.valid()) {
+    ewShowError("Please fill in this field before continuing.");
+    return;
+  }
+
+  if (stepDef.key === "supervisor") {
+    const nextBtn = document.getElementById("empWizardNextBtn");
+    setBtnLoading(nextBtn, true, t("creating"));
+    const v = EMP_WIZARD.values;
+    const { data, error } = await db.functions.invoke("clever-action", {
+      body: {
+        action: "create_employee",
+        full_name: v.full_name,
+        email: v.email,
+        phone_number: v.phone || null,
+        dob: v.dob || null,
+        role: "staff",
+        hiring_date: v.hiring_date,
+        department: v.department,
+        client_company: v.company,
+        supervisor_file_number: v.supervisor_file_number,
+        carryover_balance: v.carryover || 0,
+        taken_this_year: v.taken_this_year || 0,
+      }
+    });
+    setBtnLoading(nextBtn, false);
+
+    if (error || (data && data.error)) {
+      ewShowError((data && data.error) ? data.error : t("somethingWrongCreating"));
+      return;
+    }
+
+    EMP_WIZARD.employeeId = data.target_id;
+    EMP_WIZARD.fileNumber = data.file_number;
+    EMP_WIZARD.password = data.password;
+    EMP_WIZARD.documents = [];
+    EMP_WIZARD.stepIndex++;
+    await ewRenderCurrentStep();
+    return;
+  }
+
+  EMP_WIZARD.stepIndex++;
+  await ewRenderCurrentStep();
+});
+
+document.getElementById("showAddFormBtn").addEventListener("click", async () => {
+  EMP_WIZARD.stepIndex = 0;
+  EMP_WIZARD.values = {
+    full_name: "", dob: "", email: "", phone: "", hiring_date: "",
+    carryover: 0, taken_this_year: 0,
+    company: COMPANY_FILTER || "", department: "", supervisor_file_number: "",
+  };
+  EMP_WIZARD.employeeId = null;
+  EMP_WIZARD.fileNumber = null;
+  EMP_WIZARD.password = null;
+  EMP_WIZARD.documents = [];
+  document.getElementById("empWizardOverlay").style.display = "flex";
+  await ewRenderCurrentStep();
+});
+
 (async () => {
   ME = await requireSession("admin");
   if (!ME) return;
@@ -1749,10 +1893,8 @@ document.getElementById("addSupervisorAdminForm").addEventListener("submit", asy
     document.getElementById("pageTitle").textContent = `${COMPANY_FILTER} — ${t("companyScopedTitleSuffix")}`;
     document.getElementById("pageSub").textContent = tv("companyScopedSub", { company: COMPANY_FILTER });
   }
-  toggleSupervisorField();
-  await Promise.all([loadCompanyOptions(), loadSupervisors(), loadBalances()]);
+  await Promise.all([loadSupervisors(), loadBalances()]);
   await loadDirectory();
-  if (COMPANY_FILTER) document.getElementById("clientCompany").value = COMPANY_FILTER;
 
   // Deep link from the dashboard's "View" buttons: ?tab=contracts&contractId=... / ?tab=warnings&warningId=...
   const qs = new URLSearchParams(window.location.search);
