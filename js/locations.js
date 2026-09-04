@@ -23,7 +23,7 @@ function timeAgo(dateStr) {
 }
 
 async function loadTeamById() {
-  const query = db.from("employees").select("id, full_name, client_company").order("full_name");
+  const query = db.from("employees").select("id, full_name, file_number, client_company, role, department").order("full_name");
   const { data, error } = ME.role === "admin"
     ? await query.neq("role", "admin")
     : await query.eq("supervisor_id", ME.id);
@@ -31,26 +31,58 @@ async function loadTeamById() {
   return Object.fromEntries(data.map(e => [e.id, e]));
 }
 
+function matchesTableSearch(query, fileNumber, company, role, name, department) {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  return (fileNumber || "").toLowerCase().includes(q) ||
+         (company || "").toLowerCase().includes(q) ||
+         (role || "").toLowerCase().includes(q) ||
+         (name || "").toLowerCase().includes(q) ||
+         (department || "").toLowerCase().includes(q);
+}
+
+function ensureLocationsSearch() {
+  let input = document.getElementById("locationsSearchInput");
+  if (input) return input;
+  const tbody = document.getElementById("locationsBody");
+  if (!tbody) return null;
+  const table = tbody.closest("table");
+  if (!table) return null;
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:relative; max-width:480px; margin-bottom:14px";
+  wrap.innerHTML = `
+    <span style="position:absolute; inset-inline-start:12px; top:50%; transform:translateY(-50%); pointer-events:none; opacity:.55">🔍</span>
+    <input type="text" id="locationsSearchInput" placeholder="Name, file #, company, role, or department" style="width:100%; padding-inline-start:36px">
+  `;
+  table.parentNode.insertBefore(wrap, table);
+  input = document.getElementById("locationsSearchInput");
+  input.addEventListener("input", () => renderLocationsTable());
+  return input;
+}
+
+let LOCATIONS_TEAM_BY_ID = {};
+let LOCATIONS_ROWS = [];
+
 async function refreshLocations() {
   const teamById = await loadTeamById();
+  LOCATIONS_TEAM_BY_ID = teamById;
   const ids = Object.keys(teamById);
 
-  const body = document.getElementById("locationsBody");
-  const empty = document.getElementById("noLocations");
-  body.innerHTML = "";
-
   if (ids.length === 0) {
-    empty.style.display = "block";
+    LOCATIONS_ROWS = [];
+    renderLocationsTable();
     return;
   }
 
   const { data, error } = await db.from("employee_locations").select("*").in("employee_id", ids);
   if (error) { showToast(t("couldNotLoadLocations")); return; }
+  LOCATIONS_ROWS = data || [];
 
-  empty.style.display = (data && data.length) ? "none" : "block";
-
+  // Map markers always reflect everyone's actual live location, regardless
+  // of the table search — this is a safety-tracking view, so search should
+  // only help find someone in the list, not hide anyone's pin from the map.
   const seen = new Set();
-  for (const loc of data || []) {
+  for (const loc of LOCATIONS_ROWS) {
     const emp = teamById[loc.employee_id];
     if (!emp) continue;
     seen.add(loc.employee_id);
@@ -76,15 +108,6 @@ async function refreshLocations() {
         ACCURACY_CIRCLES[loc.employee_id].setRadius(loc.accuracy);
       }
     }
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${emp.full_name}</td>
-      <td>${emp.client_company || "—"}</td>
-      <td>${timeAgo(loc.updated_at)}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-center="${loc.employee_id}">${t("view")}</button></td>
-    `;
-    body.appendChild(tr);
   }
 
   // Drop markers for anyone who left the team or has no location on file.
@@ -94,6 +117,38 @@ async function refreshLocations() {
       delete MARKERS[id];
       if (ACCURACY_CIRCLES[id]) { MAP.removeLayer(ACCURACY_CIRCLES[id]); delete ACCURACY_CIRCLES[id]; }
     }
+  }
+
+  renderLocationsTable();
+}
+
+function renderLocationsTable() {
+  const body = document.getElementById("locationsBody");
+  const empty = document.getElementById("noLocations");
+  body.innerHTML = "";
+
+  ensureLocationsSearch();
+  const query = (document.getElementById("locationsSearchInput") || {}).value || "";
+  const filteredRows = query
+    ? LOCATIONS_ROWS.filter(loc => {
+        const emp = LOCATIONS_TEAM_BY_ID[loc.employee_id];
+        return emp && matchesTableSearch(query, emp.file_number, emp.client_company, emp.role, emp.full_name, emp.department);
+      })
+    : LOCATIONS_ROWS;
+
+  empty.style.display = filteredRows.length ? "none" : "block";
+
+  for (const loc of filteredRows) {
+    const emp = LOCATIONS_TEAM_BY_ID[loc.employee_id];
+    if (!emp) continue;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${emp.full_name}</td>
+      <td>${emp.client_company || "—"}</td>
+      <td>${timeAgo(loc.updated_at)}</td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-center="${loc.employee_id}">${t("view")}</button></td>
+    `;
+    body.appendChild(tr);
   }
 
   body.querySelectorAll("button[data-center]").forEach(btn => {
