@@ -1145,3 +1145,32 @@ const fwxTableAlignObserver = new MutationObserver((mutations) => {
   }
 });
 fwxTableAlignObserver.observe(document.body, { childList: true, subtree: true });
+
+// ------------------------------------------------------------
+// System-wide: any Prev/Next pagination button (id ending in "PrevBtn" or
+// "NextBtn" — the naming convention already used consistently everywhere)
+// gets the shared grey .btn-paginate style, regardless of whatever class
+// it currently has in that page's HTML. Covers every page automatically.
+function applyPaginationButtonStyle(root) {
+  const buttons = (root || document).querySelectorAll('button[id$="PrevBtn"], button[id$="NextBtn"]');
+  buttons.forEach(btn => {
+    btn.classList.remove("btn-blue", "btn-primary", "btn-danger");
+    if (!btn.classList.contains("btn-paginate")) btn.classList.add("btn-paginate");
+  });
+}
+
+document.addEventListener("DOMContentLoaded", () => applyPaginationButtonStyle(document));
+
+const fwxPaginationBtnObserver = new MutationObserver((mutations) => {
+  for (const m of mutations) {
+    m.addedNodes.forEach(node => {
+      if (node.nodeType !== 1) return;
+      if (node.matches && (node.matches('button[id$="PrevBtn"]') || node.matches('button[id$="NextBtn"]'))) {
+        applyPaginationButtonStyle(node.parentNode || document);
+      } else if (node.querySelectorAll) {
+        applyPaginationButtonStyle(node);
+      }
+    });
+  }
+});
+fwxPaginationBtnObserver.observe(document.body, { childList: true, subtree: true });
