@@ -343,6 +343,78 @@
         </div>
         <div></div>
       </div>
+      <div class="field-row">
+        <div>
+          <label for="editNationalId">National ID number</label>
+          <input type="text" id="editNationalId">
+        </div>
+        <div>
+          <label for="editIdNumber">ID number</label>
+          <input type="text" id="editIdNumber">
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="editEmergencyContactName">Emergency contact name</label>
+          <input type="text" id="editEmergencyContactName">
+        </div>
+        <div>
+          <label for="editEmergencyContactPhone">Emergency contact phone</label>
+          <input type="text" id="editEmergencyContactPhone">
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="editSocialSecurityNumber">Social security number</label>
+          <input type="text" id="editSocialSecurityNumber">
+        </div>
+        <div>
+          <label for="editBankAccount">Bank account / IBAN</label>
+          <input type="text" id="editBankAccount">
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="editEmploymentType">Employment type</label>
+          <select id="editEmploymentType">
+            <option value="">Select employment type…</option>
+            <option value="full_time">Full-time</option>
+            <option value="part_time">Part-time</option>
+            <option value="contractor">Contractor</option>
+          </select>
+        </div>
+        <div>
+          <label for="editHazardousOccupation">Hazardous occupation?</label>
+          <select id="editHazardousOccupation">
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="editVehicleStatus">Vehicle</label>
+          <select id="editVehicleStatus">
+            <option value="">None</option>
+            <option value="company_provided">Company-provided vehicle</option>
+            <option value="employee_rented">Employee's own vehicle (rented)</option>
+          </select>
+        </div>
+        <div></div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="editSpouseEmployed">Is spouse employed?</label>
+          <select id="editSpouseEmployed">
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
+        </div>
+        <div>
+          <label for="editSpouseSalary">Spouse salary (if employed)</label>
+          <input type="number" id="editSpouseSalary" min="0" step="1">
+        </div>
+      </div>
       <div style="display:flex; gap:10px; margin-top:6px">
         <button type="submit" class="btn btn-primary" id="editSaveBtn" style="width:220px" data-i18n="save">Save</button>
         <button type="button" class="btn btn-danger" id="cancelEditBtn" data-confirm-close="1" style="width:220px" data-i18n="cancel">Cancel</button>
