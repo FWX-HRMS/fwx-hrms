@@ -2402,56 +2402,65 @@ document.getElementById("showAddFormBtn").addEventListener("click", async () => 
 });
 
 async function checkAdminEmployeeActionNotifications() {
-  const lastSeenKey = `fwx_adminLastSeenActions_${ME.id}`;
-  const lastSeen = localStorage.getItem(lastSeenKey);
-  const lastSeenDate = lastSeen ? new Date(lastSeen) : null;
-  const nowIso = new Date().toISOString();
+  try {
+    const lastSeenKey = `fwx_adminLastSeenActions_${ME.id}`;
+    const lastSeen = localStorage.getItem(lastSeenKey);
+    const lastSeenDate = lastSeen ? new Date(lastSeen) : null;
+    const nowIso = new Date().toISOString();
 
-  const [{ data: signedContracts }, { data: ackedWarnings }] = await Promise.all([
-    db.from("contracts").select("id, employee_id, signed_at").eq("status", "signed").not("signed_at", "is", null),
-    db.from("warnings").select("id, employee_id, acknowledged_at").not("acknowledged_at", "is", null),
-  ]);
+    const [{ data: signedContracts, error: contractsErr }, { data: ackedWarnings, error: warningsErr }] = await Promise.all([
+      db.from("contracts").select("id, employee_id, signed_at").eq("status", "signed").not("signed_at", "is", null),
+      db.from("warnings").select("id, employee_id, acknowledged_at").not("acknowledged_at", "is", null),
+    ]);
 
-  const nameFor = (employeeId) => {
-    const emp = DIRECTORY.find(e => e.id === employeeId);
-    return emp ? emp.full_name : "An employee";
-  };
+    if (contractsErr) console.error("checkAdminEmployeeActionNotifications: contracts query failed", contractsErr);
+    if (warningsErr) console.error("checkAdminEmployeeActionNotifications: warnings query failed", warningsErr);
 
-  const namesList = (names) => {
-    const unique = [...new Set(names)];
-    if (unique.length <= 3) return unique.join(", ");
-    return `${unique.slice(0, 3).join(", ")}, and ${unique.length - 3} more`;
-  };
+    const nameFor = (employeeId) => {
+      const emp = DIRECTORY.find(e => e.id === employeeId);
+      return emp ? emp.full_name : "An employee";
+    };
 
-  const newSigned = (signedContracts || []).filter(c => !lastSeenDate || new Date(c.signed_at) > lastSeenDate);
-  const newAcked = (ackedWarnings || []).filter(w => !lastSeenDate || new Date(w.acknowledged_at) > lastSeenDate);
+    const namesList = (names) => {
+      const unique = [...new Set(names)];
+      if (unique.length <= 3) return unique.join(", ");
+      return `${unique.slice(0, 3).join(", ")}, and ${unique.length - 3} more`;
+    };
 
-  if (newSigned.length === 0 && newAcked.length === 0) {
-    localStorage.setItem(lastSeenKey, nowIso);
-    return;
+    const newSigned = (signedContracts || []).filter(c => !lastSeenDate || new Date(c.signed_at) > lastSeenDate);
+    const newAcked = (ackedWarnings || []).filter(w => !lastSeenDate || new Date(w.acknowledged_at) > lastSeenDate);
+
+    console.log(`checkAdminEmployeeActionNotifications: lastSeen=${lastSeen || "never"}, signedContracts=${(signedContracts||[]).length}, ackedWarnings=${(ackedWarnings||[]).length}, newSigned=${newSigned.length}, newAcked=${newAcked.length}`);
+
+    if (newSigned.length === 0 && newAcked.length === 0) {
+      localStorage.setItem(lastSeenKey, nowIso);
+      return;
+    }
+
+    const parts = [];
+    if (newSigned.length > 0) {
+      const names = namesList(newSigned.map(c => nameFor(c.employee_id)));
+      parts.push(`${newSigned.length} contract${newSigned.length > 1 ? "s" : ""} newly signed (${names})`);
+    }
+    if (newAcked.length > 0) {
+      const names = namesList(newAcked.map(w => nameFor(w.employee_id)));
+      parts.push(`${newAcked.length} warning${newAcked.length > 1 ? "s" : ""} newly acknowledged (${names})`);
+    }
+
+    const banner = document.createElement("div");
+    banner.style.cssText = "position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10001; background:#1b2430; color:#fff; padding:12px 20px; border-radius:8px; font-size:13.5px; box-shadow:0 6px 20px rgba(0,0,0,0.25); display:flex; align-items:center; gap:14px; max-width:90vw;";
+    banner.innerHTML = `
+      <span>🔔 ${parts.join(" · ")} since your last visit.</span>
+      <button type="button" style="background:#2563eb; color:#fff; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:12.5px; font-weight:600; white-space:nowrap">Dismiss</button>
+    `;
+    banner.querySelector("button").addEventListener("click", () => {
+      localStorage.setItem(lastSeenKey, nowIso);
+      banner.remove();
+    });
+    document.body.appendChild(banner);
+  } catch (err) {
+    console.error("checkAdminEmployeeActionNotifications: unexpected error", err);
   }
-
-  const parts = [];
-  if (newSigned.length > 0) {
-    const names = namesList(newSigned.map(c => nameFor(c.employee_id)));
-    parts.push(`${newSigned.length} contract${newSigned.length > 1 ? "s" : ""} newly signed (${names})`);
-  }
-  if (newAcked.length > 0) {
-    const names = namesList(newAcked.map(w => nameFor(w.employee_id)));
-    parts.push(`${newAcked.length} warning${newAcked.length > 1 ? "s" : ""} newly acknowledged (${names})`);
-  }
-
-  const banner = document.createElement("div");
-  banner.style.cssText = "position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10001; background:#1b2430; color:#fff; padding:12px 20px; border-radius:8px; font-size:13.5px; box-shadow:0 6px 20px rgba(0,0,0,0.25); display:flex; align-items:center; gap:14px; max-width:90vw;";
-  banner.innerHTML = `
-    <span>🔔 ${parts.join(" · ")} since your last visit.</span>
-    <button type="button" style="background:#2563eb; color:#fff; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:12.5px; font-weight:600; white-space:nowrap">Dismiss</button>
-  `;
-  banner.querySelector("button").addEventListener("click", () => {
-    localStorage.setItem(lastSeenKey, nowIso);
-    banner.remove();
-  });
-  document.body.appendChild(banner);
 }
 
 (async () => {
