@@ -2451,21 +2451,9 @@ async function checkAdminEmployeeActionNotifications() {
       parts.push(`${newAcked.length} warning${newAcked.length > 1 ? "s" : ""} newly acknowledged (${names})`);
     }
 
-    const existingBanner = document.getElementById("fwxAdminActionBanner");
-    if (existingBanner) existingBanner.remove();
-
-    const banner = document.createElement("div");
-    banner.id = "fwxAdminActionBanner";
-    banner.style.cssText = "position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10001; background:#1b2430; color:#fff; padding:12px 20px; border-radius:8px; font-size:13.5px; box-shadow:0 6px 20px rgba(0,0,0,0.25); display:flex; align-items:center; gap:14px; max-width:90vw;";
-    banner.innerHTML = `
-      <span>🔔 ${parts.join(" · ")} since your last visit.</span>
-      <button type="button" style="background:#2563eb; color:#fff; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:12.5px; font-weight:600; white-space:nowrap">Dismiss</button>
-    `;
-    banner.querySelector("button").addEventListener("click", () => {
+    showInfoPopup(t("docActivityTitle"), `${parts.join(" · ")} since your last visit.`, "🔔", () => {
       localStorage.setItem(lastSeenKey, nowIso);
-      banner.remove();
     });
-    document.body.appendChild(banner);
   } catch (err) {
     console.error("checkAdminEmployeeActionNotifications: unexpected error", err);
   }

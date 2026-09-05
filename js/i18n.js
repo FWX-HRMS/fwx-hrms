@@ -1218,12 +1218,20 @@ function ensureInfoPopup() {
   return overlay;
 }
 
-function showInfoPopup(title, message, icon) {
+function showInfoPopup(title, message, icon, onOk) {
   const overlay = ensureInfoPopup();
   document.getElementById("fwxInfoPopupIcon").textContent = icon || "🔍";
   document.getElementById("fwxInfoPopupTitle").textContent = title;
   document.getElementById("fwxInfoPopupText").textContent = message;
   overlay.style.display = "flex";
+  overlay.dataset.onOkPending = "1";
+  const okBtn = document.getElementById("fwxInfoPopupOkBtn");
+  const handler = () => {
+    if (overlay.dataset.onOkPending === "1" && typeof onOk === "function") onOk();
+    overlay.dataset.onOkPending = "";
+    okBtn.removeEventListener("click", handler);
+  };
+  okBtn.addEventListener("click", handler);
 }
 
 function notifyIfNoSearchResults(inputEl, query, resultCount) {
