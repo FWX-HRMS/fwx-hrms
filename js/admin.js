@@ -175,6 +175,13 @@ async function loadLeaveRequests() {
   renderLeaveRequests();
 }
 
+function newBadge(dateStr) {
+  if (!dateStr) return "";
+  const ageMs = Date.now() - new Date(dateStr).getTime();
+  if (ageMs < 0 || ageMs > 24 * 60 * 60 * 1000) return "";
+  return ` <span style="display:inline-block; background:#1f9d55; color:#fff; font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:10px; vertical-align:middle; margin-inline-start:6px">NEW</span>`;
+}
+
 function matchesTableSearch(query, fileNumber, company, role, name, department) {
   if (!query) return true;
   const q = query.toLowerCase();
@@ -222,7 +229,7 @@ function renderLeaveRequests() {
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${r.reason ? r.reason : "—"}</td>
       <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">View Attachment</button>` : "—"}</td>
-      <td>${badgeFor(r.status)}</td>
+      <td>${badgeFor(r.status)}${newBadge(r.requested_at)}</td>
       <td><button type="button" class="btn btn-danger btn-sm" data-delete-leave="${r.id}">${t("deleteBtn")}</button></td>
     `;
     body.appendChild(tr);
@@ -633,7 +640,7 @@ function renderWarnings() {
       <td>${emp ? emp.file_number : "—"}</td>
       <td>${emp ? (emp.client_company || "—") : "—"}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
-      <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
+      <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}${newBadge(w.created_at)}</td>
       <td>${fmtDate(w.created_at ? w.created_at.slice(0,10) : null)}</td>
       <td>
         <button type="button" class="btn btn-blue btn-sm" data-view-warning="${w.id}">View Warning</button>
@@ -856,7 +863,7 @@ function renderContracts() {
       <td>${emp ? emp.full_name : "—"}</td>
       <td>${emp ? emp.file_number : "—"}</td>
       <td>${emp ? (emp.client_company || "—") : "—"}</td>
-      <td>${contractStatusBadge(c.status)}</td>
+      <td>${contractStatusBadge(c.status)}${newBadge(c.created_at)}</td>
       <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
       <td>${c.contract_period_months ? `${c.contract_period_months} ${t("monthsLabel")}` : "—"}</td>
       <td>

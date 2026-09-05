@@ -21,6 +21,13 @@ function ensureTableSearch(tbodyId, inputId, onQuery) {
   return input;
 }
 
+function newBadge(dateStr) {
+  if (!dateStr) return "";
+  const ageMs = Date.now() - new Date(dateStr).getTime();
+  if (ageMs < 0 || ageMs > 24 * 60 * 60 * 1000) return "";
+  return ` <span style="display:inline-block; background:#1f9d55; color:#fff; font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:10px; vertical-align:middle; margin-inline-start:6px">NEW</span>`;
+}
+
 function matchesTableSearch(query, fileNumber, company, role, name, department) {
   if (!query) return true;
   const q = query.toLowerCase();
@@ -255,10 +262,11 @@ function renderPending() {
     const emp = TEAM_BY_ID[r.employee_id];
     const tr = document.createElement("tr");
     const actionsCell = ME.role === "admin"
-      ? `<td>${badgeFor(r.status)}</td>`
+      ? `<td>${badgeFor(r.status)}${newBadge(r.requested_at)}</td>`
       : `<td class="row-actions">
           <button class="btn btn-primary btn-sm" data-action="approved" data-id="${r.id}">${t("approveBtn")}</button>
           <button class="btn btn-danger btn-sm" data-action="rejected" data-id="${r.id}">${t("rejectBtn")}</button>
+          ${newBadge(r.requested_at)}
         </td>`;
     tr.innerHTML = `
       <td>${emp.full_name}</td>
@@ -330,7 +338,7 @@ function renderHistory() {
       <td>${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}</td>
       <td>${r.days_requested}</td>
       <td style="text-transform:capitalize">${r.leave_type}</td>
-      <td>${badgeFor(r.status)}</td>
+      <td>${badgeFor(r.status)}${newBadge(r.requested_at)}</td>
     `;
     historyBody.appendChild(tr);
   }
@@ -595,7 +603,7 @@ function renderTeamWarnings() {
       <td>${emp.file_number}</td>
       <td>${emp.client_company || "—"}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
-      <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
+      <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}${newBadge(w.created_at)}</td>
       <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
       <td>
         <button type="button" class="btn btn-blue btn-sm" data-view-team-warning="${w.id}">View Warning</button>
@@ -756,7 +764,7 @@ function renderAdminContracts() {
       <td>${emp ? emp.full_name : "—"}</td>
       <td>${emp ? emp.file_number : "—"}</td>
       <td>${emp ? (emp.client_company || "—") : "—"}</td>
-      <td>${docStatusBadge(c.status)}</td>
+      <td>${docStatusBadge(c.status)}${newBadge(c.created_at)}</td>
       <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
       <td>${c.contract_period_months ? `${c.contract_period_months} ${t("monthsLabel")}` : "—"}</td>
       <td>
@@ -814,7 +822,7 @@ function renderAdminWarnings() {
       <td>${emp ? emp.full_name : "—"}</td>
       <td>${emp ? emp.file_number : "—"}</td>
       <td>${emp ? (emp.client_company || "—") : "—"}</td>
-      <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
+      <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}${newBadge(w.created_at)}</td>
       <td>${fmtDate(w.created_at ? w.created_at.slice(0,10) : null)}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
       <td>
