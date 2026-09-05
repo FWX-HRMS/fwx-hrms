@@ -164,7 +164,7 @@ function openContractView(id) {
   const display = document.getElementById("contractTextDisplay");
   display.textContent = c.contract_text || "";
   CONTRACT_ALT_TEXT = c.contract_text_alt || "";
-  CONTRACT_LANG = c.language === "en" ? "en" : "ar";
+  CONTRACT_LANG = containsArabic(c.contract_text) ? "ar" : "en";
   display.dir = CONTRACT_LANG === "ar" ? "rtl" : "ltr";
   display.style.textAlign = CONTRACT_LANG === "ar" ? "right" : "left";
   updateContractConvertBtnLabel();
@@ -463,7 +463,7 @@ document.getElementById("contractConvertBtn").addEventListener("click", () => {
   const current = display.textContent;
   display.textContent = CONTRACT_ALT_TEXT;
   CONTRACT_ALT_TEXT = current;
-  CONTRACT_LANG = CONTRACT_LANG === "ar" ? "en" : "ar";
+  CONTRACT_LANG = containsArabic(display.textContent) ? "ar" : "en";
   display.dir = CONTRACT_LANG === "ar" ? "rtl" : "ltr";
   display.style.textAlign = CONTRACT_LANG === "ar" ? "right" : "left";
   updateContractConvertBtnLabel();
