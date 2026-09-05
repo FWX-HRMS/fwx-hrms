@@ -182,9 +182,10 @@ function renderUsers() {
   ensureUsersSupervisorHeader();
   ensureTableSearch("usersBody", "usersSearchInput", () => { USERS_PAGE = 0; renderUsers(); });
   const query = (document.getElementById("usersSearchInput") || {}).value || "";
+  const activeTeam = TEAM_LIST.filter(e => !e.frozen);
   const filteredTeam = query
-    ? TEAM_LIST.filter(e => matchesTableSearch(query, e.file_number, e.client_company, e.role, e.full_name, e.department))
-    : TEAM_LIST;
+    ? activeTeam.filter(e => matchesTableSearch(query, e.file_number, e.client_company, e.role, e.full_name, e.department))
+    : activeTeam;
   notifyIfNoSearchResults(document.getElementById("usersSearchInput"), query, filteredTeam.length);
   empty.style.display = filteredTeam.length ? "none" : "block";
 
