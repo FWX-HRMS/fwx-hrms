@@ -423,6 +423,32 @@ document.getElementById("closeNewContractBtn").addEventListener("click", () => {
 async function checkNewDocsNotification() {
   const contractBox = document.getElementById("contractNotification");
   const warningBox = document.getElementById("warningNotification");
+  const expiringBox = document.getElementById("contractExpiringNotification");
+
+  // Employee-facing heads-up when their own signed contract is entering
+  // its final week — separate from the admin's 30-day reminder, and
+  // scoped to only this employee's own contract via RLS.
+  const today = new Date();
+  const in7Days = new Date();
+  in7Days.setDate(today.getDate() + 7);
+  const todayIso = today.toISOString().slice(0, 10);
+  const in7Iso = in7Days.toISOString().slice(0, 10);
+  const { data: expiringContracts } = await db
+    .from("contracts")
+    .select("id, end_date, updated_at")
+    .eq("employee_id", ME.id)
+    .eq("status", "signed")
+    .gte("end_date", todayIso)
+    .lte("end_date", in7Iso)
+    .order("end_date", { ascending: true });
+
+  if (expiringContracts && expiringContracts.length > 0) {
+    const soonest = expiringContracts[0];
+    expiringBox.textContent = `⚠ Your contract is set to expire on ${fmtDate(soonest.end_date)}. Please contact HR if you have questions about renewal.`;
+    expiringBox.style.display = "block";
+  } else {
+    expiringBox.style.display = "none";
+  }
 
   // Any contract visible to this employee via RLS is already shared/commented/signed.
   // We only need to flag it if it's awaiting the employee's attention.
