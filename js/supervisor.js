@@ -362,11 +362,20 @@ function showDateRangePrompt(title) {
     document.getElementById("rangeFormatExcel").checked = false;
     document.getElementById("rangeFormatError").classList.remove("show");
 
-    const companySelect = ensureRangeCompanySelect();
-    if (companySelect) {
-      const { data: companies } = await db.from("client_companies").select("name").order("name");
-      companySelect.innerHTML = `<option value="">All companies</option>` +
-        (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
+    // A regular supervisor's team is always within their own company, so
+    // the company filter only adds value for admins viewing across
+    // companies — keep it hidden entirely for supervisors.
+    const existingCompanySelect = document.getElementById("rangeCompanySelect");
+    if (ME.role === "admin") {
+      const companySelect = ensureRangeCompanySelect();
+      if (companySelect) {
+        const { data: companies } = await db.from("client_companies").select("name").order("name");
+        companySelect.innerHTML = `<option value="">All companies</option>` +
+          (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
+        companySelect.closest("div").style.display = "";
+      }
+    } else if (existingCompanySelect) {
+      existingCompanySelect.closest("div").style.display = "none";
     }
 
     document.getElementById("dateRangeOverlay").style.display = "flex";
@@ -390,7 +399,7 @@ function showDateRangePrompt(title) {
       const from = document.getElementById("rangeFromInput").value || null;
       const to = document.getElementById("rangeToInput").value || null;
       const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
-      const company = (document.getElementById("rangeCompanySelect") || {}).value || null;
+      const company = ME.role === "admin" ? ((document.getElementById("rangeCompanySelect") || {}).value || null) : null;
       cleanup();
       resolve({ from, to, employeeId, company, wantPdf, wantExcel });
     };
@@ -485,19 +494,24 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
   const columns = ["Employee Name", "ID #", "Active Warning", "Annual", "Taken", "Available Balance", "Pending", "Sick", "Sick Taken", "Sick Remaining"];
   const scope = range.company ? `${range.company} — ` : "";
+
+  const selectedEmployee = range.employeeId ? source[0] : null;
+  const reportName = selectedEmployee ? selectedEmployee.full_name : "All Team Report";
+  const safeReportName = reportName.replace(/[^a-zA-Z0-9]+/g, "_").toLowerCase();
   const filenamePrefix = range.company ? `${range.company.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_` : "";
+  const reportTitle = selectedEmployee ? `${scope}${reportName} — Leave Report` : `${scope}All Team Report`;
 
   if (range.wantPdf) {
     downloadPDF(
-      `${scope}My Team — Leave Report`,
+      reportTitle,
       `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
       columns,
       rows,
-      `${filenamePrefix}my_team_leave_report.pdf`
+      `${filenamePrefix}${safeReportName}.pdf`
     );
   }
   if (range.wantExcel) {
-    downloadExcel(`${scope}My Team — Leave Report`, columns, rows, `${filenamePrefix}my_team_leave_report.xlsx`);
+    downloadExcel(reportTitle, columns, rows, `${filenamePrefix}${safeReportName}.xlsx`);
   }
 });
 
