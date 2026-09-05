@@ -22,18 +22,51 @@ async function loadWarnings() {
     .eq("status", "sent")
     .order("sent_at", { ascending: false });
 
+  if (error || !data) {
+    document.getElementById("noWarningsMsg").style.display = "block";
+    return;
+  }
+  WARNINGS_LIST = data;
+  renderWarnings();
+}
+
+function ensureWarningsSearch() {
+  let input = document.getElementById("warningsSearchInput");
+  if (input) return input;
+  const tbody = document.getElementById("warningsBody");
+  const table = tbody && tbody.closest("table");
+  if (!table) return null;
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:relative; max-width:480px; margin-bottom:14px";
+  wrap.innerHTML = `
+    <span style="position:absolute; inset-inline-start:12px; top:50%; transform:translateY(-50%); pointer-events:none; opacity:.55">🔍</span>
+    <input type="text" id="warningsSearchInput" placeholder="Reason or status" style="width:100%; padding-inline-start:36px">
+  `;
+  table.parentNode.insertBefore(wrap, table);
+  input = document.getElementById("warningsSearchInput");
+  input.addEventListener("input", () => renderWarnings());
+  return input;
+}
+
+function renderWarnings() {
   const body = document.getElementById("warningsBody");
   const empty = document.getElementById("noWarningsMsg");
   body.innerHTML = "";
 
-  if (error || !data || data.length === 0) {
+  if (WARNINGS_LIST.length === 0) {
     empty.style.display = "block";
     return;
   }
-  empty.style.display = "none";
-  WARNINGS_LIST = data;
 
-  for (const w of data) {
+  ensureWarningsSearch();
+  const query = (document.getElementById("warningsSearchInput") || {}).value.trim().toLowerCase() || "";
+  const filtered = query
+    ? WARNINGS_LIST.filter(w => (w.reason || "").toLowerCase().includes(query) || (w.status || "").toLowerCase().includes(query))
+    : WARNINGS_LIST;
+
+  empty.style.display = filtered.length ? "none" : "block";
+
+  for (const w of filtered) {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${ME.full_name}</td>

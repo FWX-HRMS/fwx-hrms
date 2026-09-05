@@ -64,6 +64,8 @@ function badgeFor(status) {
   return `<span class="badge badge-${status}">${t(key)}</span>`;
 }
 
+let MY_REQUESTS_LIST = [];
+
 async function loadRequests() {
   const { data, error } = await db
     .from("leave_requests")
@@ -71,17 +73,51 @@ async function loadRequests() {
     .eq("employee_id", ME.id)
     .order("requested_at", { ascending: false });
 
+  if (error || !data) {
+    document.getElementById("noRequests").style.display = "block";
+    return;
+  }
+  MY_REQUESTS_LIST = data;
+  renderRequests();
+}
+
+function ensureRequestsSearch() {
+  let input = document.getElementById("requestsSearchInput");
+  if (input) return input;
+  const tbody = document.getElementById("requestsBody");
+  const table = tbody && tbody.closest("table");
+  if (!table) return null;
+  const wrap = document.createElement("div");
+  wrap.style.cssText = "position:relative; max-width:480px; margin-bottom:14px";
+  wrap.innerHTML = `
+    <span style="position:absolute; inset-inline-start:12px; top:50%; transform:translateY(-50%); pointer-events:none; opacity:.55">🔍</span>
+    <input type="text" id="requestsSearchInput" placeholder="Type or status" style="width:100%; padding-inline-start:36px">
+  `;
+  table.parentNode.insertBefore(wrap, table);
+  input = document.getElementById("requestsSearchInput");
+  input.addEventListener("input", () => renderRequests());
+  return input;
+}
+
+function renderRequests() {
   const body = document.getElementById("requestsBody");
   const empty = document.getElementById("noRequests");
   body.innerHTML = "";
 
-  if (error || !data || data.length === 0) {
+  if (MY_REQUESTS_LIST.length === 0) {
     empty.style.display = "block";
     return;
   }
-  empty.style.display = "none";
 
-  for (const r of data) {
+  ensureRequestsSearch();
+  const query = (document.getElementById("requestsSearchInput") || {}).value.trim().toLowerCase() || "";
+  const filtered = query
+    ? MY_REQUESTS_LIST.filter(r => (r.leave_type || "").toLowerCase().includes(query) || (r.status || "").toLowerCase().includes(query))
+    : MY_REQUESTS_LIST;
+
+  empty.style.display = filtered.length ? "none" : "block";
+
+  for (const r of filtered) {
     const tr = document.createElement("tr");
     const canCancel = r.status === "pending";
     tr.innerHTML = `
