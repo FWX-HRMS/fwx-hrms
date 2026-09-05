@@ -104,6 +104,7 @@ async function loadContracts() {
     .select("*")
     .eq("employee_id", ME.id)
     .neq("status", "draft")
+    .neq("status", "signed")
     .order("created_at", { ascending: false });
 
   const body = document.getElementById("contractsBody");
@@ -134,10 +135,6 @@ async function loadContracts() {
   body.querySelectorAll("button[data-view-contract]").forEach(btn => {
     btn.addEventListener("click", () => openContractView(btn.dataset.viewContract));
   });
-
-  // Popup once per session for a signed, unexpired contract.
-  const activeOne = data.find(c => c.status === "signed");
-  if (activeOne) checkActiveContractNotice(activeOne);
 
   // Popup once per new contract awaiting the employee's review.
   const awaitingOnes = data.filter(c => c.status === "shared");
