@@ -638,6 +638,7 @@ function renderWarnings() {
       <td>
         <button type="button" class="btn btn-blue btn-sm" data-view-warning="${w.id}">View Warning</button>
         <button type="button" class="btn btn-danger btn-sm" data-delete-warning="${w.id}">${t("deleteBtn")}</button>
+        ${w.status === "sent" && !w.acknowledged_at ? `<div style="margin-top:4px; font-size:11.5px; color:#A5402B; font-weight:600">Needs action from Employee</div>` : ""}
       </td>
     `;
     body.appendChild(tr);
@@ -861,6 +862,7 @@ function renderContracts() {
       <td>
         <button type="button" class="btn btn-blue btn-sm" data-view-contract="${c.id}">View Contract</button>
         <button type="button" class="btn btn-danger btn-sm" data-delete-contract="${c.id}">${t("deleteBtn")}</button>
+        ${c.status === "shared" ? `<div style="margin-top:4px; font-size:11.5px; color:#A5402B; font-weight:600">Needs action from Employee</div>` : ""}
       </td>
     `;
     body.appendChild(tr);
@@ -2392,6 +2394,42 @@ document.getElementById("showAddFormBtn").addEventListener("click", async () => 
   await ewRenderCurrentStep();
 });
 
+async function checkAdminEmployeeActionNotifications() {
+  const lastSeenKey = `fwx_adminLastSeenActions_${ME.id}`;
+  const lastSeen = localStorage.getItem(lastSeenKey);
+  const lastSeenDate = lastSeen ? new Date(lastSeen) : null;
+  const nowIso = new Date().toISOString();
+
+  const [{ data: signedContracts }, { data: ackedWarnings }] = await Promise.all([
+    db.from("contracts").select("id, signed_at").eq("status", "signed").not("signed_at", "is", null),
+    db.from("warnings").select("id, acknowledged_at").not("acknowledged_at", "is", null),
+  ]);
+
+  const newSigned = (signedContracts || []).filter(c => !lastSeenDate || new Date(c.signed_at) > lastSeenDate).length;
+  const newAcked = (ackedWarnings || []).filter(w => !lastSeenDate || new Date(w.acknowledged_at) > lastSeenDate).length;
+
+  if (newSigned === 0 && newAcked === 0) {
+    localStorage.setItem(lastSeenKey, nowIso);
+    return;
+  }
+
+  const parts = [];
+  if (newSigned > 0) parts.push(`${newSigned} contract${newSigned > 1 ? "s" : ""} newly signed`);
+  if (newAcked > 0) parts.push(`${newAcked} warning${newAcked > 1 ? "s" : ""} newly acknowledged`);
+
+  const banner = document.createElement("div");
+  banner.style.cssText = "position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10001; background:#1b2430; color:#fff; padding:12px 20px; border-radius:8px; font-size:13.5px; box-shadow:0 6px 20px rgba(0,0,0,0.25); display:flex; align-items:center; gap:14px; max-width:90vw;";
+  banner.innerHTML = `
+    <span>🔔 ${parts.join(" · ")} since your last visit.</span>
+    <button type="button" style="background:#2563eb; color:#fff; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-size:12.5px; font-weight:600; white-space:nowrap">Dismiss</button>
+  `;
+  banner.querySelector("button").addEventListener("click", () => {
+    localStorage.setItem(lastSeenKey, nowIso);
+    banner.remove();
+  });
+  document.body.appendChild(banner);
+}
+
 (async () => {
   ME = await requireSession("admin");
   if (!ME) return;
@@ -2402,6 +2440,7 @@ document.getElementById("showAddFormBtn").addEventListener("click", async () => 
   }
   await Promise.all([loadSupervisors(), loadBalances(), loadWarningsDataOnly()]);
   await loadDirectory();
+  checkAdminEmployeeActionNotifications();
 
   // Deep link from the dashboard's "View" buttons: ?tab=contracts&contractId=... / ?tab=warnings&warningId=...
   const qs = new URLSearchParams(window.location.search);

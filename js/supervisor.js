@@ -597,7 +597,10 @@ function renderTeamWarnings() {
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
       <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
       <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-view-team-warning="${w.id}">View Warning</button></td>
+      <td>
+        <button type="button" class="btn btn-blue btn-sm" data-view-team-warning="${w.id}">View Warning</button>
+        ${w.status === "sent" && !w.acknowledged_at ? `<div style="margin-top:4px; font-size:11.5px; color:#A5402B; font-weight:600">Needs action from Employee</div>` : ""}
+      </td>
     `;
     body.appendChild(tr);
   }
@@ -736,7 +739,10 @@ function renderAdminContracts() {
       <td>${docStatusBadge(c.status)}</td>
       <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
       <td>${c.contract_period_months ? `${c.contract_period_months} ${t("monthsLabel")}` : "—"}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-view-admin-contract="${c.id}">View Contract</button></td>
+      <td>
+        <button type="button" class="btn btn-blue btn-sm" data-view-admin-contract="${c.id}">View Contract</button>
+        ${c.status === "shared" ? `<div style="margin-top:4px; font-size:11.5px; color:#A5402B; font-weight:600">Needs action from Employee</div>` : ""}
+      </td>
     `;
     body.appendChild(tr);
   }
@@ -791,7 +797,10 @@ function renderAdminWarnings() {
       <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
       <td>${fmtDate(w.created_at ? w.created_at.slice(0,10) : null)}</td>
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-view-admin-warning="${w.id}">View Warning</button></td>
+      <td>
+        <button type="button" class="btn btn-blue btn-sm" data-view-admin-warning="${w.id}">View Warning</button>
+        ${w.status === "sent" && !w.acknowledged_at ? `<div style="margin-top:4px; font-size:11.5px; color:#A5402B; font-weight:600">Needs action from Employee</div>` : ""}
+      </td>
     `;
     body.appendChild(tr);
   }
