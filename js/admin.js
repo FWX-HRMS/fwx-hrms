@@ -656,6 +656,19 @@ document.getElementById("warningCreateCancelBtn").addEventListener("click", () =
   document.getElementById("warningCreateOverlay").style.display = "none";
 });
 
+function stripDraftDisclaimer(text) {
+  if (!text) return text;
+  // The server always appends this disclaimer as the last block, in
+  // whichever language the warning was generated in — strip it (and any
+  // leading "---" separator) so it never appears to the employee or admin.
+  return text
+    .replace(/\n?-{2,}\s*\n?\s*مسودة وثيقة[\s\S]*$/, "")
+    .replace(/\n?-{2,}\s*\n?\s*DRAFT DOCUMENT[\s\S]*$/i, "")
+    .replace(/\n\s*مسودة وثيقة[\s\S]*$/, "")
+    .replace(/\n\s*DRAFT DOCUMENT[\s\S]*$/i, "")
+    .trim();
+}
+
 document.getElementById("warningCreateForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const errBox = document.getElementById("warningCreateError");
@@ -686,6 +699,24 @@ document.getElementById("warningCreateForm").addEventListener("submit", async (e
 
   document.getElementById("warningCreateOverlay").style.display = "none";
   showToast(t("warningPreparedToast"));
+
+  // Strip the draft-disclaimer the server always appends, saving the
+  // cleaned text back via the same update_warning action used for manual
+  // edits, so it's never shown to anyone from this point on.
+  const cleanedText = stripDraftDisclaimer(data.warning.warning_text);
+  const cleanedAltText = stripDraftDisclaimer(data.warning.warning_text_alt);
+  if (cleanedText !== data.warning.warning_text || cleanedAltText !== data.warning.warning_text_alt) {
+    const { data: updatedData, error: updateErr } = await db.functions.invoke("clever-action", {
+      body: { action: "update_warning", warning_id: data.warning.id, warning_text: cleanedText, warning_text_alt: cleanedAltText, language: data.warning.language }
+    });
+    if (!updateErr && updatedData && updatedData.warning) {
+      data.warning = updatedData.warning;
+    } else {
+      data.warning.warning_text = cleanedText;
+      data.warning.warning_text_alt = cleanedAltText;
+    }
+  }
+
   if (ACTIVE_TAB === "warnings") await loadWarnings();
   openWarningViewModal(data.warning.id, data.warning);
 });
