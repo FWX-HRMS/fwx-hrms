@@ -1940,6 +1940,8 @@ function ewSimpleField(key, title, label, type, required) {
 const EMP_WIZARD_STEPS = [
   ewSimpleField("full_name", t("fullNameLabel"), t("fullNameLabel"), "text", true),
   ewSimpleField("dob", t("colDob"), t("colDob"), "date", false),
+  ewSimpleField("national_id", "National ID number", "National ID number", "text", true),
+  ewSimpleField("id_number", "ID number", "ID number", "text", false),
   {
     key: "email", title: t("emailLabel"), required: true,
     render(container) {
@@ -1951,6 +1953,23 @@ const EMP_WIZARD_STEPS = [
     errorMsg: "Please enter a valid email address (e.g. name@example.com).",
   },
   ewSimpleField("address", "Address", "Address", "text", false),
+  {
+    key: "emergency_contact", title: "Emergency contact", required: false,
+    render(container) {
+      container.innerHTML = `
+        <label for="ew_emergency_contact_name">Emergency contact name</label>
+        <input type="text" id="ew_emergency_contact_name" value="${escapeHtml(EMP_WIZARD.values.emergency_contact_name || "")}">
+        <label for="ew_emergency_contact_phone" style="margin-top:12px">Emergency contact phone</label>
+        <input type="text" id="ew_emergency_contact_phone" value="${escapeHtml(EMP_WIZARD.values.emergency_contact_phone || "")}">
+      `;
+      setTimeout(() => document.getElementById("ew_emergency_contact_name").focus(), 0);
+    },
+    save() {
+      EMP_WIZARD.values.emergency_contact_name = document.getElementById("ew_emergency_contact_name").value.trim();
+      EMP_WIZARD.values.emergency_contact_phone = document.getElementById("ew_emergency_contact_phone").value.trim();
+    },
+    valid() { return true; },
+  },
   {
     key: "education", title: "Education", required: false,
     render(container) {
@@ -1989,6 +2008,7 @@ const EMP_WIZARD_STEPS = [
   ewSimpleField("job_title", "Job Title", "Job Title", "text", false),
   ewSimpleField("contract_period_months", "Contract period (months)", "Contract period (months)", "number", true),
   ewSimpleField("salary", "Salary (JOD/month)", "Salary (JOD/month)", "number", false),
+  ewSimpleField("bank_account", "Bank account / IBAN", "Bank account / IBAN", "text", false),
   {
     ...ewSimpleField("carryover", t("carryoverLabel"), t("carryoverLabel"), "number", false),
     showIf: (v) => yearsSinceHire(v.hiring_date) >= 1,
@@ -1997,6 +2017,7 @@ const EMP_WIZARD_STEPS = [
     ...ewSimpleField("taken_this_year", t("takenThisYearLabel"), t("takenThisYearLabel"), "number", false),
     showIf: (v) => !(yearsSinceHire(v.hiring_date) >= 1 && Number(v.carryover) > 0),
   },
+  ewSimpleField("social_security_number", "Social security number", "Social security number", "text", false),
   {
     key: "company", title: t("companyClientLabel"), required: true,
     async render(container) {
@@ -2044,6 +2065,51 @@ const EMP_WIZARD_STEPS = [
     valid() { return !!EMP_WIZARD.values.supervisor_file_number; },
   },
   {
+    key: "additional_details", title: "Additional details", required: false,
+    render(container) {
+      const v = EMP_WIZARD.values;
+      container.innerHTML = `
+        <label for="ew_employment_type">Employment type</label>
+        <select id="ew_employment_type">
+          <option value="">Select employment type…</option>
+          <option value="full_time" ${v.employment_type === "full_time" ? "selected" : ""}>Full-time</option>
+          <option value="part_time" ${v.employment_type === "part_time" ? "selected" : ""}>Part-time</option>
+          <option value="contractor" ${v.employment_type === "contractor" ? "selected" : ""}>Contractor</option>
+        </select>
+
+        <label for="ew_hazardous_occupation" style="margin-top:12px">Hazardous occupation?</label>
+        <select id="ew_hazardous_occupation">
+          <option value="false" ${!v.hazardous_occupation ? "selected" : ""}>No</option>
+          <option value="true" ${v.hazardous_occupation ? "selected" : ""}>Yes</option>
+        </select>
+
+        <label for="ew_vehicle_status" style="margin-top:12px">Vehicle</label>
+        <select id="ew_vehicle_status">
+          <option value="" ${!v.vehicle_status ? "selected" : ""}>None</option>
+          <option value="company_provided" ${v.vehicle_status === "company_provided" ? "selected" : ""}>Company-provided vehicle</option>
+          <option value="employee_rented" ${v.vehicle_status === "employee_rented" ? "selected" : ""}>Employee's own vehicle (rented)</option>
+        </select>
+
+        <label for="ew_spouse_employed" style="margin-top:12px">Is spouse employed?</label>
+        <select id="ew_spouse_employed">
+          <option value="false" ${!v.spouse_employed ? "selected" : ""}>No</option>
+          <option value="true" ${v.spouse_employed ? "selected" : ""}>Yes</option>
+        </select>
+
+        <label for="ew_spouse_salary" style="margin-top:12px">Spouse salary (if employed)</label>
+        <input type="number" id="ew_spouse_salary" min="0" step="1" value="${v.spouse_salary || ""}">
+      `;
+    },
+    save() {
+      EMP_WIZARD.values.employment_type = document.getElementById("ew_employment_type").value || null;
+      EMP_WIZARD.values.hazardous_occupation = document.getElementById("ew_hazardous_occupation").value === "true";
+      EMP_WIZARD.values.vehicle_status = document.getElementById("ew_vehicle_status").value || null;
+      EMP_WIZARD.values.spouse_employed = document.getElementById("ew_spouse_employed").value === "true";
+      EMP_WIZARD.values.spouse_salary = Number(document.getElementById("ew_spouse_salary").value) || null;
+    },
+    valid() { return true; },
+  },
+  {
     // Staging only — nothing uploaded yet, no employee exists yet. Files are
     // held client-side; both "Skip" and "Next" here just move on to Review,
     // where the account is actually created (and staged files uploaded).
@@ -2081,16 +2147,25 @@ const EMP_WIZARD_STEPS = [
         <div style="font-size:13.5px; line-height:1.9">
           <p><strong>${t("fullNameLabel")}:</strong> ${escapeHtml(v.full_name)}</p>
           <p><strong>${t("colDob")}:</strong> ${v.dob || "—"}</p>
+          <p><strong>National ID:</strong> ${v.national_id ? escapeHtml(v.national_id) : "—"}</p>
+          <p><strong>ID number:</strong> ${v.id_number ? escapeHtml(v.id_number) : "—"}</p>
           <p><strong>${t("emailLabel")}:</strong> ${escapeHtml(v.email)}</p>
           <p><strong>Address:</strong> ${v.address ? escapeHtml(v.address) : "—"}</p>
+          <p><strong>Emergency contact:</strong> ${v.emergency_contact_name ? `${escapeHtml(v.emergency_contact_name)}${v.emergency_contact_phone ? " — " + escapeHtml(v.emergency_contact_phone) : ""}` : "—"}</p>
           <p><strong>Education:</strong> ${v.education ? escapeHtml(v.education) : "—"}</p>
           <p><strong>Phone:</strong> ${escapeHtml(phoneDisplay)}</p>
+          <p><strong>Social security number:</strong> ${v.social_security_number ? escapeHtml(v.social_security_number) : "—"}</p>
           <p><strong>${t("hiringDateLabel")}:</strong> ${v.hiring_date || "—"}</p>
           <p><strong>Job Title:</strong> ${v.job_title ? escapeHtml(v.job_title) : "—"}</p>
           <p><strong>Contract period:</strong> ${v.contract_period_months ? v.contract_period_months + " months" : "—"}</p>
           <p><strong>Salary:</strong> ${v.salary ? v.salary + " JOD" : "—"}</p>
+          <p><strong>Bank account / IBAN:</strong> ${v.bank_account ? escapeHtml(v.bank_account) : "—"}</p>
           <p><strong>${t("companyClientLabel")}:</strong> ${escapeHtml(v.company)}</p>
           <p><strong>${t("departmentLabel")}:</strong> ${escapeHtml(v.department)}</p>
+          <p><strong>Employment type:</strong> ${v.employment_type || "—"}</p>
+          <p><strong>Hazardous occupation:</strong> ${v.hazardous_occupation ? "Yes" : "No"}</p>
+          <p><strong>Vehicle:</strong> ${v.vehicle_status === "company_provided" ? "Company-provided" : v.vehicle_status === "employee_rented" ? "Employee's own (rented)" : "None"}</p>
+          <p><strong>Spouse employed:</strong> ${v.spouse_employed ? `Yes${v.spouse_salary ? " — " + v.spouse_salary + " JOD" : ""}` : "No"}</p>
           <p><strong>Documents:</strong> ${EMP_WIZARD.stagedFiles.length ? escapeHtml(EMP_WIZARD.stagedFiles.map(f => f.name).join(", ")) : "None"}</p>
         </div>
       `;
@@ -2182,6 +2257,17 @@ async function ewFinalizeCreation() {
       supervisor_file_number: v.supervisor_file_number,
       carryover_balance: v.carryover || 0,
       taken_this_year: v.taken_this_year || 0,
+      national_id: v.national_id || null,
+      id_number: v.id_number || null,
+      social_security_number: v.social_security_number || null,
+      emergency_contact_name: v.emergency_contact_name || null,
+      emergency_contact_phone: v.emergency_contact_phone || null,
+      employment_type: v.employment_type || null,
+      bank_account: v.bank_account || null,
+      hazardous_occupation: !!v.hazardous_occupation,
+      vehicle_status: v.vehicle_status || null,
+      spouse_employed: !!v.spouse_employed,
+      spouse_salary: v.spouse_salary || null,
     }
   });
 
