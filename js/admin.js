@@ -1567,7 +1567,8 @@ async function openEditModal(id) {
   document.getElementById("editEmergencyContactName").value = e.emergency_contact_name || "";
   document.getElementById("editEmergencyContactPhone").value = e.emergency_contact_phone || "";
   document.getElementById("editSocialSecurityNumber").value = e.social_security_number || "";
-  document.getElementById("editBankAccount").value = e.bank_account || "";
+  document.getElementById("editBankAccountNumber").value = e.bank_account_number || "";
+  document.getElementById("editIban").value = e.iban || "";
   document.getElementById("editEmploymentType").value = e.employment_type || "";
   document.getElementById("editHazardousOccupation").value = e.hazardous_occupation ? "true" : "false";
   document.getElementById("editVehicleStatus").value = e.vehicle_status || "";
@@ -1632,7 +1633,8 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
   const emergency_contact_name = document.getElementById("editEmergencyContactName").value.trim() || null;
   const emergency_contact_phone = document.getElementById("editEmergencyContactPhone").value.trim() || null;
   const social_security_number = document.getElementById("editSocialSecurityNumber").value.trim() || null;
-  const bank_account = document.getElementById("editBankAccount").value.trim() || null;
+  const bank_account_number = document.getElementById("editBankAccountNumber").value.trim() || null;
+  const iban = document.getElementById("editIban").value.trim() || null;
   const employment_type = document.getElementById("editEmploymentType").value || null;
   const hazardous_occupation = document.getElementById("editHazardousOccupation").value === "true";
   const vehicle_status = document.getElementById("editVehicleStatus").value || null;
@@ -1658,7 +1660,7 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
       action: "update_employee", target_id, full_name, email, hiring_date, department, client_company, role,
       supervisor_file_number, annual_entitlement_override, carryover_balance, dob, nationality, address, education,
       salary, taken_this_year, national_id, id_number, emergency_contact_name, emergency_contact_phone,
-      social_security_number, bank_account, employment_type, hazardous_occupation, vehicle_status,
+      social_security_number, bank_account_number, iban, employment_type, hazardous_occupation, vehicle_status,
       spouse_employed, spouse_salary,
     }
   });
@@ -2163,7 +2165,8 @@ const EMP_WIZARD_STEPS = [
   ewSimpleField("job_title", "Job Title", "Job Title", "text", false),
   ewSimpleField("contract_period_months", "Contract period (months)", "Contract period (months)", "number", true),
   ewSimpleField("salary", "Salary (JOD/month)", "Salary (JOD/month)", "number", false),
-  ewSimpleField("bank_account", "Bank account / IBAN", "Bank account / IBAN", "text", false),
+  ewSimpleField("bank_account_number", "Bank account number", "Bank account number", "text", false),
+  ewSimpleField("iban", "IBAN", "IBAN", "text", false),
   {
     ...ewSimpleField("carryover", t("carryoverLabel"), t("carryoverLabel"), "number", false),
     showIf: (v) => yearsSinceHire(v.hiring_date) >= 1,
@@ -2314,7 +2317,8 @@ const EMP_WIZARD_STEPS = [
           <p><strong>Job Title:</strong> ${v.job_title ? escapeHtml(v.job_title) : "—"}</p>
           <p><strong>Contract period:</strong> ${v.contract_period_months ? v.contract_period_months + " months" : "—"}</p>
           <p><strong>Salary:</strong> ${v.salary ? v.salary + " JOD" : "—"}</p>
-          <p><strong>Bank account / IBAN:</strong> ${v.bank_account ? escapeHtml(v.bank_account) : "—"}</p>
+          <p><strong>Bank account number:</strong> ${v.bank_account_number ? escapeHtml(v.bank_account_number) : "—"}</p>
+          <p><strong>IBAN:</strong> ${v.iban ? escapeHtml(v.iban) : "—"}</p>
           <p><strong>${t("companyClientLabel")}:</strong> ${escapeHtml(v.company)}</p>
           <p><strong>${t("departmentLabel")}:</strong> ${escapeHtml(v.department)}</p>
           <p><strong>Employment type:</strong> ${v.employment_type || "—"}</p>
@@ -2418,7 +2422,8 @@ async function ewFinalizeCreation() {
       emergency_contact_name: v.emergency_contact_name || null,
       emergency_contact_phone: v.emergency_contact_phone || null,
       employment_type: v.employment_type || null,
-      bank_account: v.bank_account || null,
+      bank_account_number: v.bank_account_number || null,
+      iban: v.iban || null,
       hazardous_occupation: !!v.hazardous_occupation,
       vehicle_status: v.vehicle_status || null,
       spouse_employed: !!v.spouse_employed,
