@@ -2447,7 +2447,11 @@ async function checkAdminEmployeeActionNotifications() {
       parts.push(`${newAcked.length} warning${newAcked.length > 1 ? "s" : ""} newly acknowledged (${names})`);
     }
 
+    const existingBanner = document.getElementById("fwxAdminActionBanner");
+    if (existingBanner) existingBanner.remove();
+
     const banner = document.createElement("div");
+    banner.id = "fwxAdminActionBanner";
     banner.style.cssText = "position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10001; background:#1b2430; color:#fff; padding:12px 20px; border-radius:8px; font-size:13.5px; box-shadow:0 6px 20px rgba(0,0,0,0.25); display:flex; align-items:center; gap:14px; max-width:90vw;";
     banner.innerHTML = `
       <span>🔔 ${parts.join(" · ")} since your last visit.</span>
@@ -2474,6 +2478,7 @@ async function checkAdminEmployeeActionNotifications() {
   await Promise.all([loadSupervisors(), loadBalances(), loadWarningsDataOnly()]);
   await loadDirectory();
   checkAdminEmployeeActionNotifications();
+  setInterval(checkAdminEmployeeActionNotifications, 30000);
 
   // Deep link from the dashboard's "View" buttons: ?tab=contracts&contractId=... / ?tab=warnings&warningId=...
   const qs = new URLSearchParams(window.location.search);
