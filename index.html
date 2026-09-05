@@ -28,7 +28,15 @@
       <input type="text" id="fileNumber" autocomplete="username" required>
 
       <label for="password" data-i18n="passwordLabel">Password</label>
-      <input type="password" id="password" autocomplete="current-password" required>
+      <div style="position:relative">
+        <input type="password" id="password" autocomplete="current-password" required style="padding-inline-end:40px">
+        <button type="button" id="togglePasswordBtn" aria-label="Show password" style="position:absolute; inset-inline-end:10px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; padding:4px; display:flex; align-items:center; color:var(--ink-soft, #6b7684)">
+          <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path>
+            <circle cx="12" cy="12" r="3"></circle>
+          </svg>
+        </button>
+      </div>
 
       <button type="submit" class="btn btn-primary" id="submitBtn" data-i18n="signInBtn">Sign in</button>
       <div class="error-msg" id="errorMsg"></div>
@@ -41,6 +49,18 @@
   <script>
     document.getElementById("langToggleBtn").classList.add("lang-toggle");
     initLangToggle();
+
+    const passwordInput = document.getElementById("password");
+    const togglePasswordBtn = document.getElementById("togglePasswordBtn");
+    const eyeIcon = document.getElementById("eyeIcon");
+    const EYE_OPEN = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"></path><circle cx="12" cy="12" r="3"></circle>';
+    const EYE_CLOSED = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.6 21.6 0 0 1 5.06-6.06M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a21.6 21.6 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+    togglePasswordBtn.addEventListener("click", () => {
+      const isPassword = passwordInput.type === "password";
+      passwordInput.type = isPassword ? "text" : "password";
+      eyeIcon.innerHTML = isPassword ? EYE_CLOSED : EYE_OPEN;
+      togglePasswordBtn.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+    });
 
     const form = document.getElementById("loginForm");
     const errorMsg = document.getElementById("errorMsg");
