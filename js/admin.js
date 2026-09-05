@@ -579,6 +579,85 @@ function buildFullContractText({ employeeName, nationalId, jobTitle, salary, sta
 التوقيع (صاحب العمل) - FWX GM:                          توقيع الموظف - ${employeeName}:`;
 }
 
+// Professional English translation of the same contract, for the
+// Convert to English / Convert to Arabic toggle. Preserves every
+// substantive term (penalties, percentages, deadlines) from the Arabic
+// original — this is a faithful translation, not a summary.
+function buildFullContractTextEnglish({ employeeName, nationalId, jobTitle, salary, startDate, contractPeriodMonths }) {
+  const fmtDMY = (isoDate) => {
+    if (!isoDate) return "......................";
+    const [y, m, d] = isoDate.split("-");
+    return `${d}/${m}/${y}`;
+  };
+  const endDateIso = (() => {
+    if (!startDate || !contractPeriodMonths) return null;
+    const d = new Date(startDate);
+    d.setMonth(d.getMonth() + Number(contractPeriodMonths));
+    return d.toISOString().slice(0, 10);
+  })();
+
+  const startDisplay = fmtDMY(startDate);
+  const endDisplay = fmtDMY(endDateIso);
+  const nationalIdDisplay = nationalId || "......................";
+  const salaryDisplay = salary ? String(salary) : "      ";
+  const jobTitlePhrase = jobTitle
+    ? jobTitle
+    : "Telecommunications Technician and/or Telecommunications Engineer, Sales Employee";
+
+  return `FIXED-TERM OUTSOURCING (EXTERNAL RESOURCES) AGREEMENT
+
+First Party: Force Work Experts (شركة الرواد لخدمات الاتصالات), hereinafter referred to as "the Company."
+
+Second Party: ${employeeName}, holder of National ID number ${nationalIdDisplay}, hereinafter referred to as "the Employee."
+
+RECITALS:
+
+Whereas the First Party is a well-known commercial company engaged in the outsourcing of technical staff to interested companies such as Umniah, Zain, Fiber-Tech, the Ministry of Digital Economy, and other companies; and whereas the Second Party must be technically, practically, and academically qualified (unless proven otherwise); the two Parties have agreed that the First Party shall appoint the Second Party as one of its outsourced personnel, leased with their expertise and services to one of the above companies, for a fixed, non-negotiable wage, in order to carry out the tasks and duties assigned within or for that company (which is considered a client of the First Party). The First Party in turn supplies Umniah, Zain, Fiber-Tech, the Ministry of Digital Economy, or any other company with outsourced personnel — whether engineers, technicians, or sales staff — together with equipment, vehicles, fuel, and everything necessary to carry out its projects, under agreements between them.
+
+Accordingly, the Second Party agrees, from the outset and upon signing this Agreement, that the First Party has the right to terminate the Employee's services at any stage of the engagement, since the Second Party is aware that the First Party may be required to change or replace the Employee if requested to do so by any of the client companies operating this Employee, and the First Party cannot refuse such a request. Therefore, in the event the Agreement ends, the Employee resigns, or any client company requests replacement or change of this Employee for any reason (whether related to insufficient competence, completion of the project or work for which he was assigned, or if he causes damage to it), the Second Party agrees to this condition and acknowledges, from the outset and upon signing this Agreement, that he may not challenge or dispute the foregoing in any manner whatsoever, and that he agrees and does not object that the First Party and/or Umniah, Zain, and Fiber-Tech have the right to accept or refuse the continuation of the Second Party's employment with them, to renew or not renew his contract, and to replace him at any time they wish for any reason, even if the contract term has not ended or after it has ended, at any time. Accordingly, the First Party has the right to terminate this Agreement and end the Second Party's engagement without notice, compensation, or warning, given that the Second Party agrees from the outset to the termination of his services at any time, knowing that the First Party is bound by a tender from Umniah, Zain, or Fiber-Tech which is renewed every two, three, six months or a year depending on the project, and that if this tender ends, this means the end of that company's work and its lack of need for outsourced resources (engineers, technicians, sales staff, or otherwise) to carry out the work of the tender in question.
+
+So that neither Party suffers disruption or harm, and since a contract is binding upon its parties, this Agreement is effective and binding upon the Parties and may not be challenged in any way once signed. It has been clearly explained and agreed, specifically on this point — namely (cancellation of the remaining contract term, non-renewal of the contract, suspension of the Employee, termination of his services, dismissal of the Second Party from work for any reason, or any other situation that may lead to ending the Second Party's work with the First Party) — and all that is stated in this Agreement, from the outset, for the Second Party and before signing this Agreement, and upon contracting with the Second Party, that in the event the Company's work with Umniah ends, or the tender is reduced or cancelled, or they wish to replace the Second Party with another person for any reason (whether due to lack of experience, misconduct, lack of productivity, or any other reason), the Second Party expresses his agreement and acceptance of all of the foregoing and all that follows, given that this Agreement between the two Parties is conditional upon the approval — or non-approval — of one of the operating companies, followed by the First Party's approval of engaging the Second Party. The First Party therefore has the right to end the Second Party's employment without any notice or compensation, being aware in advance of the nature of outsourcing work. The First Party has the right to terminate his employment, replace him, suspend him from work, or exclude him, without any compensation or obligation toward the Second Party, except for the agreed wage for the period actually worked only.
+
+And whereas the Second Party has applied for employment to carry out and perform work within one of these companies or for its benefit, in exchange for a fixed and specified salary or wage / as ${jobTitlePhrase}, regardless of years of experience, and according to the work assigned to him by the First Party or one of its affiliated companies, and within the terms set out below and previously mentioned; based on the foregoing, the will of the two Parties has come together to commit to the following provisions and clauses:-
+
+The preamble of this Agreement is considered an integral part of it and is to be read together with it.
+
+Article (1) — Effective Date and Term of the Agreement:- It begins on ${startDisplay} at 08:00 AM and ends on ${endDisplay} at 05:00 PM.
+
+Upon signing this Agreement, it cancels any prior engagement or employment contract predating this Agreement, which becomes unlawful and may not be relied upon or given any value by either Party. This Agreement shall constitute a full and final settlement and release by the Second Party of the First Party for the period preceding this Agreement, and this Agreement becomes the sole agreement relied upon and in force between the Parties.
+
+The two Parties agree that the First Party shall engage the expertise of the Second Party to carry out the Company's work in accordance with the following terms and conditions:-
+
+1. The Second Party undertakes to perform the work in full, without shortfall, as required and assigned by the First Party, in accordance with its direction and supervision. The Second Party may not object to the work or its nature, refuse to perform it, or abandon the site without completing the work; however, the Employee may submit a resignation request and give one month's notice to the First Party if he does not wish to complete the work, without causing harm to the First Party. If he causes harm to the First Party, the Second Party is obligated to compensate the First Party for the extent of the damage caused.
+
+2. The Second Party undertakes to attend and work full-time from Saturday to Thursday, from 8:00 AM to 5:00 PM each working day, without entitlement to any overtime for this, and undertakes to comply with daily clock-in/clock-out procedures without excuse for failing to record daily attendance, and shall work at a rate of 48 hours per week.
+
+3. The Second Party undertakes and acknowledges, agreeing from the outset upon signing the Agreement — and this point may not be objected to or challenged thereafter — that in the event of working overtime hours, these shall be paid by the operating company and not the First Party, and no claim may be made against the First Party in any way regarding overtime, which shall be calculated as follows:-
+
+a) The number of overtime hours per month may not exceed, in any way, thirty hours before the overtime calculation formula and forty-five hours after the overtime calculation formula. If the Employee works beyond this, no amounts shall be calculated for those excess hours, and the Employee bears responsibility for exceeding the overtime hour limit and may not claim against the First Party for hours exceeding this limit. The overtime calculation method is: if the Second Party works after 5:00 PM until 12:00 midnight, or from 6:00 AM to 8:00 AM, each hour is counted as one and a quarter hours; if the Second Party works from 12:00 midnight to 6:00 AM, each hour is counted as one and a half hours; and if he works on Fridays or official/religious holidays, the hour is likewise counted as one and a half hours. The Employee must bring a site report, stamped by his direct manager, showing the overtime details and number of hours worked so that it can be calculated and paid to him after being received from the company — since it is the operating company, not the First Party, that pays overtime to the Employee; the First Party's role is limited to handling the invoicing and paying the Second Party, then collecting what was paid from the operating company. The Second Party fully acknowledges and agrees to everything stated in this point, and therefore the Second Party may not object to or claim against the First Party for any amounts regarding overtime. It is also understood, without any liability toward the First Party, that if the Employee works overtime hours, the operating company may accumulate them and grant him leave or time off in lieu rather than cash payment, as arranged by management, provided this does not conflict with work requirements.
+
+4. The Second Party undertakes to wear general safety equipment and not to work without it under any circumstances, and under full liability, and acknowledges upon signing this Agreement that he has received it complete and as required in terms of specifications — namely safety shoes, gloves, a helmet, a reflective vest, a climbing harness, warning tape, a warning sign for work, and a fire extinguisher. Work is strictly prohibited in severe weather conditions, and in the event of not wearing general safety equipment, the Employee likewise acknowledges upon signing this Agreement that he has been given general safety training by the First Party and by Umniah, and has been given all general safety instructions, and that sites are visited unannounced by the First Party and by Umniah to confirm compliance by employees, contractors, and the Second Party with wearing general safety equipment. The Employee acknowledges here that if he is caught committing any violation of the general safety conditions, he shall be warned once only and/or his services terminated, and he shall be dismissed, discharged, or suspended from work immediately, this being a matter that is not to be taken lightly; accordingly, the Second Party may not object to this or bring any claim against the First Party for wrongful dismissal or any other claims as a result.
+
+5. The Second Party undertakes not to cause damage to the property or rights of others, the First Party, or the operating company at the assigned workplace; in the event the Employee causes damage, whether intentionally or unintentionally, the Employee bears full responsibility. The Second Party must also safeguard devices, equipment, and vehicles from loss and theft, and taking any item from the site — equipment or cables — is prohibited; if this occurs it is considered theft by the Second Party from the Company. The Second Party must hand over and return surplus materials to the warehouse, and must comply with the duties required of him so long as any disruption is not caused by the Company. In the event his employment is terminated, or at any time he is asked to do so, he must immediately return all equipment, devices, work information, reports, statements, or accounts that were in his possession and under his supervision, without delay or excuse, this being a matter that is not to be taken lightly and which affects both the operating company and the First Party.
+
+6. The Second Party must communicate with management and provide them with information related to the work; in the event the Company suffers any damages or warnings caused by the Second Party, the Second Party bears full responsibility. The Second Party must therefore commit to the work and maintain the rules and conditions so as not to cause such damages and warnings.
+
+7. Absence from work for any reason without obtaining management's approval is not permitted. Notification by SMS or email is not recognized and has no administrative standing, and the Company has the right to deduct each day of absence from the Employee. Absence must be approved jointly by Umniah and the First Party together, and absence may not exceed 3 consecutive days, but rather in periods, whether as due or non-due leave, sick leave, or otherwise; otherwise it shall be deducted from the Employee, given the sensitive nature of the work, which cannot tolerate prolonged absence. There is no objection to absence within the limits of the Second Party's leave balance, taken in intermittent periods. In the event the Employee is absent without obtaining management's approval, two working days' wages shall be deducted for each day of absence, and if the Employee's unexcused absence recurs for more than 3 consecutive or non-consecutive days, he is considered to have abandoned his work, and the Company has the right to terminate his services without notice. The Employee is entitled to a balance of 14 days' leave for each contractual year, and the Employee may not use his leave without management's approval and arrangement as to how the leave will be taken, given that absence for more than 3 consecutive days is not permitted, as this harms the work, and a signed formal request must be submitted, otherwise it shall be considered absence and not leave. In the event the Employee wishes to submit his resignation, he must give the Company one full month's notice and must not use his leave balance during this month, as this harms the work; the Employee shall not be compensated in cash for his leave balance but is instead entitled to days of leave from work, due before the end of the one-month notice period. The Employee must also comply with logging into the employee system via mobile phone or any other device daily to record attendance, as this shall be the authoritative and decisive record of the Employee's leave balance, and the Employee may not dispute this by any other means. The Employee must also not leave work until a replacement employee is found and clearance procedures are completed; the Employee bears a financial penalty of two thousand Jordanian Dinars in the event he leaves work without notice, without submitting a resignation, or suddenly, and before obtaining clearance from the Company.
+
+8. An Employee in possession of a vehicle belonging to the operating company, and under full liability, in the event of intentionally causing damage to it, committing violations, damaging any parts of the vehicle, or using the vehicle for personal purposes under any circumstances, and not tampering with the vehicle's GPS device — in the event the Company discovers any of the foregoing, a financial penalty of 35 Jordanian Dinars per day of use shall apply, in addition to the value of any damages. The Employee may not object to this, as it is considered renting the vehicle for personal purposes without the Company's knowledge. The Company also has the right to terminate the Employee's services, dismiss him, or discharge him if necessary, without any notice, warning, or financial obligation toward the Employee, given that he expresses his agreement to this condition upon signing the Agreement, and that he was alerted to this condition and agreed to it prior to signing the Agreement, as a violation of such matters is considered harm to the Company; upon signing this Agreement, this is considered a clear and explicit waiver by him, toward the First Party, of any right he may have that conflicts with labor law regarding this matter.
+
+9. The Company shall pay the Employee a total monthly amount of (${salaryDisplay}) Jordanian Dinars as a basic salary inclusive of all allowances, and this salary is subject to the statutory deductions according to the rates specified in the applicable regulations for social security and health insurance, provided the health insurance deduction is not less than eighteen Jordanian Dinars per month; if the Employee wishes to insure his family with him, he bears the full cost of that insurance. The Company shall also pay the Employee a variable monthly amount of approximately one to one hundred Jordanian Dinars, and this amount is not subject to or inclusive of any deductions, whether social security, health insurance, or tax, and is considered an allowance for the Employee's vehicle rental and/or an assessment of the Employee's compliance with general safety procedures, safe driving, or dealing with colleagues and managers, etc., and/or overtime, and/or a bonus for certain work, and/or any amount the Company wishes to pay the Employee on a non-binding, irregular, and non-obligatory basis, being instead an incentive or a form of profit-sharing from the Company to the Employee; the Company is not necessarily obligated to pay any of these amounts to the Employee. If the Company decides to pay such amounts to any employee, it shall be delivered to the Employee monthly, or for some months only, together with the monthly salary or separately, into his bank account number for ease of process; however, combining this amount with the salary does not mean it is part of the basic salary, and the Company has the right to stop this amount at any time it wishes, without any objection from the Employee, as it is not part of the basic salary and is not related to his labor rights. The Company also has the right to deduct any day of work disruption from the monthly agreed amount, or in the event of a traffic violation, sabotage, loss, or breakage of any item entrusted to him; and in the event the Employee causes any loss to the Company or fails to comply with the work required of him, the Company has the right to dispense with his services and replace him with another employee without notice.
+
+10. Financial Schedule:-
+Basic salary subject to social security: ${salaryDisplay} JOD
+Social security contribution: 7.5%
+Personal or family health insurance deduction: 18 JOD
+
+First Party: FWX GM                                    Second Party: ${employeeName}
+
+Signature (Employer) - FWX GM:                          Employee's Signature - ${employeeName}:`;
+}
+
 document.getElementById("contractCreateForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const errBox = document.getElementById("contractCreateError");
@@ -614,23 +693,27 @@ document.getElementById("contractCreateForm").addEventListener("submit", async (
 
   // Overwrite whatever text the server generated with our exact template,
   // substituting this employee's details, via the same update_contract
-  // action already used for manual edits.
+  // action already used for manual edits. Build both languages so the
+  // Convert to English/Arabic toggle has real content either way.
   const emp = DIRECTORY.find(x => x.id === target_id);
-  const exactText = buildFullContractText({
+  const templateArgs = {
     employeeName: emp ? emp.full_name : "",
     nationalId: emp ? emp.national_id : null,
     jobTitle: job_title,
     salary,
     startDate: start_date,
     contractPeriodMonths: contract_period_months,
-  });
+  };
+  const exactText = buildFullContractText(templateArgs);
+  const exactTextEnglish = buildFullContractTextEnglish(templateArgs);
   const { data: updatedData, error: updateErr } = await db.functions.invoke("clever-action", {
-    body: { action: "update_contract", contract_id: data.contract.id, contract_text: exactText, contract_text_alt: "", language: "ar" }
+    body: { action: "update_contract", contract_id: data.contract.id, contract_text: exactText, contract_text_alt: exactTextEnglish, language: "ar" }
   });
   if (!updateErr && updatedData && updatedData.contract) {
     data.contract = updatedData.contract;
   } else {
     data.contract.contract_text = exactText;
+    data.contract.contract_text_alt = exactTextEnglish;
   }
 
   document.getElementById("contractCreateOverlay").style.display = "none";
