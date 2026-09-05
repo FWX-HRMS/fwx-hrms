@@ -670,13 +670,24 @@ async function checkAdminContractActivity() {
 
 function checkSupervisorWarningNotification() {
   if (ME.role !== "supervisor") return;
-  const key = `fwx_lastSeenSupervisorWarnings_${ME.id}`;
-  const lastSeen = localStorage.getItem(key);
-  const newOnes = TEAM_WARNINGS_LIST.filter(w => w.sent_at && (!lastSeen || new Date(w.sent_at) > new Date(lastSeen)));
-  localStorage.setItem(key, new Date().toISOString());
-  if (newOnes.length === 0) return;
 
-  showDocActivityPopup("⚠️", t("docActivityTitle"), tv("supervisorWarningNotifyMsg", { n: newOnes.length }));
+  const sentKey = `fwx_lastSeenSupervisorWarnings_${ME.id}`;
+  const lastSeenSent = localStorage.getItem(sentKey);
+  const newSent = TEAM_WARNINGS_LIST.filter(w => w.sent_at && (!lastSeenSent || new Date(w.sent_at) > new Date(lastSeenSent)));
+  localStorage.setItem(sentKey, new Date().toISOString());
+
+  const ackKey = `fwx_lastSeenSupervisorAcks_${ME.id}`;
+  const lastSeenAck = localStorage.getItem(ackKey);
+  const newAcked = TEAM_WARNINGS_LIST.filter(w => w.acknowledged_at && (!lastSeenAck || new Date(w.acknowledged_at) > new Date(lastSeenAck)));
+  localStorage.setItem(ackKey, new Date().toISOString());
+
+  if (newSent.length === 0 && newAcked.length === 0) return;
+
+  const parts = [];
+  if (newSent.length > 0) parts.push(tv("supervisorWarningNotifyMsg", { n: newSent.length }));
+  if (newAcked.length > 0) parts.push(tv("supervisorAckNotifyMsg", { n: newAcked.length }));
+
+  showDocActivityPopup(newAcked.length > 0 && newSent.length === 0 ? "✅" : "⚠️", t("docActivityTitle"), parts.join(" "));
 }
 
 let ADMIN_CONTRACTS_LIST = [];
