@@ -31,7 +31,7 @@
       input.yfdp-input { cursor: pointer; background: #fff; }
       .yfdp-popup {
         position: absolute;
-        z-index: 3000;
+        z-index: 10002;
         background: #fff;
         border: 1px solid var(--border, #d8dde3);
         border-radius: var(--radius, 8px);
