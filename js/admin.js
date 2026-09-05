@@ -1562,6 +1562,17 @@ async function openEditModal(id) {
   document.getElementById("editEducation").value = e.education || "";
   document.getElementById("editSalary").value = e.salary ?? "";
   document.getElementById("editAddress").value = e.address || "";
+  document.getElementById("editNationalId").value = e.national_id || "";
+  document.getElementById("editIdNumber").value = e.id_number || "";
+  document.getElementById("editEmergencyContactName").value = e.emergency_contact_name || "";
+  document.getElementById("editEmergencyContactPhone").value = e.emergency_contact_phone || "";
+  document.getElementById("editSocialSecurityNumber").value = e.social_security_number || "";
+  document.getElementById("editBankAccount").value = e.bank_account || "";
+  document.getElementById("editEmploymentType").value = e.employment_type || "";
+  document.getElementById("editHazardousOccupation").value = e.hazardous_occupation ? "true" : "false";
+  document.getElementById("editVehicleStatus").value = e.vehicle_status || "";
+  document.getElementById("editSpouseEmployed").value = e.spouse_employed ? "true" : "false";
+  document.getElementById("editSpouseSalary").value = e.spouse_salary ?? "";
   document.getElementById("editError").classList.remove("show");
 
   const roleSelect = document.getElementById("editRole");
@@ -1616,6 +1627,17 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
   const education = document.getElementById("editEducation").value.trim() || null;
   const salary = document.getElementById("editSalary").value !== "" ? Number(document.getElementById("editSalary").value) : null;
   const address = document.getElementById("editAddress").value.trim() || null;
+  const national_id = document.getElementById("editNationalId").value.trim() || null;
+  const id_number = document.getElementById("editIdNumber").value.trim() || null;
+  const emergency_contact_name = document.getElementById("editEmergencyContactName").value.trim() || null;
+  const emergency_contact_phone = document.getElementById("editEmergencyContactPhone").value.trim() || null;
+  const social_security_number = document.getElementById("editSocialSecurityNumber").value.trim() || null;
+  const bank_account = document.getElementById("editBankAccount").value.trim() || null;
+  const employment_type = document.getElementById("editEmploymentType").value || null;
+  const hazardous_occupation = document.getElementById("editHazardousOccupation").value === "true";
+  const vehicle_status = document.getElementById("editVehicleStatus").value || null;
+  const spouse_employed = document.getElementById("editSpouseEmployed").value === "true";
+  const spouse_salary = document.getElementById("editSpouseSalary").value !== "" ? Number(document.getElementById("editSpouseSalary").value) : null;
 
   if (!client_company) {
     errBox.textContent = t("pleaseSelectCompany");
@@ -1632,7 +1654,13 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
   setBtnLoading(btn, true, t("saving"));
 
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "update_employee", target_id, full_name, email, hiring_date, department, client_company, role, supervisor_file_number, annual_entitlement_override, carryover_balance, dob, nationality, address, education, salary, taken_this_year }
+    body: {
+      action: "update_employee", target_id, full_name, email, hiring_date, department, client_company, role,
+      supervisor_file_number, annual_entitlement_override, carryover_balance, dob, nationality, address, education,
+      salary, taken_this_year, national_id, id_number, emergency_contact_name, emergency_contact_phone,
+      social_security_number, bank_account, employment_type, hazardous_occupation, vehicle_status,
+      spouse_employed, spouse_salary,
+    }
   });
 
   setBtnLoading(btn, false);
