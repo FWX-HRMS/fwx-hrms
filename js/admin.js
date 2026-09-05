@@ -2401,21 +2401,38 @@ async function checkAdminEmployeeActionNotifications() {
   const nowIso = new Date().toISOString();
 
   const [{ data: signedContracts }, { data: ackedWarnings }] = await Promise.all([
-    db.from("contracts").select("id, signed_at").eq("status", "signed").not("signed_at", "is", null),
-    db.from("warnings").select("id, acknowledged_at").not("acknowledged_at", "is", null),
+    db.from("contracts").select("id, employee_id, signed_at").eq("status", "signed").not("signed_at", "is", null),
+    db.from("warnings").select("id, employee_id, acknowledged_at").not("acknowledged_at", "is", null),
   ]);
 
-  const newSigned = (signedContracts || []).filter(c => !lastSeenDate || new Date(c.signed_at) > lastSeenDate).length;
-  const newAcked = (ackedWarnings || []).filter(w => !lastSeenDate || new Date(w.acknowledged_at) > lastSeenDate).length;
+  const nameFor = (employeeId) => {
+    const emp = DIRECTORY.find(e => e.id === employeeId);
+    return emp ? emp.full_name : "An employee";
+  };
 
-  if (newSigned === 0 && newAcked === 0) {
+  const namesList = (names) => {
+    const unique = [...new Set(names)];
+    if (unique.length <= 3) return unique.join(", ");
+    return `${unique.slice(0, 3).join(", ")}, and ${unique.length - 3} more`;
+  };
+
+  const newSigned = (signedContracts || []).filter(c => !lastSeenDate || new Date(c.signed_at) > lastSeenDate);
+  const newAcked = (ackedWarnings || []).filter(w => !lastSeenDate || new Date(w.acknowledged_at) > lastSeenDate);
+
+  if (newSigned.length === 0 && newAcked.length === 0) {
     localStorage.setItem(lastSeenKey, nowIso);
     return;
   }
 
   const parts = [];
-  if (newSigned > 0) parts.push(`${newSigned} contract${newSigned > 1 ? "s" : ""} newly signed`);
-  if (newAcked > 0) parts.push(`${newAcked} warning${newAcked > 1 ? "s" : ""} newly acknowledged`);
+  if (newSigned.length > 0) {
+    const names = namesList(newSigned.map(c => nameFor(c.employee_id)));
+    parts.push(`${newSigned.length} contract${newSigned.length > 1 ? "s" : ""} newly signed (${names})`);
+  }
+  if (newAcked.length > 0) {
+    const names = namesList(newAcked.map(w => nameFor(w.employee_id)));
+    parts.push(`${newAcked.length} warning${newAcked.length > 1 ? "s" : ""} newly acknowledged (${names})`);
+  }
 
   const banner = document.createElement("div");
   banner.style.cssText = "position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:10001; background:#1b2430; color:#fff; padding:12px 20px; border-radius:8px; font-size:13.5px; box-shadow:0 6px 20px rgba(0,0,0,0.25); display:flex; align-items:center; gap:14px; max-width:90vw;";

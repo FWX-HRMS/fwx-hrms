@@ -656,7 +656,7 @@ function showDocActivityPopup(icon, title, text) {
 
 async function checkAdminContractActivity() {
   if (ME.role !== "admin") return;
-  const { data } = await db.from("contracts").select("id, status, employee_action_at").in("status", ["signed", "commented"]);
+  const { data } = await db.from("contracts").select("id, employee_id, status, employee_action_at").in("status", ["signed", "commented"]);
   if (!data || data.length === 0) return;
 
   const key = `fwx_lastSeenContractActivity_${ME.id}`;
@@ -665,7 +665,10 @@ async function checkAdminContractActivity() {
   localStorage.setItem(key, new Date().toISOString());
   if (newOnes.length === 0) return;
 
-  showDocActivityPopup("📄", t("docActivityTitle"), tv("adminContractActivityMsg", { n: newOnes.length }));
+  const names = [...new Set(newOnes.map(c => { const emp = TEAM_BY_ID[c.employee_id]; return emp ? emp.full_name : "An employee"; }))];
+  const namesList = names.length <= 3 ? names.join(", ") : `${names.slice(0, 3).join(", ")}, and ${names.length - 3} more`;
+
+  showDocActivityPopup("📄", t("docActivityTitle"), tv("adminContractActivityMsg", { n: newOnes.length, names: namesList }));
 }
 
 function checkSupervisorWarningNotification() {
@@ -683,9 +686,15 @@ function checkSupervisorWarningNotification() {
 
   if (newSent.length === 0 && newAcked.length === 0) return;
 
+  const namesList = (warnings) => {
+    const names = [...new Set(warnings.map(w => { const emp = TEAM_BY_ID[w.employee_id]; return emp ? emp.full_name : "An employee"; }))];
+    if (names.length <= 3) return names.join(", ");
+    return `${names.slice(0, 3).join(", ")}, and ${names.length - 3} more`;
+  };
+
   const parts = [];
-  if (newSent.length > 0) parts.push(tv("supervisorWarningNotifyMsg", { n: newSent.length }));
-  if (newAcked.length > 0) parts.push(tv("supervisorAckNotifyMsg", { n: newAcked.length }));
+  if (newSent.length > 0) parts.push(tv("supervisorWarningNotifyMsg", { n: newSent.length, names: namesList(newSent) }));
+  if (newAcked.length > 0) parts.push(tv("supervisorAckNotifyMsg", { n: newAcked.length, names: namesList(newAcked) }));
 
   showDocActivityPopup(newAcked.length > 0 && newSent.length === 0 ? "✅" : "⚠️", t("docActivityTitle"), parts.join(" "));
 }
