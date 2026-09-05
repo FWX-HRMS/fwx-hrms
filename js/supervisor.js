@@ -355,13 +355,25 @@ function ensureRangeCompanySelect() {
   return document.getElementById("rangeCompanySelect");
 }
 
+function employeeIdPlaceholderFor(company) {
+  const examples = {
+    "F.W.X Company": "6002",
+    "Zain": "1003",
+    "Umniah": "2003",
+  };
+  const example = examples[company];
+  return example ? `e.g. ${example}` : "e.g. 1003";
+}
+
 function showDateRangePrompt(title) {
   return new Promise(async (resolve) => {
     document.getElementById("dateRangeTitle").textContent = title;
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
     document.getElementById("rangeEmployeeIdInput").value = "";
-    document.getElementById("rangeEmployeeIdInput").placeholder = "e.g. 6002 (F.W.X), 1003 (Zain)";
+    document.getElementById("rangeEmployeeIdInput").placeholder = ME.role === "admin"
+      ? "e.g. 6002 (F.W.X), 1003 (Zain)"
+      : employeeIdPlaceholderFor(ME.client_company);
     document.getElementById("rangeFormatPdf").checked = true;
     document.getElementById("rangeFormatExcel").checked = false;
     document.getElementById("rangeFormatError").classList.remove("show");
