@@ -1,3 +1,10 @@
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2600);
+}
+
 function warningStatusBadge(status) {
   const cls = { draft: "cancelled", sent: "approved" }[status] || "cancelled";
   return `<span class="badge badge-${cls}">${t("warningStatus" + status[0].toUpperCase() + status.slice(1))}</span>`;
