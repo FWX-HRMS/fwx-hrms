@@ -164,7 +164,7 @@ function openContractView(id) {
   const display = document.getElementById("contractTextDisplay");
   display.textContent = c.contract_text || "";
   CONTRACT_ALT_TEXT = c.contract_text_alt || "";
-  CONTRACT_LANG = containsArabic(c.contract_text) ? "ar" : "en";
+  CONTRACT_LANG = detectDominantScript(c.contract_text);
   display.dir = CONTRACT_LANG === "ar" ? "rtl" : "ltr";
   display.style.textAlign = CONTRACT_LANG === "ar" ? "right" : "left";
   updateContractConvertBtnLabel();
@@ -218,6 +218,15 @@ document.getElementById("closeContractViewBtn").addEventListener("click", () => 
 
 function containsArabic(text) {
   return /[\u0600-\u06FF]/.test(text || "");
+}
+
+// More robust than containsArabic() for deciding overall text direction —
+// see admin.js for the same fix and rationale.
+function detectDominantScript(text) {
+  const s = text || "";
+  const arabicCount = (s.match(/[\u0600-\u06FF]/g) || []).length;
+  const latinCount = (s.match(/[A-Za-z]/g) || []).length;
+  return arabicCount > latinCount ? "ar" : "en";
 }
 
 // jsPDF's built-in fonts have no Arabic glyphs and don't apply Arabic text
@@ -463,7 +472,7 @@ document.getElementById("contractConvertBtn").addEventListener("click", () => {
   const current = display.textContent;
   display.textContent = CONTRACT_ALT_TEXT;
   CONTRACT_ALT_TEXT = current;
-  CONTRACT_LANG = containsArabic(display.textContent) ? "ar" : "en";
+  CONTRACT_LANG = detectDominantScript(display.textContent);
   display.dir = CONTRACT_LANG === "ar" ? "rtl" : "ltr";
   display.style.textAlign = CONTRACT_LANG === "ar" ? "right" : "left";
   updateContractConvertBtnLabel();

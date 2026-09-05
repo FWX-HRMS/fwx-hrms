@@ -1187,7 +1187,7 @@ function openContractViewModal(contractId, contractData) {
   document.getElementById("contractTextArea").value = c.contract_text || "";
   document.getElementById("contractViewError").classList.remove("show");
   CONTRACT_ALT_TEXT = c.contract_text_alt || "";
-  CONTRACT_LANG = containsArabic(c.contract_text) ? "ar" : "en";
+  CONTRACT_LANG = detectDominantScript(c.contract_text);
   document.getElementById("contractTextArea").dir = CONTRACT_LANG === "ar" ? "rtl" : "ltr";
   document.getElementById("contractTextArea").style.textAlign = CONTRACT_LANG === "ar" ? "right" : "left";
   updateContractConvertBtnLabel();
@@ -1242,7 +1242,7 @@ document.getElementById("contractConvertBtn").addEventListener("click", () => {
   const current = textarea.value;
   textarea.value = CONTRACT_ALT_TEXT;
   CONTRACT_ALT_TEXT = current;
-  CONTRACT_LANG = containsArabic(textarea.value) ? "ar" : "en";
+  CONTRACT_LANG = detectDominantScript(textarea.value);
   textarea.dir = CONTRACT_LANG === "ar" ? "rtl" : "ltr";
   textarea.style.textAlign = CONTRACT_LANG === "ar" ? "right" : "left";
   updateContractConvertBtnLabel();
@@ -1306,6 +1306,18 @@ document.getElementById("contractDownloadBtn").addEventListener("click", () => {
 
 function containsArabic(text) {
   return /[\u0600-\u06FF]/.test(text || "");
+}
+
+// More robust than containsArabic() for deciding overall text direction:
+// counts Arabic-script vs Latin-script characters and picks whichever is
+// dominant, so a handful of stray Arabic characters left over in an older
+// contract's "English" text (e.g. from before a wording fix) don't flip
+// the whole document to RTL.
+function detectDominantScript(text) {
+  const s = text || "";
+  const arabicCount = (s.match(/[\u0600-\u06FF]/g) || []).length;
+  const latinCount = (s.match(/[A-Za-z]/g) || []).length;
+  return arabicCount > latinCount ? "ar" : "en";
 }
 
 // jsPDF's built-in fonts have no Arabic glyphs and it doesn't apply Arabic
