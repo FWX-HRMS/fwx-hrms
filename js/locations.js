@@ -150,6 +150,11 @@ function ensureLocationsExtraHeaders() {
     fileNumTh.parentNode.insertBefore(supTh, fileNumTh.nextSibling);
   }
 
+  // The last header cell used to sit above the View button column, now
+  // removed in favor of clicking the employee's name directly.
+  const lastTh = headerRow.lastElementChild;
+  if (lastTh && lastTh.textContent.trim() === "") lastTh.remove();
+
   headerRow.dataset.extraColsAdded = "1";
 }
 
@@ -177,19 +182,18 @@ function renderLocationsTable() {
     const tr = document.createElement("tr");
     const supervisorCell = ME.role === "admin" ? `<td>${supervisorNameFor(emp)}</td>` : "";
     tr.innerHTML = `
-      <td>${emp.full_name}</td>
+      <td><span data-center="${loc.employee_id}" style="cursor:pointer; color:var(--accent, #2f7d5f); font-weight:600">${emp.full_name}</span></td>
       <td>${emp.file_number || "—"}</td>
       ${supervisorCell}
       <td>${emp.client_company || "—"}</td>
       <td>${timeAgo(loc.updated_at)}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-center="${loc.employee_id}">${t("view")}</button></td>
     `;
     body.appendChild(tr);
   }
 
-  body.querySelectorAll("button[data-center]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const marker = MARKERS[btn.dataset.center];
+  body.querySelectorAll("[data-center]").forEach(el => {
+    el.addEventListener("click", () => {
+      const marker = MARKERS[el.dataset.center];
       if (marker) {
         MAP.setView(marker.getLatLng(), 15);
         marker.openPopup();
@@ -208,6 +212,17 @@ function renderLocationsTable() {
   document.getElementById("locationsSub").textContent = ME.role === "admin"
     ? t("staffLocationsSubAdmin")
     : t("staffLocationsSubSupervisor");
+
+  const locationsBody = document.getElementById("locationsBody");
+  const locationsTable = locationsBody && locationsBody.closest("table");
+  if (locationsTable && !document.getElementById("locationsClickNote")) {
+    const note = document.createElement("p");
+    note.id = "locationsClickNote";
+    note.className = "help-text";
+    note.style.marginBottom = "10px";
+    note.textContent = "Click an employee's name to view their last known location on the map.";
+    locationsTable.parentNode.insertBefore(note, locationsTable);
+  }
 
   MAP = L.map("map").setView([31.9539, 35.9106], 8); // Amman, Jordan — sane default center
 
