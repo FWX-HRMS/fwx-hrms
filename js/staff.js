@@ -359,6 +359,7 @@ async function acknowledgeWarning(warning, btn) {
   note.textContent = `Acknowledged on ${fmtDate(warning.acknowledged_at.slice(0,10))}`;
   note.classList.add("show");
   showToast("Warning acknowledged.");
+  await loadDashboardWarnings();
 }
 
   body.querySelectorAll("button[data-view-dash-warning]").forEach(btn => {
