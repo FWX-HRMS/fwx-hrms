@@ -342,7 +342,7 @@ function renderDirectory() {
     const bal = BALANCES_BY_ID[e.id];
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${e.full_name}${activeWarningBadge(e.id)}${e.frozen ? ` <span class="badge badge-rejected">${t("statusFrozenBadge")} - ${e.frozen_reason === "termination" ? "T" : e.frozen_reason === "resignation" ? "R" : e.frozen_reason === "end_of_contract" ? "E" : "?"}</span>` : ""}</td>
+      <td>${e.full_name}${activeWarningBadge(e.id)}${e.frozen ? ` <span class="badge badge-frozen">${t("statusFrozenBadge")} - ${e.frozen_reason === "termination" ? "T" : e.frozen_reason === "resignation" ? "R" : e.frozen_reason === "end_of_contract" ? "E" : "?"}</span>` : ""}</td>
       <td>${e.file_number}</td>
       <td>${roleLabel(e.role)}</td>
       <td>${e.client_company || "—"}</td>
