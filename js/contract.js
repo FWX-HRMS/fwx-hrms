@@ -248,7 +248,7 @@ function renderArabicPagesToPdf(doc, text, startYOverride) {
   paragraphs.forEach((para, pIdx) => {
     const trimmed = para.trim();
     if (trimmed === "") { allLines.push({ text: "", style: "normal" }); return; }
-    const style = pIdx === 0 ? "title" : /^مادة\s*\(/.test(trimmed) ? "bold" : "normal";
+    const style = trimmed === "عقد مصادر خارجية محدد المدة" ? "title" : /^مادة\s*\(/.test(trimmed) ? "bold" : "normal";
     mctx.font = style === "title" ? `bold ${titleFontSizePx}px Tahoma, Arial, sans-serif` : style === "bold" ? `bold ${fontSizePx}px Tahoma, Arial, sans-serif` : `${fontSizePx}px Tahoma, Arial, sans-serif`;
     mctx.direction = "rtl";
     const words = para.split(" ");
