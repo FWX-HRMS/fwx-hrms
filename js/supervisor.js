@@ -489,7 +489,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return !(emp && emp.frozen); });
 
   if (source.length === 0) {
-    showToast(t("noMatchingEmployeeToast"));
+    showInfoPopup(t("noResultsTitle"), t("noMatchingEmployeeToast"));
     return;
   }
 

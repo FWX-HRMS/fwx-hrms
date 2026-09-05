@@ -348,6 +348,7 @@ const translations = {
     noLeaveRequestsFound: "No leave requests found.",
     downloadReportPdfBtn: "Download Leave Report",
     noSearchResultsToast: "No results match your search.",
+    noResultsTitle: "No matches found",
 
     // Client Companies
     clientCompaniesTitle: "Client Companies",
@@ -771,6 +772,7 @@ const translations = {
     noLeaveRequestsFound: "لم يتم العثور على طلبات إجازة.",
     downloadReportPdfBtn: "تنزيل تقرير الإجازات",
     noSearchResultsToast: "لا توجد نتائج مطابقة لبحثك.",
+    noResultsTitle: "لا توجد نتائج",
 
     // Client Companies
     clientCompaniesTitle: "الشركات العميلة",
@@ -1187,11 +1189,46 @@ fwxPaginationBtnObserver.observe(document.body, { childList: true, subtree: true
 // toast the same way we already do for "no matching employee" on report
 // filters. Tracks state on the input itself so it fires once when results
 // actually disappear, not again on every further keystroke while still empty.
+// ------------------------------------------------------------
+// System-wide: a centered popup (matching the same visual style as the
+// "new warning" / "new contract" notifications) used for informational
+// messages that deserve more attention than a small corner toast — e.g.
+// "no results found". Injects itself once per page, on first use.
+function ensureInfoPopup() {
+  let overlay = document.getElementById("fwxInfoPopupOverlay");
+  if (overlay) return overlay;
+  overlay = document.createElement("div");
+  overlay.id = "fwxInfoPopupOverlay";
+  overlay.className = "modal-overlay";
+  overlay.style.display = "none";
+  overlay.innerHTML = `
+    <div class="modal-box" style="max-width:420px; text-align:center">
+      <div style="font-size:34px; margin-bottom:6px" id="fwxInfoPopupIcon">🔍</div>
+      <h2 style="margin:0 0 10px" id="fwxInfoPopupTitle"></h2>
+      <p class="help-text" id="fwxInfoPopupText" style="margin-bottom:18px"></p>
+      <button type="button" class="btn btn-primary" id="fwxInfoPopupOkBtn">${t("ok")}</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  document.getElementById("fwxInfoPopupOkBtn").addEventListener("click", () => {
+    overlay.style.display = "none";
+  });
+  return overlay;
+}
+
+function showInfoPopup(title, message, icon) {
+  const overlay = ensureInfoPopup();
+  document.getElementById("fwxInfoPopupIcon").textContent = icon || "🔍";
+  document.getElementById("fwxInfoPopupTitle").textContent = title;
+  document.getElementById("fwxInfoPopupText").textContent = message;
+  overlay.style.display = "flex";
+}
+
 function notifyIfNoSearchResults(inputEl, query, resultCount) {
   if (!inputEl) return;
   if (query && resultCount === 0) {
     if (inputEl.dataset.noResultsShown !== "1") {
-      if (typeof showToast === "function") showToast(t("noSearchResultsToast"));
+      showInfoPopup(t("noResultsTitle"), t("noSearchResultsToast"));
       inputEl.dataset.noResultsShown = "1";
     }
   } else {

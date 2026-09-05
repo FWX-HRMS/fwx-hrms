@@ -1688,7 +1688,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   if (!range.includeFrozen) source = source.filter(e => !e.frozen);
 
   if (source.length === 0) {
-    showToast(t("noMatchingEmployeeToast"));
+    showInfoPopup(t("noResultsTitle"), t("noMatchingEmployeeToast"));
     return;
   }
 
@@ -1740,7 +1740,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   if (!range.includeFrozen) rows = rows.filter(r => !(byId[r.employee_id] && byId[r.employee_id].frozen));
 
   if (rows.length === 0) {
-    showToast(t("noMatchingRequestsToast"));
+    showInfoPopup(t("noResultsTitle"), t("noMatchingRequestsToast"));
     return;
   }
 
