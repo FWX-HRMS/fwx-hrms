@@ -578,6 +578,7 @@ html[dir="rtl"] .action-menu button{ text-align:right; }
   opacity:0; transform:translateY(8px);
   transition:opacity .2s, transform .2s;
   pointer-events:none;
+  z-index:10001;
 }
 .toast.show{ opacity:1; transform:translateY(0); }
 
