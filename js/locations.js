@@ -136,6 +136,7 @@ function renderLocationsTable() {
       })
     : LOCATIONS_ROWS;
 
+  notifyIfNoSearchResults(document.getElementById("locationsSearchInput"), query, filteredRows.length);
   empty.style.display = filteredRows.length ? "none" : "block";
 
   for (const loc of filteredRows) {

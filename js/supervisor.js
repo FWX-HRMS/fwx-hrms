@@ -172,6 +172,7 @@ function renderUsers() {
   const filteredTeam = query
     ? TEAM_LIST.filter(e => matchesTableSearch(query, e.file_number, e.client_company, e.role, e.full_name, e.department))
     : TEAM_LIST;
+  notifyIfNoSearchResults(document.getElementById("usersSearchInput"), query, filteredTeam.length);
   empty.style.display = filteredTeam.length ? "none" : "block";
 
   const balByEmployeeId = Object.fromEntries(TEAM_BALANCE_ROWS.map(r => [r.employee_id, r]));
@@ -238,6 +239,7 @@ function renderPending() {
         return matchesTableSearch(pendingQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : PENDING_REQUESTS;
+  notifyIfNoSearchResults(document.getElementById("pendingSearchInput"), pendingQuery, filteredPending.length);
   noPending.style.display = filteredPending.length ? "none" : "block";
 
   const start = PENDING_PAGE * PAGE_SIZE;
@@ -308,6 +310,7 @@ function renderHistory() {
         return matchesTableSearch(historyQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : HISTORY_REQUESTS;
+  notifyIfNoSearchResults(document.getElementById("historySearchInput"), historyQuery, filteredHistory.length);
   noHistory.style.display = filteredHistory.length ? "none" : "block";
 
   const start = HISTORY_PAGE * PAGE_SIZE;
@@ -559,6 +562,7 @@ function renderTeamWarnings() {
         return matchesTableSearch(query, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : TEAM_WARNINGS_LIST;
+  notifyIfNoSearchResults(document.getElementById("teamWarningsSearchInput"), query, filtered.length);
   empty.style.display = filtered.length ? "none" : "block";
 
   const start = TEAM_WARNINGS_PAGE * PAGE_SIZE;
@@ -697,6 +701,7 @@ function renderAdminContracts() {
         return matchesTableSearch(acQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : ADMIN_CONTRACTS_LIST;
+  notifyIfNoSearchResults(document.getElementById("adminContractsSearchInput"), acQuery, filteredContracts.length);
   empty.style.display = filteredContracts.length ? "none" : "block";
 
   const start = ADMIN_CONTRACTS_PAGE * PAGE_SIZE;
@@ -751,6 +756,7 @@ function renderAdminWarnings() {
         return matchesTableSearch(awQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : ADMIN_WARNINGS_LIST;
+  notifyIfNoSearchResults(document.getElementById("adminWarningsSearchInput"), awQuery, filteredWarnings.length);
   empty.style.display = filteredWarnings.length ? "none" : "block";
 
   const start = ADMIN_WARNINGS_PAGE * PAGE_SIZE;

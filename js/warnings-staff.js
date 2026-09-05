@@ -64,6 +64,7 @@ function renderWarnings() {
     ? WARNINGS_LIST.filter(w => (w.reason || "").toLowerCase().includes(query) || (w.status || "").toLowerCase().includes(query))
     : WARNINGS_LIST;
 
+  notifyIfNoSearchResults(document.getElementById("warningsSearchInput"), query, filtered.length);
   empty.style.display = filtered.length ? "none" : "block";
 
   for (const w of filtered) {

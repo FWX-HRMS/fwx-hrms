@@ -347,6 +347,7 @@ const translations = {
     leaveRequestsTitle: "Leave Requests",
     noLeaveRequestsFound: "No leave requests found.",
     downloadReportPdfBtn: "Download Leave Report",
+    noSearchResultsToast: "No results match your search.",
 
     // Client Companies
     clientCompaniesTitle: "Client Companies",
@@ -769,6 +770,7 @@ const translations = {
     leaveRequestsTitle: "طلبات الإجازة",
     noLeaveRequestsFound: "لم يتم العثور على طلبات إجازة.",
     downloadReportPdfBtn: "تنزيل تقرير الإجازات",
+    noSearchResultsToast: "لا توجد نتائج مطابقة لبحثك.",
 
     // Client Companies
     clientCompaniesTitle: "الشركات العميلة",
@@ -1179,3 +1181,20 @@ const fwxPaginationBtnObserver = new MutationObserver((mutations) => {
   }
 });
 fwxPaginationBtnObserver.observe(document.body, { childList: true, subtree: true });
+
+// ------------------------------------------------------------
+// System-wide: whenever a table search box yields zero results, show a
+// toast the same way we already do for "no matching employee" on report
+// filters. Tracks state on the input itself so it fires once when results
+// actually disappear, not again on every further keystroke while still empty.
+function notifyIfNoSearchResults(inputEl, query, resultCount) {
+  if (!inputEl) return;
+  if (query && resultCount === 0) {
+    if (inputEl.dataset.noResultsShown !== "1") {
+      if (typeof showToast === "function") showToast(t("noSearchResultsToast"));
+      inputEl.dataset.noResultsShown = "1";
+    }
+  } else {
+    inputEl.dataset.noResultsShown = "";
+  }
+}

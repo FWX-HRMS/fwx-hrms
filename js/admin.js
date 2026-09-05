@@ -198,6 +198,7 @@ function renderLeaveRequests() {
         return matchesTableSearch(leaveQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : LEAVE_REQUESTS_LIST;
+  notifyIfNoSearchResults(document.getElementById("leaveRequestsSearchInput"), leaveQuery, filteredLeave.length);
 
   if (filteredLeave.length === 0) {
     empty.style.display = "block";
@@ -332,6 +333,7 @@ function renderDirectory() {
   if (COMPANY_FILTER) allRows = allRows.filter(e => e.client_company === COMPANY_FILTER);
   const directoryQuery = document.getElementById("directorySearchInput").value.trim();
   if (directoryQuery) allRows = allRows.filter(e => matchesTableSearch(directoryQuery, e.file_number, e.client_company, e.role, e.full_name, e.department));
+  notifyIfNoSearchResults(document.getElementById("directorySearchInput"), directoryQuery, allRows.length);
 
   const start = DIRECTORY_PAGE * PAGE_SIZE;
   const rows = allRows.slice(start, start + PAGE_SIZE);
@@ -612,6 +614,7 @@ function renderWarnings() {
         return matchesTableSearch(warningsQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : WARNINGS_LIST;
+  notifyIfNoSearchResults(document.getElementById("warningsSearchInput"), warningsQuery, filteredWarnings.length);
   empty.style.display = filteredWarnings.length ? "none" : "block";
 
   const start = WARNINGS_PAGE * PAGE_SIZE;
@@ -834,6 +837,7 @@ function renderContracts() {
         return matchesTableSearch(contractsQuery, emp && emp.file_number, emp && emp.client_company, emp && emp.role, emp && emp.full_name, emp && emp.department);
       })
     : CONTRACTS_LIST;
+  notifyIfNoSearchResults(document.getElementById("contractsSearchInput"), contractsQuery, filteredContracts.length);
   empty.style.display = filteredContracts.length ? "none" : "block";
 
   const start = CONTRACTS_PAGE * PAGE_SIZE;

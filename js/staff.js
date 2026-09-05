@@ -115,6 +115,7 @@ function renderRequests() {
     ? MY_REQUESTS_LIST.filter(r => (r.leave_type || "").toLowerCase().includes(query) || (r.status || "").toLowerCase().includes(query))
     : MY_REQUESTS_LIST;
 
+  notifyIfNoSearchResults(document.getElementById("requestsSearchInput"), query, filtered.length);
   empty.style.display = filtered.length ? "none" : "block";
 
   for (const r of filtered) {
