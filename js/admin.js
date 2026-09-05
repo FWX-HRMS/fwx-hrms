@@ -2471,6 +2471,10 @@ async function checkAdminEmployeeActionNotifications() {
   await loadDirectory();
   checkAdminEmployeeActionNotifications();
   setInterval(checkAdminEmployeeActionNotifications, 8000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkAdminEmployeeActionNotifications();
+  });
+  window.addEventListener("focus", () => checkAdminEmployeeActionNotifications());
 
   // Deep link from the dashboard's "View" buttons: ?tab=contracts&contractId=... / ?tab=warnings&warningId=...
   const qs = new URLSearchParams(window.location.search);

@@ -1226,11 +1226,14 @@ function showInfoPopup(title, message, icon, onOk) {
   overlay.style.display = "flex";
   overlay.dataset.onOkPending = "1";
   const okBtn = document.getElementById("fwxInfoPopupOkBtn");
+  if (okBtn._fwxHandler) okBtn.removeEventListener("click", okBtn._fwxHandler);
   const handler = () => {
     if (overlay.dataset.onOkPending === "1" && typeof onOk === "function") onOk();
     overlay.dataset.onOkPending = "";
     okBtn.removeEventListener("click", handler);
+    okBtn._fwxHandler = null;
   };
+  okBtn._fwxHandler = handler;
   okBtn.addEventListener("click", handler);
 }
 
