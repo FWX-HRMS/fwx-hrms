@@ -1207,7 +1207,7 @@ function ensureInfoPopup() {
     <div class="modal-box" style="max-width:420px; text-align:center">
       <div style="font-size:34px; margin-bottom:6px" id="fwxInfoPopupIcon">🔍</div>
       <h2 style="margin:0 0 10px" id="fwxInfoPopupTitle"></h2>
-      <p class="help-text" id="fwxInfoPopupText" style="margin-bottom:18px"></p>
+      <p class="help-text" id="fwxInfoPopupText" style="margin-bottom:18px; white-space:pre-line; text-align:start"></p>
       <button type="button" class="btn btn-primary" id="fwxInfoPopupOkBtn">${t("ok")}</button>
     </div>
   `;

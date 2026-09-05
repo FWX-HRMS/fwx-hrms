@@ -378,6 +378,7 @@ function renderDirectory() {
             <button type="button" data-view="${e.id}">${t("view")}</button>
             <button type="button" data-edit="${e.id}">${t("editBtn")}</button>
             ${e.role === "staff" ? `<button type="button" data-contract="${e.id}">${t("shareContractBtn")}</button>` : ""}
+            ${e.role === "staff" ? `<button type="button" data-renew-contract="${e.id}">Renew Contract</button>` : ""}
             ${e.role === "staff" ? `<button type="button" class="danger" data-warning="${e.id}">${t("giveWarningBtn")}</button>` : ""}
             <button type="button" data-reset="${e.id}">${t("resetPasswordBtn")}</button>
             ${!isSelf ? (e.frozen
@@ -438,6 +439,9 @@ function renderDirectory() {
   });
   body.querySelectorAll("button[data-contract]").forEach(btn => {
     btn.addEventListener("click", async () => { closeActionMenus(); await openContractCreateModal(btn.dataset.contract); });
+  });
+  body.querySelectorAll("button[data-renew-contract]").forEach(btn => {
+    btn.addEventListener("click", async () => { closeActionMenus(); await openRenewContractModal(btn.dataset.renewContract); });
   });
   body.querySelectorAll("button[data-warning]").forEach(btn => {
     btn.addEventListener("click", () => { closeActionMenus(); openWarningCreateModal(btn.dataset.warning); });
@@ -503,6 +507,53 @@ async function openContractCreateModal(employeeId) {
 document.getElementById("contractCreateCancelBtn").addEventListener("click", () => {
   document.getElementById("contractCreateOverlay").style.display = "none";
 });
+
+// Opens the same contract form used for creating a new contract, but
+// pre-filled from the employee's most recent signed contract (carrying
+// over salary, job title, and period), with the new start date set to the
+// day right after the expiring contract ends. Deliberately does not apply
+// the "active contract already exists" block from openContractCreateModal,
+// since renewing is meant to work even while the current contract is still
+// technically active — that's the whole point of proactive renewal.
+async function openRenewContractModal(employeeId) {
+  const e = DIRECTORY.find(x => x.id === employeeId);
+  if (!e) return;
+
+  const { data: contracts } = await db
+    .from("contracts")
+    .select("*")
+    .eq("employee_id", employeeId)
+    .eq("status", "signed")
+    .order("end_date", { ascending: false })
+    .limit(1);
+  const expiring = contracts && contracts[0];
+
+  document.getElementById("contractCreateForm").reset();
+  document.getElementById("contractCreateError").classList.remove("show");
+  document.getElementById("contractCreateForm").dataset.targetId = employeeId;
+  delete document.getElementById("contractCreateForm").dataset.editContractId;
+  document.getElementById("contractCreateTitle").textContent = "Renew Contract";
+  document.getElementById("contractCreateBtn").textContent = "Prepare Renewal";
+  document.getElementById("contractCreateEmployeeInfo").textContent =
+    `${e.full_name} · #${e.file_number}${e.client_company ? " · " + e.client_company : ""}`;
+
+  document.getElementById("contractDob").value = e.dob || "";
+  document.getElementById("contractEducation").value = e.education || "";
+  document.getElementById("contractAddress").value = e.address || "";
+  document.getElementById("contractSalary").value = expiring ? (expiring.salary ?? "") : (e.salary || "");
+  document.getElementById("contractJobTitle").value = expiring ? (expiring.job_title || "") : "";
+  document.getElementById("contractPeriodMonths").value = expiring ? (expiring.contract_period_months ?? "") : "";
+
+  let newStartDate = new Date().toISOString().slice(0, 10);
+  if (expiring && expiring.end_date) {
+    const d = new Date(expiring.end_date);
+    d.setDate(d.getDate() + 1);
+    newStartDate = d.toISOString().slice(0, 10);
+  }
+  document.getElementById("contractStartDate").value = newStartDate;
+
+  document.getElementById("contractCreateOverlay").style.display = "flex";
+}
 
 // Builds the exact FWX outsourcing contract text (from the company's
 // official Arabic template), substituting in this specific employee's
@@ -2806,6 +2857,58 @@ document.getElementById("showAddFormBtn").addEventListener("click", async () => 
   await ewRenderCurrentStep();
 });
 
+// Notifies the admin when a signed contract is entering its final 30 days,
+// so they can decide to renew (via the Renew Contract action) or prepare
+// end-of-service. Uses a per-contract dismissed-list rather than a single
+// "last seen" timestamp, since this is a standing state to address, not a
+// one-off event — it should keep reappearing each visit until acted on,
+// but only for contracts the admin hasn't already dismissed individually.
+async function checkContractExpiryNotifications() {
+  try {
+    const today = new Date();
+    const in30Days = new Date();
+    in30Days.setDate(today.getDate() + 30);
+    const todayIso = today.toISOString().slice(0, 10);
+    const in30Iso = in30Days.toISOString().slice(0, 10);
+
+    const { data: expiringContracts, error } = await db
+      .from("contracts")
+      .select("id, employee_id, end_date")
+      .eq("status", "signed")
+      .gte("end_date", todayIso)
+      .lte("end_date", in30Iso);
+
+    if (error || !expiringContracts || expiringContracts.length === 0) return;
+
+    const dismissedKey = `fwx_dismissedExpiryContracts_${ME.id}`;
+    let dismissed = [];
+    try { dismissed = JSON.parse(localStorage.getItem(dismissedKey) || "[]"); } catch (e) { dismissed = []; }
+    const dismissedSet = new Set(dismissed);
+    const stillRelevant = expiringContracts.filter(c => !dismissedSet.has(c.id));
+    if (stillRelevant.length === 0) return;
+
+    const nameFor = (employeeId) => {
+      const emp = DIRECTORY.find(x => x.id === employeeId);
+      return emp ? emp.full_name : "An employee";
+    };
+    const lines = stillRelevant
+      .map(c => `${nameFor(c.employee_id)} — expires ${fmtDate(c.end_date)}`)
+      .join("\n");
+
+    showInfoPopup(
+      "Contracts expiring soon",
+      `${stillRelevant.length} contract${stillRelevant.length > 1 ? "s are" : " is"} expiring within 30 days:\n${lines}\n\nUse "Renew Contract" from the employee's Actions menu to prepare a renewal, or prepare end-of-service if the employee is leaving.`,
+      "⏰",
+      () => {
+        const updated = [...dismissedSet, ...stillRelevant.map(c => c.id)];
+        localStorage.setItem(dismissedKey, JSON.stringify(updated));
+      }
+    );
+  } catch (err) {
+    console.error("checkContractExpiryNotifications: unexpected error", err);
+  }
+}
+
 async function checkAdminEmployeeActionNotifications() {
   try {
     const lastSeenKey = `fwx_adminLastSeenActions_${ME.id}`;
@@ -2880,6 +2983,8 @@ async function checkAdminEmployeeActionNotifications() {
     if (!document.hidden) checkAdminEmployeeActionNotifications();
   });
   window.addEventListener("focus", () => checkAdminEmployeeActionNotifications());
+  checkContractExpiryNotifications();
+  setInterval(checkContractExpiryNotifications, 60000);
 
   // Deep link from the dashboard's "View" buttons: ?tab=contracts&contractId=... / ?tab=warnings&warningId=...
   const qs = new URLSearchParams(window.location.search);
