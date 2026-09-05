@@ -579,54 +579,6 @@ function buildFullContractText({ employeeName, nationalId, jobTitle, salary, sta
 التوقيع (صاحب العمل) - FWX GM:                          توقيع الموظف - ${employeeName}:`;
 }
 
-// One-time admin tool: regenerates contract text for every contract that
-// hasn't been signed yet, using the current template. Signed contracts are
-// deliberately left untouched — rewriting a document someone already
-// legally signed would be inappropriate, even to fix wording elsewhere.
-document.getElementById("regenerateContractsBtn").addEventListener("click", async () => {
-  const confirmed = await showConfirm(
-    "Regenerate unsigned contracts?",
-    "This rewrites the contract text for every draft, shared, or commented (unsigned) contract using the current template. Signed contracts will not be touched. This cannot be undone. Continue?"
-  );
-  if (!confirmed) return;
-
-  const btn = document.getElementById("regenerateContractsBtn");
-  setBtnLoading(btn, true, "Regenerating…");
-
-  const { data: contracts, error: fetchErr } = await db
-    .from("contracts")
-    .select("*")
-    .in("status", ["draft", "shared", "commented"]);
-
-  if (fetchErr || !contracts) {
-    setBtnLoading(btn, false);
-    showToast("Could not load contracts to regenerate.");
-    return;
-  }
-
-  let updated = 0;
-  let failed = 0;
-  for (const c of contracts) {
-    const emp = DIRECTORY.find(x => x.id === c.employee_id);
-    const exactText = buildFullContractText({
-      employeeName: emp ? emp.full_name : "",
-      nationalId: emp ? emp.national_id : null,
-      jobTitle: c.job_title,
-      salary: c.salary,
-      startDate: c.start_date,
-      contractPeriodMonths: c.contract_period_months,
-    });
-    const { error: updateErr } = await db.functions.invoke("clever-action", {
-      body: { action: "update_contract", contract_id: c.id, contract_text: exactText, contract_text_alt: "", language: "ar" }
-    });
-    if (updateErr) failed++; else updated++;
-  }
-
-  setBtnLoading(btn, false);
-  showToast(`Regenerated ${updated} contract(s)${failed ? `, ${failed} failed` : ""}.`);
-  if (ACTIVE_TAB === "contracts") await loadContracts();
-});
-
 document.getElementById("contractCreateForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const errBox = document.getElementById("contractCreateError");
