@@ -513,6 +513,7 @@ tr:last-child td{ border-bottom:none; }
 .badge-pending{ background:var(--amber-soft); color:var(--amber); }
 .badge-approved{ background:var(--accent-soft); color:var(--accent-dark); }
 .badge-rejected{ background:var(--brick-soft); color:var(--brick); }
+.badge-frozen{ background:var(--brick); color:#fff; }
 .badge-cancelled{ background:#EEF0F2; color:var(--ink-soft); }
 
 .row-actions{ display:flex; gap:8px; align-items:center; }
