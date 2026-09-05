@@ -23,12 +23,19 @@ function timeAgo(dateStr) {
 }
 
 async function loadTeamById() {
-  const query = db.from("employees").select("id, full_name, file_number, client_company, role, department").order("full_name");
+  const query = db.from("employees").select("id, full_name, file_number, client_company, role, department, supervisor_id").order("full_name");
   const { data, error } = ME.role === "admin"
     ? await query.neq("role", "admin")
     : await query.eq("supervisor_id", ME.id);
   if (error || !data) return {};
   return Object.fromEntries(data.map(e => [e.id, e]));
+}
+
+function supervisorNameFor(emp) {
+  if (!emp || !emp.supervisor_id) return "—";
+  if (emp.supervisor_id === ME.id) return ME.full_name;
+  const sup = LOCATIONS_TEAM_BY_ID[emp.supervisor_id];
+  return sup ? sup.full_name : "—";
 }
 
 function matchesTableSearch(query, fileNumber, company, role, name, department) {
@@ -122,11 +129,36 @@ async function refreshLocations() {
   renderLocationsTable();
 }
 
+function ensureLocationsExtraHeaders() {
+  const body = document.getElementById("locationsBody");
+  const table = body && body.closest("table");
+  const headerRow = table && table.querySelector("thead tr");
+  if (!headerRow || headerRow.dataset.extraColsAdded) return;
+
+  // Employee Name is the 1st header cell (index 0) — insert File # right
+  // after it, and Supervisor (admin view only) right after that.
+  const nameHeader = headerRow.children[0];
+  if (!nameHeader) return;
+
+  const fileNumTh = document.createElement("th");
+  fileNumTh.textContent = "File #";
+  nameHeader.parentNode.insertBefore(fileNumTh, nameHeader.nextSibling);
+
+  if (ME.role === "admin") {
+    const supTh = document.createElement("th");
+    supTh.textContent = "Supervisor";
+    fileNumTh.parentNode.insertBefore(supTh, fileNumTh.nextSibling);
+  }
+
+  headerRow.dataset.extraColsAdded = "1";
+}
+
 function renderLocationsTable() {
   const body = document.getElementById("locationsBody");
   const empty = document.getElementById("noLocations");
   body.innerHTML = "";
 
+  ensureLocationsExtraHeaders();
   ensureLocationsSearch();
   const query = (document.getElementById("locationsSearchInput") || {}).value || "";
   const filteredRows = query
@@ -143,8 +175,11 @@ function renderLocationsTable() {
     const emp = LOCATIONS_TEAM_BY_ID[loc.employee_id];
     if (!emp) continue;
     const tr = document.createElement("tr");
+    const supervisorCell = ME.role === "admin" ? `<td>${supervisorNameFor(emp)}</td>` : "";
     tr.innerHTML = `
       <td>${emp.full_name}</td>
+      <td>${emp.file_number || "—"}</td>
+      ${supervisorCell}
       <td>${emp.client_company || "—"}</td>
       <td>${timeAgo(loc.updated_at)}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-center="${loc.employee_id}">${t("view")}</button></td>
