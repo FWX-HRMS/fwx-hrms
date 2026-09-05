@@ -361,6 +361,7 @@ function showDateRangePrompt(title) {
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
     document.getElementById("rangeEmployeeIdInput").value = "";
+    document.getElementById("rangeEmployeeIdInput").placeholder = "e.g. 6002 (F.W.X), 1003 (Zain)";
     document.getElementById("rangeFormatPdf").checked = true;
     document.getElementById("rangeFormatExcel").checked = false;
     document.getElementById("rangeFormatError").classList.remove("show");
