@@ -630,7 +630,7 @@ function renderWarnings() {
       <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
       <td>${fmtDate(w.created_at ? w.created_at.slice(0,10) : null)}</td>
       <td>
-        <button type="button" class="btn btn-blue btn-sm" data-view-warning="${w.id}">${t("view")}</button>
+        <button type="button" class="btn btn-blue btn-sm" data-view-warning="${w.id}">View Warning</button>
         <button type="button" class="btn btn-danger btn-sm" data-delete-warning="${w.id}">${t("deleteBtn")}</button>
       </td>
     `;
@@ -853,7 +853,7 @@ function renderContracts() {
       <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
       <td>${c.contract_period_months ? `${c.contract_period_months} ${t("monthsLabel")}` : "—"}</td>
       <td>
-        <button type="button" class="btn btn-blue btn-sm" data-view-contract="${c.id}">${t("view")}</button>
+        <button type="button" class="btn btn-blue btn-sm" data-view-contract="${c.id}">View Contract</button>
         <button type="button" class="btn btn-danger btn-sm" data-delete-contract="${c.id}">${t("deleteBtn")}</button>
       </td>
     `;
