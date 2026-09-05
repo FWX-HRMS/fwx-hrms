@@ -2408,13 +2408,17 @@ async function checkAdminEmployeeActionNotifications() {
     const lastSeenDate = lastSeen ? new Date(lastSeen) : null;
     const nowIso = new Date().toISOString();
 
-    const [{ data: signedContracts, error: contractsErr }, { data: ackedWarnings, error: warningsErr }] = await Promise.all([
+    // Reuse the exact same warnings fetch that already powers the admin's
+    // own Warnings tab correctly (confirmed working), rather than a
+    // separate raw query — and re-run it fresh on every check so polling
+    // doesn't just re-filter a stale snapshot from page load.
+    const [{ data: signedContracts, error: contractsErr }] = await Promise.all([
       db.from("contracts").select("id, employee_id, signed_at").eq("status", "signed").not("signed_at", "is", null),
-      db.from("warnings").select("id, employee_id, acknowledged_at").not("acknowledged_at", "is", null),
+      loadWarningsDataOnly(),
     ]);
+    const ackedWarnings = WARNINGS_LIST.filter(w => !!w.acknowledged_at);
 
     if (contractsErr) console.error("checkAdminEmployeeActionNotifications: contracts query failed", contractsErr);
-    if (warningsErr) console.error("checkAdminEmployeeActionNotifications: warnings query failed", warningsErr);
 
     const nameFor = (employeeId) => {
       const emp = DIRECTORY.find(e => e.id === employeeId);
