@@ -95,8 +95,53 @@ function ensureRequestsSearch() {
   `;
   table.parentNode.insertBefore(wrap, table);
   input = document.getElementById("requestsSearchInput");
-  input.addEventListener("input", () => renderRequests());
+  input.addEventListener("input", () => { MY_REQUESTS_PAGE = 0; renderRequests(); });
   return input;
+}
+
+const MY_REQUESTS_PAGE_SIZE = 10;
+let MY_REQUESTS_PAGE = 0;
+
+function ensureRequestsPagination() {
+  let wrap = document.getElementById("requestsPagination");
+  if (wrap) return wrap;
+  const tbody = document.getElementById("requestsBody");
+  const table = tbody && tbody.closest("table");
+  if (!table) return null;
+  wrap = document.createElement("div");
+  wrap.id = "requestsPagination";
+  wrap.style.cssText = "display:flex; align-items:center; justify-content:space-between; margin-top:14px";
+  wrap.innerHTML = `
+    <span id="requestsPageInfo" class="help-text"></span>
+    <div style="display:flex; gap:8px">
+      <button type="button" class="btn btn-paginate" id="requestsPrevBtn" style="width:100px">‹ Prev</button>
+      <button type="button" class="btn btn-paginate" id="requestsNextBtn" style="width:100px">Next ›</button>
+    </div>
+  `;
+  table.parentNode.insertBefore(wrap, table.nextSibling);
+  document.getElementById("requestsPrevBtn").addEventListener("click", () => {
+    if (MY_REQUESTS_PAGE > 0) { MY_REQUESTS_PAGE--; renderRequests(); }
+  });
+  document.getElementById("requestsNextBtn").addEventListener("click", () => {
+    MY_REQUESTS_PAGE++;
+    renderRequests();
+  });
+  return wrap;
+}
+
+function updateRequestsPaginationControls(totalCount) {
+  const wrap = ensureRequestsPagination();
+  if (!wrap) return;
+  if (totalCount <= MY_REQUESTS_PAGE_SIZE) {
+    wrap.style.display = "none";
+    return;
+  }
+  wrap.style.display = "flex";
+  const start = MY_REQUESTS_PAGE * MY_REQUESTS_PAGE_SIZE + 1;
+  const end = Math.min((MY_REQUESTS_PAGE + 1) * MY_REQUESTS_PAGE_SIZE, totalCount);
+  document.getElementById("requestsPageInfo").textContent = `Showing ${start}–${end} of ${totalCount}`;
+  document.getElementById("requestsPrevBtn").disabled = MY_REQUESTS_PAGE === 0;
+  document.getElementById("requestsNextBtn").disabled = end >= totalCount;
 }
 
 function renderRequests() {
@@ -118,7 +163,10 @@ function renderRequests() {
   notifyIfNoSearchResults(document.getElementById("requestsSearchInput"), query, filtered.length);
   empty.style.display = filtered.length ? "none" : "block";
 
-  for (const r of filtered) {
+  const start = MY_REQUESTS_PAGE * MY_REQUESTS_PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + MY_REQUESTS_PAGE_SIZE);
+
+  for (const r of pageItems) {
     const tr = document.createElement("tr");
     const canCancel = r.status === "pending";
     tr.innerHTML = `
@@ -130,6 +178,7 @@ function renderRequests() {
     `;
     body.appendChild(tr);
   }
+  updateRequestsPaginationControls(filtered.length);
 
   body.querySelectorAll("button[data-id]").forEach(btn => {
     btn.addEventListener("click", async () => {
