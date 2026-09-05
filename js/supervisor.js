@@ -182,7 +182,7 @@ function renderUsers() {
     const bal = balByEmployeeId[e.id];
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${e.full_name}${activeWarningBadge(e.id)}</td>
+      <td>${e.full_name}${activeWarningBadge(e.id)}${e.frozen ? ` <span class="badge badge-frozen">Frozen - ${e.frozen_reason === "termination" ? "T" : e.frozen_reason === "resignation" ? "R" : e.frozen_reason === "end_of_contract" ? "E" : "?"}</span>` : ""}</td>
       <td>${e.file_number}</td>
       <td style="text-transform:capitalize">${e.role}</td>
       <td>${e.client_company || "—"}</td>
