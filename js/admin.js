@@ -377,8 +377,8 @@ function renderDirectory() {
           <div class="action-menu" id="actionMenu-${e.id}">
             <button type="button" data-view="${e.id}">${t("view")}</button>
             <button type="button" data-edit="${e.id}">${t("editBtn")}</button>
-            ${e.role === "staff" ? `<button type="button" data-contract="${e.id}">${t("shareContractBtn")}</button>` : ""}
-            ${e.role === "staff" ? `<button type="button" data-renew-contract="${e.id}">Renew Contract</button>` : ""}
+            ${e.role === "staff" && !CONTRACTS_LIST.some(c => c.employee_id === e.id) ? `<button type="button" data-contract="${e.id}">${t("shareContractBtn")}</button>` : ""}
+            ${e.role === "staff" && CONTRACTS_LIST.some(c => c.employee_id === e.id) ? `<button type="button" data-renew-contract="${e.id}">Renew Contract</button>` : ""}
             ${e.role === "staff" ? `<button type="button" class="danger" data-warning="${e.id}">${t("giveWarningBtn")}</button>` : ""}
             <button type="button" data-reset="${e.id}">${t("resetPasswordBtn")}</button>
             ${!isSelf ? (e.frozen
@@ -1092,6 +1092,11 @@ function contractStatusBadge(status) {
 }
 
 let CONTRACTS_LIST = [];
+
+async function loadContractsDataOnly() {
+  const { data } = await db.from("contracts").select("*").order("created_at", { ascending: false });
+  CONTRACTS_LIST = data || [];
+}
 
 async function loadContracts() {
   const { data, error } = await db.from("contracts").select("*").order("created_at", { ascending: false });
@@ -2975,7 +2980,7 @@ async function checkAdminEmployeeActionNotifications() {
     document.getElementById("pageTitle").textContent = `${COMPANY_FILTER} — ${t("companyScopedTitleSuffix")}`;
     document.getElementById("pageSub").textContent = tv("companyScopedSub", { company: COMPANY_FILTER });
   }
-  await Promise.all([loadSupervisors(), loadBalances(), loadWarningsDataOnly()]);
+  await Promise.all([loadSupervisors(), loadBalances(), loadWarningsDataOnly(), loadContractsDataOnly()]);
   await loadDirectory();
   checkAdminEmployeeActionNotifications();
   setInterval(checkAdminEmployeeActionNotifications, 8000);
