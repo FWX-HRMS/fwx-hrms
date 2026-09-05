@@ -533,9 +533,11 @@ function buildFullContractText({ employeeName, nationalId, jobTitle, salary, sta
 
   return `عقد مصادر خارجية محدد المدة
 
-الفريق الأول :- Force Work Experts (شركة الرواد لخدمات الاتصالات) و يشار أليها فيما بعد بالشركة
+الفريق الأول :- Force Work Experts و يشار أليها فيما بعد بالشركة
 
-الفريق الثاني : ${employeeName} ويحمل رقم وطني ${nationalIdDisplay} ويشار اليه فيما بعد بالموظف
+الفريق الثاني : ${employeeName}
+رقم وطني : ${nationalIdDisplay}
+ويشار اليه فيما بعد بالموظف
 
 التوطئة :
 
@@ -606,9 +608,11 @@ function buildFullContractTextEnglish({ employeeName, nationalId, jobTitle, sala
 
   return `FIXED-TERM OUTSOURCING (EXTERNAL RESOURCES) AGREEMENT
 
-First Party: Force Work Experts (شركة الرواد لخدمات الاتصالات), hereinafter referred to as "the Company."
+First Party: Force Work Experts, hereinafter referred to as "the Company."
 
-Second Party: ${employeeName}, holder of National ID number ${nationalIdDisplay}, hereinafter referred to as "the Employee."
+Second Party: ${employeeName}
+National ID number: ${nationalIdDisplay}
+Hereinafter referred to as "the Employee."
 
 RECITALS:
 
@@ -1250,7 +1254,7 @@ function containsArabic(text) {
 // produces mojibake. Instead, we draw the Arabic text onto an HTML canvas
 // (the browser's own text engine correctly shapes and right-aligns Arabic)
 // and place that rendered image into the PDF, page by page.
-async function renderArabicPagesToPdf(doc, text, logo) {
+async function renderArabicPagesToPdf(doc, text, logo, startYOverride) {
   const pageWidthMm = doc.internal.pageSize.getWidth();
   const pageHeightMm = doc.internal.pageSize.getHeight();
   const marginMm = 14;
@@ -1261,32 +1265,40 @@ async function renderArabicPagesToPdf(doc, text, logo) {
   const canvasWidthPx = Math.round(contentWidthMm * pxPerMm);
   const lineHeightPx = Math.round(7 * pxPerMm);
   const fontSizePx = Math.round(4.2 * pxPerMm);
+  const titleFontSizePx = Math.round(5.6 * pxPerMm);
 
   const measureCanvas = document.createElement("canvas");
   const mctx = measureCanvas.getContext("2d");
-  mctx.font = `${fontSizePx}px Tahoma, Arial, sans-serif`;
-  mctx.direction = "rtl";
 
-  const allLines = [];
-  for (const para of text.split("\n")) {
-    if (para.trim() === "") { allLines.push(""); continue; }
+  // Classify each paragraph so headers/titles render distinctly: the very
+  // first paragraph is the document title (centered, bold, larger); any
+  // paragraph starting with "مادة" (Article) is a bold section header.
+  const paragraphs = text.split("\n");
+  const allLines = []; // { text, style: "normal" | "bold" | "title" }
+  paragraphs.forEach((para, pIdx) => {
+    const trimmed = para.trim();
+    if (trimmed === "") { allLines.push({ text: "", style: "normal" }); return; }
+    const style = pIdx === 0 ? "title" : /^مادة\s*\(/.test(trimmed) ? "bold" : "normal";
+    const fontForMeasure = style === "title" ? `bold ${titleFontSizePx}px Tahoma, Arial, sans-serif` : style === "bold" ? `bold ${fontSizePx}px Tahoma, Arial, sans-serif` : `${fontSizePx}px Tahoma, Arial, sans-serif`;
+    mctx.font = fontForMeasure;
+    mctx.direction = "rtl";
     const words = para.split(" ");
     let current = "";
     for (const word of words) {
       const test = current ? current + " " + word : word;
       if (mctx.measureText(test).width > canvasWidthPx && current) {
-        allLines.push(current);
+        allLines.push({ text: current, style });
         current = word;
       } else {
         current = test;
       }
     }
-    if (current) allLines.push(current);
-  }
+    if (current) allLines.push({ text: current, style });
+  });
 
-  const firstPageTopMm = logo ? 32 : marginMm;
+  const firstPageTopMm = startYOverride != null ? startYOverride : (logo ? 32 : marginMm);
   const laterPageTopMm = marginMm;
-  const firstPageLines = Math.floor(((pageHeightMm - firstPageTopMm - marginMm) * pxPerMm) / lineHeightPx);
+  const firstPageLines = Math.max(1, Math.floor(((pageHeightMm - firstPageTopMm - marginMm) * pxPerMm) / lineHeightPx));
   const laterPageLines = Math.floor(((pageHeightMm - laterPageTopMm - marginMm) * pxPerMm) / lineHeightPx);
 
   let i = 0;
@@ -1314,11 +1326,23 @@ async function renderArabicPagesToPdf(doc, text, logo) {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#1b2430";
-      ctx.font = `${fontSizePx}px Tahoma, Arial, sans-serif`;
       ctx.direction = "rtl";
-      ctx.textAlign = "right";
       ctx.textBaseline = "top";
-      pageLines.forEach((line, idx) => ctx.fillText(line, canvas.width, idx * lineHeightPx));
+      pageLines.forEach((line, idx) => {
+        if (line.style === "title") {
+          ctx.font = `bold ${titleFontSizePx}px Tahoma, Arial, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.fillText(line.text, canvas.width / 2, idx * lineHeightPx);
+        } else if (line.style === "bold") {
+          ctx.font = `bold ${fontSizePx}px Tahoma, Arial, sans-serif`;
+          ctx.textAlign = "right";
+          ctx.fillText(line.text, canvas.width, idx * lineHeightPx);
+        } else {
+          ctx.font = `${fontSizePx}px Tahoma, Arial, sans-serif`;
+          ctx.textAlign = "right";
+          ctx.fillText(line.text, canvas.width, idx * lineHeightPx);
+        }
+      });
 
       const imgHeightMm = canvas.height / pxPerMm;
       doc.addImage(canvas.toDataURL("image/png"), "PNG", marginMm, yStartMm, contentWidthMm, imgHeightMm);
@@ -1337,9 +1361,66 @@ async function downloadContractPDF(kind, fileNumber, employeeName, text, signatu
   const doc = new jsPDF();
   const logo = await loadLogoDataURL();
   let lastY;
+  const isArabicDoc = containsArabic(text);
 
-  if (containsArabic(text)) {
-    lastY = await renderArabicPagesToPdf(doc, text, logo);
+  if (isArabicDoc) {
+    // The "financial schedule" section reads much better as an actual
+    // bordered table than as flowing paragraph text — pull it out of the
+    // stream, render everything else normally, then draw it as a real
+    // table with jsPDF's native drawing primitives.
+    const tableMatch = text.match(/\n([^\n]*الجدولة الماليه[^\n]*)\n([\s\S]*?)\n\n(الفريق الأول[\s\S]*)$/);
+    if (tableMatch) {
+      const beforeTable = text.slice(0, tableMatch.index);
+      const tableRows = tableMatch[2].split("\n").map(line => {
+        const parts = line.split(":");
+        return { label: (parts[0] || "").trim(), value: (parts.slice(1).join(":") || "").trim() };
+      }).filter(r => r.label);
+      const signatureSection = tableMatch[3];
+
+      lastY = await renderArabicPagesToPdf(doc, beforeTable, logo);
+
+      const marginMm = 14;
+      const pageWidthMm = doc.internal.pageSize.getWidth();
+      const pageHeightMm = doc.internal.pageSize.getHeight();
+      const tableWidthMm = pageWidthMm - marginMm * 2;
+      const rowHeightMm = 9;
+      const headerHeightMm = 9;
+      const tableHeightNeeded = headerHeightMm + tableRows.length * rowHeightMm + 10;
+
+      let tableTopMm = lastY + 10;
+      if (tableTopMm + tableHeightNeeded > pageHeightMm - marginMm) {
+        doc.addPage();
+        tableTopMm = marginMm + 10;
+      }
+
+      doc.setFontSize(12);
+      doc.setFont(undefined, "bold");
+      doc.setTextColor(27, 36, 48);
+      doc.text("الجدولة الماليه", pageWidthMm - marginMm, tableTopMm, { align: "right" });
+      doc.setFont(undefined, "normal");
+
+      let rowY = tableTopMm + 6;
+      const colSplitMm = marginMm + tableWidthMm * 0.62;
+      doc.setDrawColor(200, 205, 212);
+      doc.setLineWidth(0.3);
+      doc.rect(marginMm, rowY, tableWidthMm, tableRows.length * rowHeightMm);
+      doc.line(colSplitMm, rowY, colSplitMm, rowY + tableRows.length * rowHeightMm);
+      for (let r = 1; r < tableRows.length; r++) {
+        doc.line(marginMm, rowY + r * rowHeightMm, marginMm + tableWidthMm, rowY + r * rowHeightMm);
+      }
+
+      doc.setFontSize(10.5);
+      tableRows.forEach((row, idx) => {
+        const cellY = rowY + idx * rowHeightMm + rowHeightMm / 2 + 1.5;
+        doc.text(row.label, marginMm + tableWidthMm - 3, cellY, { align: "right" });
+        doc.text(row.value, colSplitMm - 3, cellY, { align: "right" });
+      });
+
+      lastY = rowY + tableRows.length * rowHeightMm;
+      lastY = await renderArabicPagesToPdf(doc, "\n" + signatureSection, null, lastY);
+    } else {
+      lastY = await renderArabicPagesToPdf(doc, text, logo);
+    }
   } else {
     let y = 20;
     if (logo) {
@@ -1374,8 +1455,16 @@ async function downloadContractPDF(kind, fileNumber, employeeName, text, signatu
       imageOk = false;
     }
 
-    const labelHeight = 8;
-    const nameLineHeight = 8;
+    // Arabic contracts already end with their own proper signature line
+    // (rendered correctly via the canvas-based Arabic text flow) — adding
+    // separate plain-text English labels here would both duplicate that
+    // line and risk garbling the employee's name if it contains Arabic
+    // characters, since jsPDF's plain text() doesn't shape Arabic. So for
+    // Arabic contracts we only place the image itself, right under the
+    // text's own signature line; English contracts get the labels since
+    // no such line exists in their plain-text body.
+    const labelHeight = isArabicDoc ? 0 : 8;
+    const nameLineHeight = isArabicDoc ? 0 : 8;
     const gapBeforeBlock = 10;
     const blockHeight = nameLineHeight + labelHeight + imgHeight + 5;
 
@@ -1385,21 +1474,25 @@ async function downloadContractPDF(kind, fileNumber, employeeName, text, signatu
       sigY = marginMm + 10;
     }
 
-    doc.setFontSize(11);
-    doc.setTextColor(27, 36, 48);
-    doc.text(`Employee Name: ${employeeName || "—"}`, marginMm, sigY);
-    sigY += nameLineHeight;
-    doc.text("Employee Signature:", marginMm, sigY);
+    if (!isArabicDoc) {
+      doc.setFontSize(11);
+      doc.setTextColor(27, 36, 48);
+      doc.text(`Employee Name: ${employeeName || "—"}`, marginMm, sigY);
+      sigY += nameLineHeight;
+      doc.text("Employee Signature:", marginMm, sigY);
+      sigY += 4;
+    }
+
     if (imageOk) {
       try {
-        doc.addImage(signatureImage, marginMm, sigY + 4, imgWidth, imgHeight);
+        doc.addImage(signatureImage, marginMm, sigY, imgWidth, imgHeight);
       } catch (e) {
         doc.setFontSize(9);
-        doc.text("(Signature image could not be embedded)", marginMm, sigY + 10);
+        doc.text("(Signature image could not be embedded)", marginMm, sigY + 6);
       }
     } else {
       doc.setFontSize(9);
-      doc.text("(Signature image could not be embedded)", marginMm, sigY + 10);
+      doc.text("(Signature image could not be embedded)", marginMm, sigY + 6);
     }
   }
 
