@@ -182,7 +182,7 @@ function renderLocationsTable() {
     const tr = document.createElement("tr");
     const supervisorCell = ME.role === "admin" ? `<td>${supervisorNameFor(emp)}</td>` : "";
     tr.innerHTML = `
-      <td><span data-center="${loc.employee_id}" style="cursor:pointer; color:var(--accent, #2f7d5f); font-weight:600">${emp.full_name}</span></td>
+      <td><span data-center="${loc.employee_id}" style="cursor:pointer; color:#2563eb; font-weight:600">${emp.full_name}</span></td>
       <td>${emp.file_number || "—"}</td>
       ${supervisorCell}
       <td>${emp.client_company || "—"}</td>
