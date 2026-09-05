@@ -145,20 +145,26 @@ function ensureUsersSupervisorHeader() {
   headerRow.dataset.supervisorColAdded = "1";
 }
 
-function hasActiveWarning(employeeId) {
+function countActiveWarnings(employeeId) {
   const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000;
   const source = ME.role === "admin" ? ADMIN_WARNINGS_LIST : TEAM_WARNINGS_LIST;
-  return source.some(w => {
+  return source.filter(w => {
     if (w.employee_id !== employeeId || w.status !== "sent") return false;
     const dateStr = w.sent_at || w.created_at;
     if (!dateStr) return false;
     return new Date(dateStr).getTime() >= cutoff;
-  });
+  }).length;
+}
+
+function hasActiveWarning(employeeId) {
+  return countActiveWarnings(employeeId) > 0;
 }
 
 function activeWarningBadge(employeeId) {
-  if (!hasActiveWarning(employeeId)) return "";
-  return ` <span title="Active warning within the last year" style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:#c0392b; color:#fff; font-size:11px; font-weight:700; margin-inline-start:6px; vertical-align:middle">W</span>`;
+  const count = Math.min(countActiveWarnings(employeeId), 3);
+  if (count === 0) return "";
+  const circle = `<span style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:#c0392b; color:#fff; font-size:11px; font-weight:700; vertical-align:middle">W</span>`;
+  return ` <span title="${count} active warning${count > 1 ? "s" : ""} within the last year" style="display:inline-flex; gap:2px; margin-inline-start:6px">${circle.repeat(count)}</span>`;
 }
 
 function renderUsers() {
@@ -507,7 +513,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     return;
   }
 
-  const rows = source.map(r => [r.full_name, r.file_number, hasActiveWarning(r.employee_id) ? "W" : "—", String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
+  const rows = source.map(r => [r.full_name, r.file_number, "W".repeat(Math.min(countActiveWarnings(r.employee_id), 3)) || "—", String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
   const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
   const columns = ["Employee Name", "ID #", "Active Warning", "Annual", "Taken", "Available Balance", "Pending", "Sick", "Sick Taken", "Sick Remaining"];
   const scope = range.company ? `${range.company} — ` : "";

@@ -307,19 +307,25 @@ async function loadDirectory() {
   renderDirectory();
 }
 
-function hasActiveWarning(employeeId) {
+function countActiveWarnings(employeeId) {
   const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000;
-  return WARNINGS_LIST.some(w => {
+  return WARNINGS_LIST.filter(w => {
     if (w.employee_id !== employeeId || w.status !== "sent") return false;
     const dateStr = w.sent_at || w.created_at;
     if (!dateStr) return false;
     return new Date(dateStr).getTime() >= cutoff;
-  });
+  }).length;
+}
+
+function hasActiveWarning(employeeId) {
+  return countActiveWarnings(employeeId) > 0;
 }
 
 function activeWarningBadge(employeeId) {
-  if (!hasActiveWarning(employeeId)) return "";
-  return ` <span title="Active warning within the last year" style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:#c0392b; color:#fff; font-size:11px; font-weight:700; margin-inline-start:6px; vertical-align:middle">W</span>`;
+  const count = Math.min(countActiveWarnings(employeeId), 3);
+  if (count === 0) return "";
+  const circle = `<span style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:#c0392b; color:#fff; font-size:11px; font-weight:700; vertical-align:middle">W</span>`;
+  return ` <span title="${count} active warning${count > 1 ? "s" : ""} within the last year" style="display:inline-flex; gap:2px; margin-inline-start:6px">${circle.repeat(count)}</span>`;
 }
 
 function renderDirectory() {
@@ -1696,7 +1702,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const rows = source.map((e, i) => {
     if (e.frozen) redRowIndices.add(i);
     const bal = BALANCES_BY_ID[e.id] || {};
-    return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, fmtDate(e.hiring_date), e.frozen ? fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null) : "—", hasActiveWarning(e.id) ? "W" : "—", String(e.carryover_balance ?? 0), String(bal.annual_entitlement ?? "—"), String(bal.taken ?? "—"), String(bal.remaining ?? "—"), String(bal.sick_entitlement ?? "—"), String(bal.sick_taken ?? "—"), String(bal.sick_remaining ?? "—")];
+    return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, fmtDate(e.hiring_date), e.frozen ? fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null) : "—", "W".repeat(Math.min(countActiveWarnings(e.id), 3)) || "—", String(e.carryover_balance ?? 0), String(bal.annual_entitlement ?? "—"), String(bal.taken ?? "—"), String(bal.remaining ?? "—"), String(bal.sick_entitlement ?? "—"), String(bal.sick_taken ?? "—"), String(bal.sick_remaining ?? "—")];
   });
   const scope = companyToApply ? `${companyToApply} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
