@@ -355,14 +355,11 @@ function ensureRangeCompanySelect() {
   return document.getElementById("rangeCompanySelect");
 }
 
-function employeeIdPlaceholderFor(company) {
-  const examples = {
-    "F.W.X Company": "6002",
-    "Zain": "1003",
-    "Umniah": "2003",
-  };
-  const example = examples[company];
-  return example ? `e.g. ${example}` : "e.g. 1003";
+function employeeIdPlaceholderFor() {
+  // Use the supervisor's own file number as the example — it's guaranteed
+  // to be a real, in-range number for their exact company, no guessing
+  // or maintaining a static per-company list needed.
+  return ME.file_number ? `e.g. ${ME.file_number}` : "e.g. 1003";
 }
 
 function showDateRangePrompt(title) {
@@ -373,7 +370,7 @@ function showDateRangePrompt(title) {
     document.getElementById("rangeEmployeeIdInput").value = "";
     document.getElementById("rangeEmployeeIdInput").placeholder = ME.role === "admin"
       ? "e.g. 6002 (F.W.X), 1003 (Zain)"
-      : employeeIdPlaceholderFor(ME.client_company);
+      : employeeIdPlaceholderFor();
     document.getElementById("rangeFormatPdf").checked = true;
     document.getElementById("rangeFormatExcel").checked = false;
     document.getElementById("rangeFormatError").classList.remove("show");
