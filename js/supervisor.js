@@ -145,6 +145,22 @@ function ensureUsersSupervisorHeader() {
   headerRow.dataset.supervisorColAdded = "1";
 }
 
+function hasActiveWarning(employeeId) {
+  const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000;
+  const source = ME.role === "admin" ? ADMIN_WARNINGS_LIST : TEAM_WARNINGS_LIST;
+  return source.some(w => {
+    if (w.employee_id !== employeeId || w.status !== "sent") return false;
+    const dateStr = w.sent_at || w.created_at;
+    if (!dateStr) return false;
+    return new Date(dateStr).getTime() >= cutoff;
+  });
+}
+
+function activeWarningBadge(employeeId) {
+  if (!hasActiveWarning(employeeId)) return "";
+  return ` <span title="Active warning within the last year" style="display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:50%; background:#c0392b; color:#fff; font-size:11px; font-weight:700; margin-inline-start:6px; vertical-align:middle">W</span>`;
+}
+
 function renderUsers() {
   const body = document.getElementById("usersBody");
   const empty = document.getElementById("noUsers");
@@ -165,7 +181,7 @@ function renderUsers() {
     const bal = balByEmployeeId[e.id];
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${e.full_name}</td>
+      <td>${e.full_name}${activeWarningBadge(e.id)}</td>
       <td>${e.file_number}</td>
       <td style="text-transform:capitalize">${e.role}</td>
       <td>${e.client_company || "—"}</td>
@@ -458,15 +474,16 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   }
   if (range.from) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date >= range.from; });
   if (range.to) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date <= range.to; });
+  source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return !(emp && emp.frozen); });
 
   if (source.length === 0) {
     showToast(t("noMatchingEmployeeToast"));
     return;
   }
 
-  const rows = source.map(r => [r.full_name, r.file_number, String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
+  const rows = source.map(r => [r.full_name, r.file_number, hasActiveWarning(r.employee_id) ? "W" : "—", String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
   const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
-  const columns = ["Employee Name", "ID #", "Annual", "Taken", "Available Balance", "Pending", "Sick", "Sick Taken", "Sick Remaining"];
+  const columns = ["Employee Name", "ID #", "Active Warning", "Annual", "Taken", "Available Balance", "Pending", "Sick", "Sick Taken", "Sick Remaining"];
   const scope = range.company ? `${range.company} — ` : "";
   const filenamePrefix = range.company ? `${range.company.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_` : "";
 
@@ -780,6 +797,7 @@ document.getElementById("adminWarningsNextBtn").addEventListener("click", () => 
 async function refreshAll() {
   await loadTeam();
   await Promise.allSettled([loadBalances(), loadRequests(), loadTeamWarnings(), loadAdminContracts(), loadAdminWarnings()]);
+  renderUsers();
   await checkAdminContractActivity();
   checkSupervisorWarningNotification();
 }
@@ -791,5 +809,7 @@ async function refreshAll() {
   if (ME.role === "admin") document.getElementById("adminLink").style.display = "";
   if (ME.role === "admin") document.getElementById("clientsLink").style.display = "";
   document.getElementById("pendingActionsHeader").textContent = ME.role === "admin" ? t("colStatus") : "";
+  const downloadReportBtn = document.getElementById("downloadReportBtn");
+  if (downloadReportBtn) downloadReportBtn.textContent = "Download Leave Report";
   await refreshAll();
 })();

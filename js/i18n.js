@@ -346,7 +346,7 @@ const translations = {
     noLeaveHistoryOnFile: "No leave requests on file.",
     leaveRequestsTitle: "Leave Requests",
     noLeaveRequestsFound: "No leave requests found.",
-    downloadReportPdfBtn: "Download Report",
+    downloadReportPdfBtn: "Download Leave Report",
 
     // Client Companies
     clientCompaniesTitle: "Client Companies",
@@ -768,7 +768,7 @@ const translations = {
     noLeaveHistoryOnFile: "لا توجد طلبات إجازة مسجلة.",
     leaveRequestsTitle: "طلبات الإجازة",
     noLeaveRequestsFound: "لم يتم العثور على طلبات إجازة.",
-    downloadReportPdfBtn: "تنزيل التقرير",
+    downloadReportPdfBtn: "تنزيل تقرير الإجازات",
 
     // Client Companies
     clientCompaniesTitle: "الشركات العميلة",
