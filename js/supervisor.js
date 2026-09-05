@@ -662,6 +662,49 @@ function showDocActivityPopup(icon, title, text) {
   document.getElementById("docActivityOverlay").style.display = "flex";
 }
 
+async function checkAdminEmployeeActionNotifications() {
+  if (ME.role !== "admin") return;
+  try {
+    const lastSeenKey = `fwx_adminLastSeenActions_${ME.id}`;
+    const lastSeen = localStorage.getItem(lastSeenKey);
+    const lastSeenDate = lastSeen ? new Date(lastSeen) : null;
+    const nowIso = new Date().toISOString();
+
+    // Reuse the already-loaded admin-scope lists (ADMIN_CONTRACTS_LIST /
+    // ADMIN_WARNINGS_LIST) rather than a fresh query — same data source
+    // that already powers this page's own Admin Contracts/Warnings tables.
+    const signedContracts = ADMIN_CONTRACTS_LIST.filter(c => c.status === "signed" && c.signed_at);
+    const ackedWarnings = ADMIN_WARNINGS_LIST.filter(w => !!w.acknowledged_at);
+
+    const nameFor = (employeeId) => {
+      const emp = TEAM_BY_ID[employeeId];
+      return emp ? emp.full_name : "An employee";
+    };
+    const namesList = (names) => {
+      const unique = [...new Set(names)];
+      return unique.length <= 3 ? unique.join(", ") : `${unique.slice(0, 3).join(", ")}, and ${unique.length - 3} more`;
+    };
+
+    const newSigned = signedContracts.filter(c => !lastSeenDate || new Date(c.signed_at) > lastSeenDate);
+    const newAcked = ackedWarnings.filter(w => !lastSeenDate || new Date(w.acknowledged_at) > lastSeenDate);
+
+    if (newSigned.length === 0 && newAcked.length === 0) {
+      localStorage.setItem(lastSeenKey, nowIso);
+      return;
+    }
+
+    const parts = [];
+    if (newSigned.length > 0) parts.push(`${newSigned.length} contract${newSigned.length > 1 ? "s" : ""} newly signed (${namesList(newSigned.map(c => nameFor(c.employee_id)))})`);
+    if (newAcked.length > 0) parts.push(`${newAcked.length} warning${newAcked.length > 1 ? "s" : ""} newly acknowledged (${namesList(newAcked.map(w => nameFor(w.employee_id)))})`);
+
+    showInfoPopup(t("docActivityTitle"), `${parts.join(" · ")} since your last visit.`, "🔔", () => {
+      localStorage.setItem(lastSeenKey, nowIso);
+    });
+  } catch (err) {
+    console.error("checkAdminEmployeeActionNotifications: unexpected error", err);
+  }
+}
+
 async function checkAdminContractActivity() {
   if (ME.role !== "admin") return;
   const { data } = await db.from("contracts").select("id, employee_id, status, employee_action_at").in("status", ["signed", "commented"]);
@@ -889,4 +932,10 @@ async function refreshAll() {
   const downloadReportBtn = document.getElementById("downloadReportBtn");
   if (downloadReportBtn) downloadReportBtn.textContent = "Download Leave Report";
   await refreshAll();
+  checkAdminEmployeeActionNotifications();
+  setInterval(checkAdminEmployeeActionNotifications, 8000);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkAdminEmployeeActionNotifications();
+  });
+  window.addEventListener("focus", () => checkAdminEmployeeActionNotifications());
 })();
