@@ -356,10 +356,14 @@ function ensureRangeCompanySelect() {
 }
 
 function employeeIdPlaceholderFor() {
-  // Use the supervisor's own file number as the example — it's guaranteed
-  // to be a real, in-range number for their exact company, no guessing
-  // or maintaining a static per-company list needed.
-  return ME.file_number ? `e.g. ${ME.file_number}` : "e.g. 1003";
+  // Derive an example from the supervisor's own file number so it's always
+  // a plausible, in-range number for their exact company — but offset by
+  // one rather than showing their own literal ID as "the example".
+  if (!ME.file_number) return "e.g. 1003";
+  const num = parseInt(ME.file_number, 10);
+  if (isNaN(num)) return `e.g. ${ME.file_number}`;
+  const example = String(num + 1).padStart(ME.file_number.length, "0");
+  return `e.g. ${example}`;
 }
 
 function showDateRangePrompt(title) {
