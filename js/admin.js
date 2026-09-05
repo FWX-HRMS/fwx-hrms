@@ -2470,7 +2470,7 @@ async function checkAdminEmployeeActionNotifications() {
   await Promise.all([loadSupervisors(), loadBalances(), loadWarningsDataOnly()]);
   await loadDirectory();
   checkAdminEmployeeActionNotifications();
-  setInterval(checkAdminEmployeeActionNotifications, 30000);
+  setInterval(checkAdminEmployeeActionNotifications, 8000);
 
   // Deep link from the dashboard's "View" buttons: ?tab=contracts&contractId=... / ?tab=warnings&warningId=...
   const qs = new URLSearchParams(window.location.search);
