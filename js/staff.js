@@ -307,7 +307,7 @@ async function loadDashboardWarnings() {
       <td>${(w.reason || "").slice(0, 60)}${(w.reason || "").length > 60 ? "…" : ""}</td>
       <td>${warningStatusBadge(w.status)}${w.acknowledged_at ? ` <span class="badge badge-approved" style="margin-inline-start:6px" title="Acknowledged on ${fmtDate(w.acknowledged_at.slice(0,10))}">Acknowledged</span>` : ""}</td>
       <td>${fmtDate(w.sent_at ? w.sent_at.slice(0,10) : null)}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-view-dash-warning="${w.id}">${t("view")}</button></td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-view-dash-warning="${w.id}">View Warning</button></td>
     `;
     body.appendChild(tr);
   }

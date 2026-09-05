@@ -127,7 +127,7 @@ async function loadContracts() {
       <td><span class="badge ${badge}">${contractStatusLabel(c.status)}</span></td>
       <td>${fmtDate(c.created_at ? c.created_at.slice(0,10) : null)}</td>
       <td>${c.contract_period_months ? `${c.contract_period_months} ${t("monthsLabel")}` : "—"}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-view-contract="${c.id}">${t("view")}</button></td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-view-contract="${c.id}">View Contract</button></td>
     `;
     body.appendChild(tr);
   }
