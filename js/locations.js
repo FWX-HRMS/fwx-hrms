@@ -209,6 +209,7 @@ function renderLocationsTable() {
   document.getElementById("whoami").innerHTML = `${ME.full_name} · #${ME.file_number}<br><span style="opacity:.7">${ME.client_company || ""}</span>`;
   if (ME.role === "admin") document.getElementById("adminLink").style.display = "";
   if (ME.role === "admin") document.getElementById("clientsLink").style.display = "";
+  if (ME.role === "admin") document.getElementById("sourcingCandidatesLink").style.display = "";
   document.getElementById("locationsSub").textContent = ME.role === "admin"
     ? t("staffLocationsSubAdmin")
     : t("staffLocationsSubSupervisor");
