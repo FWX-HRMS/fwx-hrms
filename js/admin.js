@@ -1360,14 +1360,23 @@ async function renderArabicPagesToPdf(doc, text, logo, startYOverride) {
   const mctx = measureCanvas.getContext("2d");
 
   // Classify each paragraph so headers/titles render distinctly: the very
-  // first paragraph is the document title (centered, bold, larger); any
-  // paragraph starting with "مادة" (Article) is a bold section header.
+  // first non-empty paragraph of the document is its title (centered, bold,
+  // larger) — this is a positional rule rather than matching a specific
+  // string, so it works for any document (contracts, warnings, etc.)
+  // regardless of the exact title wording, as long as this call represents
+  // the actual start of the document (startYOverride is only passed for
+  // continuation sections, e.g. the signature block after a financial
+  // table, which must never be re-classified as a title). Any paragraph
+  // starting with "مادة" (Article) is a bold section header.
   const paragraphs = text.split("\n");
   const allLines = []; // { text, style: "normal" | "bold" | "title" }
+  let titleAssigned = startYOverride != null; // continuation calls have no title
   paragraphs.forEach((para, pIdx) => {
     const trimmed = para.trim();
     if (trimmed === "") { allLines.push({ text: "", style: "normal" }); return; }
-    const style = trimmed === "عقد مصادر خارجية محدد المدة" ? "title" : /^مادة\s*\(/.test(trimmed) ? "bold" : "normal";
+    const isTitle = !titleAssigned;
+    if (isTitle) titleAssigned = true;
+    const style = isTitle ? "title" : /^مادة\s*\(/.test(trimmed) ? "bold" : "normal";
     const fontForMeasure = style === "title" ? `bold ${titleFontSizePx}px Tahoma, Arial, sans-serif` : style === "bold" ? `bold ${fontSizePx}px Tahoma, Arial, sans-serif` : `${fontSizePx}px Tahoma, Arial, sans-serif`;
     mctx.font = fontForMeasure;
     mctx.direction = "rtl";
@@ -1613,13 +1622,17 @@ async function downloadContractPDF(kind, fileNumber, employeeName, text, signatu
     const pageWidth = doc.internal.pageSize.getWidth();
     const contentWidth = pageWidth - marginMm * 2;
     const paragraphs = text.split("\n");
+    let titleAssigned = false;
     paragraphs.forEach((para) => {
       const trimmed = para.trim();
       if (trimmed === "") { y += 6; return; }
-      // The very first line of the English contract is its title — give it
-      // the same bold, centered treatment the Arabic contract's title gets,
-      // instead of flowing it in as plain left-aligned body text.
-      const isTitle = trimmed === "FIXED-TERM OUTSOURCING (EXTERNAL RESOURCES) AGREEMENT";
+      // The very first non-empty line of any English document (contract or
+      // warning letter) is its title — give it the same bold, centered
+      // treatment the Arabic version's title gets. This is a positional
+      // rule rather than matching one specific string, so it applies to
+      // whatever title text the document actually has.
+      const isTitle = !titleAssigned;
+      if (isTitle) titleAssigned = true;
       doc.setFont(undefined, isTitle ? "bold" : "normal");
       doc.setFontSize(isTitle ? 14 : 11);
       const lines = doc.splitTextToSize(para, contentWidth);
