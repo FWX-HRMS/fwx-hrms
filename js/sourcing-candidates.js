@@ -13,6 +13,7 @@ const SC_SOURCES = [
   { key: "bayt", label: "Bayt" },
   { key: "indeed", label: "Indeed" },
   { key: "akhtaboot", label: "Akhtaboot" },
+  { key: "general", label: "General Web" },
 ];
 
 let SC_LAST_RESULTS = [];
@@ -107,8 +108,10 @@ async function scRunSearch() {
           <span class="sc-badge">${scEscapeHtml((SC_SOURCES.find(s => s.key === r.source) || { label: r.source }).label)}</span>
           <span class="sc-score">Match score: ${r.score}</span>
         </div>
-        <div><a href="${scEscapeHtml(r.link)}" target="_blank" rel="noopener noreferrer">${scEscapeHtml(r.title || r.link)}</a></div>
-        <div class="sc-snippet">${scEscapeHtml(r.snippet || "")}</div>
+        <div class="sc-name">${scEscapeHtml(r.name || r.title || "Unknown")}</div>
+        <div class="sc-experience">${scEscapeHtml(r.experience || "")}</div>
+        <div class="sc-contact ${r.contact ? "" : "sc-no-contact"}">${r.contact ? scEscapeHtml(r.contact) : "Contact not public"}</div>
+        <div style="margin-top:6px"><a href="${scEscapeHtml(r.link)}" target="_blank" rel="noopener noreferrer">View public profile ↗</a></div>
         ${r.matchedSkills && r.matchedSkills.length ? `<div class="sc-matched">Matched: ${r.matchedSkills.map(scEscapeHtml).join(", ")}</div>` : ""}
       </div>
     `).join("") + (data.errors ? `<div class="sc-error">${data.errors.map(scEscapeHtml).join("<br>")}</div>` : "");
@@ -150,12 +153,12 @@ function scExportPdf() {
 
   doc.setTextColor(27, 36, 48);
   SC_LAST_RESULTS.forEach((r) => {
-    const blockLines = 4 + Math.ceil((r.snippet || "").length / 100);
+    const blockLines = 5 + Math.ceil((r.experience || "").length / 100);
     if (y + blockLines * 5 > pageHeight - 15) { doc.addPage(); y = 20; }
 
-    doc.setFontSize(11);
+    doc.setFontSize(11.5);
     doc.setFont(undefined, "bold");
-    doc.textWithLink(r.title || r.link, marginMm, y, { url: r.link });
+    doc.text(r.name || r.title || "Unknown", marginMm, y);
     y += 5;
 
     doc.setFontSize(9.5);
@@ -164,19 +167,26 @@ function scExportPdf() {
     doc.text(`Source: ${r.source}   |   Match score: ${r.score}`, marginMm, y);
     y += 5;
 
-    if (r.snippet) {
-      const snippetLines = doc.splitTextToSize(r.snippet, pageWidth - marginMm * 2);
-      snippetLines.forEach(line => {
+    if (r.experience) {
+      const expLines = doc.splitTextToSize(`Experience: ${r.experience}`, pageWidth - marginMm * 2);
+      expLines.forEach(line => {
         if (y > pageHeight - 15) { doc.addPage(); y = 20; }
         doc.text(line, marginMm, y);
         y += 5;
       });
     }
 
+    doc.setTextColor(r.contact ? 27 : 138, r.contact ? 36 : 146, r.contact ? 48 : 156);
+    doc.text(`Contact: ${r.contact || "not public"}`, marginMm, y);
+    y += 5;
+
+    doc.setTextColor(90, 100, 114);
+    doc.textWithLink("View public profile", marginMm, y, { url: r.link });
+    y += 5;
+
     if (r.matchedSkills && r.matchedSkills.length) {
       doc.setTextColor(26, 127, 77);
       doc.text(`Matched: ${r.matchedSkills.join(", ")}`, marginMm, y);
-      doc.setTextColor(90, 100, 114);
       y += 5;
     }
 
@@ -192,12 +202,13 @@ function scExportPdf() {
 function scExportExcel() {
   if (!SC_LAST_RESULTS.length || !window.XLSX) return;
   const rows = SC_LAST_RESULTS.map(r => ({
+    Name: r.name || r.title || "Unknown",
+    Experience: r.experience || "",
+    Contact: r.contact || "not public",
     Source: r.source,
     "Match Score": r.score,
-    Title: r.title || "",
     Link: r.link,
     "Matched Skills": (r.matchedSkills || []).join(", "),
-    Snippet: r.snippet || "",
   }));
   const ws = XLSX.utils.json_to_sheet(rows);
   const wb = XLSX.utils.book_new();
