@@ -37,7 +37,7 @@
       .fwx-cs-fab:hover { background: #2a3648; }
       .fwx-cs-overlay {
         display: none; position: fixed; inset: 0; background: rgba(20,24,30,0.55);
-        z-index: 10500; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto;
+        z-index: 10000; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto;
       }
       .fwx-cs-overlay.open { display: flex; }
       .fwx-cs-modal {
