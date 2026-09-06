@@ -13,7 +13,6 @@ const SC_SOURCES = [
   { key: "bayt", label: "Bayt" },
   { key: "indeed", label: "Indeed" },
   { key: "akhtaboot", label: "Akhtaboot" },
-  { key: "general", label: "General Web" },
 ];
 
 let SC_LAST_RESULTS = [];
