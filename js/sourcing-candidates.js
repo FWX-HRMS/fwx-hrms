@@ -101,19 +101,30 @@ async function scRunSearch() {
       return;
     }
 
-    resultsBody.innerHTML = results.map(r => `
-      <div class="sc-result">
-        <div class="sc-result-top">
-          <span class="sc-badge">${scEscapeHtml((SC_SOURCES.find(s => s.key === r.source) || { label: r.source }).label)}</span>
-          <span class="sc-score">Match score: ${r.score}</span>
-        </div>
-        <div class="sc-name">${scEscapeHtml(r.name || r.title || "Unknown")}</div>
-        <div class="sc-experience">${scEscapeHtml(r.experience || "")}</div>
-        <div class="sc-contact ${r.contact ? "" : "sc-no-contact"}">${r.contact ? scEscapeHtml(r.contact) : "Contact not public"}</div>
-        <div style="margin-top:6px"><a href="${scEscapeHtml(r.link)}" target="_blank" rel="noopener noreferrer">View public profile ↗</a></div>
-        ${r.matchedSkills && r.matchedSkills.length ? `<div class="sc-matched">Matched: ${r.matchedSkills.map(scEscapeHtml).join(", ")}</div>` : ""}
-      </div>
-    `).join("") + (data.errors ? `<div class="sc-error">${data.errors.map(scEscapeHtml).join("<br>")}</div>` : "");
+    resultsBody.innerHTML = `
+      <table class="sc-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Source</th>
+            <th>Matched Skills</th>
+            <th>Contact</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${results.map(r => `
+            <tr>
+              <td class="sc-name"><a href="${scEscapeHtml(r.link)}" target="_blank" rel="noopener noreferrer">${scEscapeHtml(r.name || r.title || "Unknown")}</a></td>
+              <td><span class="sc-badge">${scEscapeHtml((SC_SOURCES.find(s => s.key === r.source) || { label: r.source }).label)}</span></td>
+              <td class="sc-matched">${r.matchedSkills && r.matchedSkills.length ? scEscapeHtml(r.matchedSkills.join(", ")) : "—"}</td>
+              <td class="${r.contact ? "sc-contact" : "sc-no-contact"}">${r.contact ? scEscapeHtml(r.contact) : "Not public"}</td>
+              <td class="sc-score">${r.score}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    ` + (data.errors ? `<div class="sc-error" style="margin-top:12px">${data.errors.map(scEscapeHtml).join("<br>")}</div>` : "");
 
     exportPdfBtn.style.display = "";
     exportExcelBtn.style.display = "";
