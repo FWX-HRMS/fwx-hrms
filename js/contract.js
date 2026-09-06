@@ -320,13 +320,67 @@ function renderArabicPagesToPdf(doc, text, startYOverride) {
   return lastContentBottomMm;
 }
 
-document.getElementById("downloadContractBtn").addEventListener("click", () => {
+// jsPDF's plain doc.text() cannot shape Arabic glyphs, so any Arabic string
+// drawn with it (even a short table label) comes out as corrupted/mojibake
+// characters. This renders a single line of Arabic text onto a canvas
+// (correct shaping + RTL) and returns it as an image sized in mm, so short
+// strings like table titles/labels/values can be placed precisely without
+// going through the paragraph-flow renderer.
+function arabicTextToImageMm(text, { bold = false, sizeMm = 4.2, color = "#1b2430" } = {}) {
+  const scale = 3;
+  const pxPerMm = 3.7795 * scale;
+  const fontSizePx = Math.round(sizeMm * pxPerMm);
+  const font = `${bold ? "bold " : ""}${fontSizePx}px Tahoma, Arial, sans-serif`;
+
+  const measureCanvas = document.createElement("canvas");
+  const mctx = measureCanvas.getContext("2d");
+  mctx.font = font;
+  mctx.direction = "rtl";
+  const textWidthPx = Math.max(1, Math.ceil(mctx.measureText(text || "").width) + 6);
+  const heightPx = Math.ceil(fontSizePx * 1.4);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = textWidthPx;
+  canvas.height = heightPx;
+  const ctx = canvas.getContext("2d");
+  ctx.font = font;
+  ctx.direction = "rtl";
+  ctx.fillStyle = color;
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "right";
+  ctx.fillText(text || "", textWidthPx - 3, heightPx / 2);
+
+  return {
+    dataUrl: canvas.toDataURL("image/png"),
+    widthMm: textWidthPx / pxPerMm,
+    heightMm: heightPx / pxPerMm
+  };
+}
+
+// Draws a line of Arabic text into the PDF at (xMm, yMm), where yMm is the
+// vertical center of the line and xMm is the anchor edge given by `align`
+// ("right" = xMm is the right edge, "center" = xMm is the horizontal center).
+function drawArabicLine(doc, text, { xMm, yMm, align = "right", bold = false, sizeMm = 4.2, color = "#1b2430" } = {}) {
+  const img = arabicTextToImageMm(text, { bold, sizeMm, color });
+  let left = xMm;
+  if (align === "right") left = xMm - img.widthMm;
+  else if (align === "center") left = xMm - img.widthMm / 2;
+  doc.addImage(img.dataUrl, "PNG", left, yMm - img.heightMm / 2, img.widthMm, img.heightMm);
+}
+
+async function generateAndDownloadContract() {
   const text = document.getElementById("contractTextDisplay").textContent;
   const { jsPDF } = window.jspdf || {};
   if (!jsPDF) { showToast("PDF library not loaded"); return; }
   const doc = new jsPDF();
   let lastY;
-  const isArabicDoc = containsArabic(text);
+  // Use dominant-script detection rather than "does this text contain any
+  // Arabic characters at all": an English contract still embeds the
+  // employee's name, which is very often written in Arabic, so a naive
+  // Arabic-character check would misclassify English contracts as Arabic
+  // and send them through the RTL rendering path (wrong alignment/direction
+  // for an otherwise-English document).
+  const isArabicDoc = detectDominantScript(text) === "ar";
 
   if (isArabicDoc) {
     const tableMatch = text.match(/\n([^\n]*الجدولة الماليه[^\n]*)\n([\s\S]*?)\n\n(الفريق الأول[\s\S]*)$/);
@@ -353,11 +407,9 @@ document.getElementById("downloadContractBtn").addEventListener("click", () => {
         tableTopMm = marginMm + 10;
       }
 
-      doc.setFontSize(12);
-      doc.setFont(undefined, "bold");
-      doc.setTextColor(27, 36, 48);
-      doc.text("الجدولة الماليه", pageWidthMm - marginMm, tableTopMm, { align: "right" });
-      doc.setFont(undefined, "normal");
+      drawArabicLine(doc, "الجدولة الماليه", {
+        xMm: pageWidthMm - marginMm, yMm: tableTopMm, align: "right", bold: true, sizeMm: 4.4
+      });
 
       let rowY = tableTopMm + 6;
       const colSplitMm = marginMm + tableWidthMm * 0.62;
@@ -369,11 +421,10 @@ document.getElementById("downloadContractBtn").addEventListener("click", () => {
         doc.line(marginMm, rowY + r * rowHeightMm, marginMm + tableWidthMm, rowY + r * rowHeightMm);
       }
 
-      doc.setFontSize(10.5);
       tableRows.forEach((row, idx) => {
-        const cellY = rowY + idx * rowHeightMm + rowHeightMm / 2 + 1.5;
-        doc.text(row.label, marginMm + tableWidthMm - 3, cellY, { align: "right" });
-        doc.text(row.value, colSplitMm - 3, cellY, { align: "right" });
+        const cellY = rowY + idx * rowHeightMm + rowHeightMm / 2;
+        drawArabicLine(doc, row.label, { xMm: marginMm + tableWidthMm - 3, yMm: cellY, align: "right", sizeMm: 3.7 });
+        drawArabicLine(doc, row.value, { xMm: colSplitMm - 3, yMm: cellY, align: "right", sizeMm: 3.7 });
       });
 
       lastY = rowY + tableRows.length * rowHeightMm;
@@ -382,15 +433,35 @@ document.getElementById("downloadContractBtn").addEventListener("click", () => {
       lastY = renderArabicPagesToPdf(doc, text);
     }
   } else {
-    doc.setFontSize(11);
-    const lines = doc.splitTextToSize(text, 180);
-    let y = 20;
+    const marginMm = 14;
+    doc.setTextColor(27, 36, 48);
     const pageHeight = doc.internal.pageSize.getHeight();
-    for (const line of lines) {
-      if (y > pageHeight - 15) { doc.addPage(); y = 20; }
-      doc.text(line, 14, y);
-      y += 6;
-    }
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const contentWidth = pageWidth - marginMm * 2;
+    let y = 20;
+    const paragraphs = text.split("\n");
+    paragraphs.forEach((para) => {
+      const trimmed = para.trim();
+      if (trimmed === "") { y += 6; return; }
+      // The very first line of the English contract is its title — give it
+      // the same bold, centered treatment the Arabic contract's title gets,
+      // instead of flowing it in as plain left-aligned body text.
+      const isTitle = trimmed === "FIXED-TERM OUTSOURCING (EXTERNAL RESOURCES) AGREEMENT";
+      doc.setFont(undefined, isTitle ? "bold" : "normal");
+      doc.setFontSize(isTitle ? 14 : 11);
+      const lines = doc.splitTextToSize(para, contentWidth);
+      for (const line of lines) {
+        if (y > pageHeight - 15) { doc.addPage(); y = 20; }
+        if (isTitle) {
+          doc.text(line, pageWidth / 2, y, { align: "center" });
+        } else {
+          doc.text(line, marginMm, y);
+        }
+        y += isTitle ? 8 : 6;
+      }
+    });
+    doc.setFont(undefined, "normal");
+    doc.setFontSize(11);
     lastY = y;
   }
 
@@ -449,6 +520,20 @@ document.getElementById("downloadContractBtn").addEventListener("click", () => {
   const safeName = (ME.full_name || "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
   const safeFileNumber = (ME.file_number || "").replace(/[^a-zA-Z0-9]+/g, "_");
   doc.save(`Contract-${safeFileNumber}-${safeName}.pdf`);
+}
+
+document.getElementById("downloadContractBtn").addEventListener("click", () => {
+  const btn = document.getElementById("downloadContractBtn");
+  setBtnLoading(btn, true, t("preparing"));
+  // Yield one frame so the spinner actually paints before the (synchronous,
+  // potentially slow) PDF rendering work blocks the main thread.
+  setTimeout(async () => {
+    try {
+      await generateAndDownloadContract();
+    } finally {
+      setBtnLoading(btn, false);
+    }
+  }, 30);
 });
 
 function checkActiveContractNotice(contract) {
