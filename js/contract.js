@@ -368,6 +368,44 @@ function drawArabicLine(doc, text, { xMm, yMm, align = "right", bold = false, si
   doc.addImage(img.dataUrl, "PNG", left, yMm - img.heightMm / 2, img.widthMm, img.heightMm);
 }
 
+// An "English" document (or an English body line) can still embed an
+// employee's name written in Arabic (e.g. "Second Party: <arabic name>",
+// or "Employee Name: <arabic name>" in the signature block). jsPDF's plain
+// doc.text() has no Arabic glyphs at all, so those names come out as
+// corrupted characters even though the surrounding line is plain LTR text.
+// This draws such a line onto a canvas — the browser's own text engine
+// correctly shapes the embedded Arabic run and keeps the English portion
+// left-to-right — and places it as an image, left-anchored at (xMm, yMm)
+// where yMm matches jsPDF's usual text-baseline convention.
+function drawMixedLine(doc, text, { xMm, yMm, bold = false, sizeMm = 3.8, color = "#1b2430" } = {}) {
+  const scale = 3;
+  const pxPerMm = 3.7795 * scale;
+  const fontSizePx = Math.round(sizeMm * pxPerMm);
+  const font = `${bold ? "bold " : ""}${fontSizePx}px Tahoma, Arial, sans-serif`;
+
+  const measureCanvas = document.createElement("canvas");
+  const mctx = measureCanvas.getContext("2d");
+  mctx.font = font;
+  const textWidthPx = Math.max(1, Math.ceil(mctx.measureText(text || "").width) + 6);
+  const ascentPx = Math.round(fontSizePx * 0.82);
+  const heightPx = Math.round(fontSizePx * 1.3);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = textWidthPx;
+  canvas.height = heightPx;
+  const ctx = canvas.getContext("2d");
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.fillText(text || "", 2, ascentPx);
+
+  const widthMm = textWidthPx / pxPerMm;
+  const heightMm = heightPx / pxPerMm;
+  const topMm = yMm - ascentPx / pxPerMm;
+  doc.addImage(canvas.toDataURL("image/png"), "PNG", xMm, topMm, widthMm, heightMm);
+}
+
 async function generateAndDownloadContract() {
   const text = document.getElementById("contractTextDisplay").textContent;
   const { jsPDF } = window.jspdf || {};
@@ -454,6 +492,8 @@ async function generateAndDownloadContract() {
         if (y > pageHeight - 15) { doc.addPage(); y = 20; }
         if (isTitle) {
           doc.text(line, pageWidth / 2, y, { align: "center" });
+        } else if (containsArabic(line)) {
+          drawMixedLine(doc, line, { xMm: marginMm, yMm: y, sizeMm: 3.8 });
         } else {
           doc.text(line, marginMm, y);
         }
@@ -498,7 +538,12 @@ async function generateAndDownloadContract() {
     if (!isArabicDoc) {
       doc.setFontSize(11);
       doc.setTextColor(27, 36, 48);
-      doc.text(`Employee Name: ${ME.full_name || "—"}`, marginMm, sigY);
+      const nameLine = `Employee Name: ${ME.full_name || "—"}`;
+      if (containsArabic(nameLine)) {
+        drawMixedLine(doc, nameLine, { xMm: marginMm, yMm: sigY, sizeMm: 3.8 });
+      } else {
+        doc.text(nameLine, marginMm, sigY);
+      }
       sigY += nameLineHeight;
       doc.text("Employee Signature:", marginMm, sigY);
       sigY += 4;
