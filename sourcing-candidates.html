@@ -41,7 +41,10 @@
 .sc-score { font-size: 12px; color: #5a6472; }
 .sc-result a { font-weight: 600; color: #1b2430; text-decoration: none; font-size: 14px; }
 .sc-result a:hover { text-decoration: underline; }
-.sc-snippet { font-size: 13px; color: #4a5260; margin-top: 6px; line-height: 1.5; }
+.sc-name { font-weight: 700; font-size: 15px; color: #1b2430; margin-top: 6px; }
+.sc-experience { font-size: 13px; color: #4a5260; margin-top: 4px; line-height: 1.5; }
+.sc-contact { font-size: 12.5px; color: #1b2430; margin-top: 6px; }
+.sc-contact.sc-no-contact { color: #8a929c; font-style: italic; }
 .sc-matched { font-size: 12px; color: #1a7f4d; margin-top: 6px; }
 .sc-empty, .sc-error { font-size: 13.5px; color: #5a6472; padding: 18px 0; }
 .sc-error { color: #a83232; }
@@ -75,8 +78,11 @@
     <div class="panel" id="scSearchPanel">
       <div class="sc-note">
         This searches public profile pages only (via search engine indexing) — it does not scrape
-        private CV databases or log in to any site. Review every result manually before contacting
-        anyone, and don't store personal data beyond what screening actually needs.
+        private CV databases, does not target Facebook or other platforms where content is
+        private-by-default, and does not look up phone numbers or emails elsewhere. Contact details
+        are only shown when they already appear in the public listing itself (rare) — otherwise it's
+        marked "not public." Review every result manually before contacting anyone, and don't store
+        personal data beyond what screening actually needs.
       </div>
 
       <div class="sc-field-row">
@@ -180,6 +186,7 @@
         <label><input type="checkbox" value="bayt" checked /> Bayt</label>
         <label><input type="checkbox" value="indeed" checked /> Indeed</label>
         <label><input type="checkbox" value="akhtaboot" checked /> Akhtaboot</label>
+        <label><input type="checkbox" value="general" checked /> General Web (Google)</label>
       </div>
 
       <div class="sc-actions">
