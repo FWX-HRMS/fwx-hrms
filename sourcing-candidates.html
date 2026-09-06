@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sourcing Candidates — HR Portal</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.sc-note {
+  font-size: 13px; color: var(--ink-soft, #5a6472); background: #f4f6f8; border-radius: 8px;
+  padding: 10px 12px; margin-bottom: 16px; line-height: 1.5;
+}
+.sc-field-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.sc-field { flex: 1 1 220px; min-width: 200px; }
+.sc-field label { display: block; font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px; }
+.sc-field input[type="text"] {
+  width: 100%; box-sizing: border-box; padding: 9px 11px; border: 1px solid #d7dbe0;
+  border-radius: 8px; font-size: 14px;
+}
+.sc-sources { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 16px; }
+.sc-sources label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #333; }
+.sc-actions { display: flex; gap: 10px; align-items: center; }
+.sc-spinner {
+  width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4);
+  border-top-color: #fff; animation: sc-spin 0.7s linear infinite; display: inline-block;
+}
+@keyframes sc-spin { to { transform: rotate(360deg); } }
+.sc-results { margin-top: 22px; }
+.sc-result {
+  border: 1px solid #eceff2; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
+}
+.sc-result-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.sc-badge {
+  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  background: #eef2ff; color: #3346a8; border-radius: 999px; padding: 2px 9px;
+}
+.sc-score { font-size: 12px; color: #5a6472; }
+.sc-result a { font-weight: 600; color: #1b2430; text-decoration: none; font-size: 14px; }
+.sc-result a:hover { text-decoration: underline; }
+.sc-snippet { font-size: 13px; color: #4a5260; margin-top: 6px; line-height: 1.5; }
+.sc-matched { font-size: 12px; color: #1a7f4d; margin-top: 6px; }
+.sc-empty, .sc-error { font-size: 13.5px; color: #5a6472; padding: 18px 0; }
+.sc-error { color: #a83232; }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <button type="button" class="lang-toggle" id="langToggleBtn">العربية</button>
+    <div class="brand"><a href="https://www.fwxperts.com/" target="_blank" rel="noopener noreferrer" style="line-height:0"><img src="images/logo.png" alt="FWX" class="brand-logo"></a> <span data-i18n="brandSupervisorPortal">Supervisor Portal</span></div>
+    <div class="whoami" id="whoami">Loading…</div>
+    <a href="settings.html" class="settings-link" data-i18n="settingsLink">⚙ Settings</a>
+    <button class="logout" onclick="logout()" data-i18n="logout">Log out</button>
+    <div class="sidebar-divider"></div>
+    <nav>
+      <a href="supervisor.html" data-i18n="navTeamOverview">Team overview</a>
+      <a href="admin.html" data-i18n="navUsers">Users</a>
+      <a href="clients.html" data-i18n="navClientCompanies">Client Companies</a>
+      <a href="locations.html" data-i18n="navStaffLocations">Staff Locations</a>
+      <a href="sourcing-candidates.html" class="active">🔍 Sourcing Candidates</a>
+    </nav>
+  </aside>
+
+  <main>
+    <h1 class="page-title">Sourcing Candidates</h1>
+    <p class="page-sub">Search public profile pages for people who match a role's required skills.</p>
+
+    <div class="panel" id="scSearchPanel">
+      <div class="sc-note">
+        This searches public profile pages only (via search engine indexing) — it does not scrape
+        private CV databases or log in to any site. Review every result manually before contacting
+        anyone, and don't store personal data beyond what screening actually needs.
+      </div>
+
+      <div class="sc-field-row">
+        <div class="sc-field">
+          <label for="scRole">Job title / role</label>
+          <input type="text" id="scRole" placeholder="e.g. Sales Representative" />
+        </div>
+        <div class="sc-field">
+          <label for="scSkills">Required skills / experience (comma-separated)</label>
+          <input type="text" id="scSkills" placeholder="e.g. B2B sales, CRM, Arabic, English" />
+        </div>
+        <div class="sc-field">
+          <label for="scLocation">Location</label>
+          <input type="text" id="scLocation" value="Jordan" />
+        </div>
+      </div>
+
+      <label style="display:block; font-size:13px; font-weight:600; color:#333; margin-bottom:6px;">Sources</label>
+      <div class="sc-sources" id="scSources">
+        <label><input type="checkbox" value="linkedin" checked /> LinkedIn</label>
+        <label><input type="checkbox" value="bayt" checked /> Bayt</label>
+        <label><input type="checkbox" value="indeed" checked /> Indeed</label>
+        <label><input type="checkbox" value="akhtaboot" checked /> Akhtaboot</label>
+      </div>
+
+      <div class="sc-actions">
+        <button type="button" class="btn btn-primary" id="scSearchBtn" style="width:160px; height:44px">Search</button>
+        <button type="button" class="btn btn-blue" id="scExportPdfBtn" style="width:180px; height:44px; display:none">Download PDF Report</button>
+        <button type="button" class="btn btn-blue" id="scExportExcelBtn" style="width:180px; height:44px; display:none">Download Excel Report</button>
+      </div>
+    </div>
+
+    <div class="panel sc-results" id="scResultsPanel" style="display:none">
+      <h2 style="margin:0 0 16px" id="scResultsTitle">Results</h2>
+      <div id="scResultsBody"></div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/i18n.js"></script>
+<script>initLangToggle();</script>
+<script src="js/sourcing-candidates.js"></script>
+</body>
+</html>
