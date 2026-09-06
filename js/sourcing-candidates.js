@@ -17,6 +17,7 @@ const SC_SOURCES = [
 
 let SC_LAST_RESULTS = [];
 let SC_LAST_CRITERIA = null;
+let SC_SEARCH_TOKEN = 0; // bumped on every new search or cancel, to ignore stale in-flight responses
 
 function scEscapeHtml(str) {
   return (str || "").replace(/[&<>"']/g, (c) => ({
@@ -26,8 +27,21 @@ function scEscapeHtml(str) {
 
 function scSetSearching(isSearching) {
   const btn = document.getElementById("scSearchBtn");
+  const cancelBtn = document.getElementById("scCancelSearchBtn");
   btn.disabled = isSearching;
   btn.innerHTML = isSearching ? `<span class="sc-spinner"></span> Searching…` : "Search";
+  cancelBtn.style.display = isSearching ? "" : "none";
+}
+
+// The Supabase client's functions.invoke() doesn't expose a way to actually
+// abort an in-flight request, so this is a "soft cancel": bump the token
+// right away so the UI resets instantly, and have scRunSearch() check the
+// token again once its request resolves — if it's stale (a cancel or a
+// newer search happened meanwhile), its result is just discarded silently.
+function scCancelSearch() {
+  SC_SEARCH_TOKEN++;
+  scSetSearching(false);
+  document.getElementById("scResultsBody").innerHTML = `<div class="sc-empty">Search cancelled.</div>`;
 }
 
 async function scRunSearch() {
@@ -57,6 +71,7 @@ async function scRunSearch() {
     return;
   }
 
+  const myToken = ++SC_SEARCH_TOKEN;
   scSetSearching(true);
   resultsPanel.style.display = "block";
   resultsBody.innerHTML = `<div class="sc-empty">Searching public profiles…</div>`;
@@ -67,6 +82,8 @@ async function scRunSearch() {
     const { data, error } = await db.functions.invoke("clever-action", {
       body: { action: "search_candidates", role, skills, location, sources }
     });
+
+    if (myToken !== SC_SEARCH_TOKEN) return; // cancelled, or a newer search took over — ignore this response
 
     if (error || (data && data.error)) {
       resultsBody.innerHTML = `<div class="sc-error">${scEscapeHtml((data && data.error) || "Search failed. Please try again.")}</div>`;
@@ -99,9 +116,10 @@ async function scRunSearch() {
     exportPdfBtn.style.display = "";
     exportExcelBtn.style.display = "";
   } catch (e) {
+    if (myToken !== SC_SEARCH_TOKEN) return; // cancelled — don't show an error over the "cancelled" message
     resultsBody.innerHTML = `<div class="sc-error">Something went wrong reaching the search service.</div>`;
   } finally {
-    scSetSearching(false);
+    if (myToken === SC_SEARCH_TOKEN) scSetSearching(false);
   }
 }
 
@@ -188,6 +206,20 @@ function scExportExcel() {
   XLSX.writeFile(wb, `Candidate-Sourcing-Report-${date}.xlsx`);
 }
 
-document.getElementById("scSearchBtn").addEventListener("click", scRunSearch);
-document.getElementById("scExportPdfBtn").addEventListener("click", scExportPdf);
-document.getElementById("scExportExcelBtn").addEventListener("click", scExportExcel);
+// Gate the whole page behind the same "admin"-only session check every other
+// admin-only page uses (see admin.js: `ME = await requireSession("admin")`).
+// This isn't just hiding the nav link — requireSession() actually verifies
+// the logged-in user's role and handles redirecting anyone else away, so a
+// supervisor or employee can't reach this page's functionality even by
+// typing the URL directly.
+(async () => {
+  const me = await requireSession("admin");
+  if (!me) return; // requireSession() has already redirected/blocked; stop here.
+
+  document.getElementById("whoami").textContent = `${me.full_name} · #${me.file_number}`;
+
+  document.getElementById("scSearchBtn").addEventListener("click", scRunSearch);
+  document.getElementById("scCancelSearchBtn").addEventListener("click", scCancelSearch);
+  document.getElementById("scExportPdfBtn").addEventListener("click", scExportPdf);
+  document.getElementById("scExportExcelBtn").addEventListener("click", scExportExcel);
+})();
