@@ -204,8 +204,8 @@ function renderUsers() {
       <td>${supervisorNameFor(e)}</td>
       <td>${bal ? bal.remaining : "—"}</td>
       <td>${bal ? bal.annual_entitlement : "—"}</td>
-      <td>${e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0}</td>
       <td>${bal ? bal.taken : "—"}</td>
+      <td>${e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0}</td>
       <td>${bal ? bal.sick_entitlement : "—"}</td>
       <td>${bal ? bal.sick_taken : "—"}</td>
       <td>${bal ? bal.sick_remaining : "—"}</td>
