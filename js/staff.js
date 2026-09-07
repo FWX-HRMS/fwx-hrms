@@ -45,7 +45,7 @@ function showToast(msg) {
 
 async function loadBalance() {
   const { data, error } = await db
-    .from("leave_balances")
+    .from("leave_balances_calendar_year")
     .select("*")
     .eq("employee_id", ME.id)
     .single();

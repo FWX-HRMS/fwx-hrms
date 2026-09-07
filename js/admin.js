@@ -299,7 +299,7 @@ function populateDepartmentOptions(selectEl, companyName, selectedValue) {
 }
 
 async function loadBalances() {
-  const { data, error } = await db.from("leave_balances").select("*");
+  const { data, error } = await db.from("leave_balances_calendar_year").select("*");
   if (error || !data) return;
   BALANCES_BY_ID = Object.fromEntries(data.map(b => [b.employee_id, b]));
 }

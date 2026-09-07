@@ -216,7 +216,7 @@ function renderUsers() {
 }
 
 async function loadBalances() {
-  const { data, error } = await db.from("leave_balances").select("*");
+  const { data, error } = await db.from("leave_balances_calendar_year").select("*");
   if (error || !data) { TEAM_BALANCE_ROWS = []; renderUsers(); return; }
 
   // leave_balances RLS already restricts this to "my team + me"
