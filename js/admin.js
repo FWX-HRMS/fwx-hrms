@@ -2462,7 +2462,7 @@ function ewSimpleField(key, title, label, type, required) {
     key, title, required,
     render(container) {
       const val = EMP_WIZARD.values[key] ?? (type === "number" ? 0 : "");
-      container.innerHTML = `<label for="ew_${key}">${label}</label><input type="${type}" id="ew_${key}" value="${String(val).replace(/"/g, "&quot;")}" ${type === "number" ? 'min="0" step="1"' : ""}>`;
+      container.innerHTML = `<label for="ew_${key}">${label}</label><input type="${type}" id="ew_${key}" value="${String(val).replace(/"/g, "&quot;")}" ${type === "number" ? 'min="0" step="0.01"' : ""}>`;
       const input = document.getElementById(`ew_${key}`);
       setTimeout(() => input.focus(), 0);
     },
@@ -2644,7 +2644,7 @@ const EMP_WIZARD_STEPS = [
         </select>
 
         <label for="ew_spouse_salary" style="margin-top:12px">Spouse salary (if employed)</label>
-        <input type="number" id="ew_spouse_salary" min="0" step="1" value="${v.spouse_salary || ""}">
+        <input type="number" id="ew_spouse_salary" min="0" step="0.01" value="${v.spouse_salary || ""}">
       `;
     },
     save() {
