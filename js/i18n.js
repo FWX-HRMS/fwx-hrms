@@ -72,14 +72,14 @@ const translations = {
 
     // Staff — My leave
     myLeaveTitle: "My leave",
-    statAnnualEntitlement: "Full Year Annual Entitlement",
+    statAnnualEntitlement: "EoY Annual Entitlement",
     annualEntitlementNote: "As long as on active contract",
     availableBalanceTodayNote: "Today",
     sickEntitlementAnnualNote: "Entitled Annual",
     statTakenThisYear: "Taken this year",
     statRemaining: "Available Today",
     statPendingApproval: "Pending approval",
-    statSickEntitlement: "Sick entitlement",
+    statSickEntitlement: "Entitled Sick",
     statSickRemaining: "Sick remaining",
     applyForLeaveTitle: "Apply for leave",
     startDateLabel: "Start date",
@@ -500,14 +500,14 @@ const translations = {
 
     // Staff — My leave
     myLeaveTitle: "إجازتي",
-    statAnnualEntitlement: "الاستحقاق السنوي الكامل",
+    statAnnualEntitlement: "الاستحقاق السنوي حتى نهاية العام",
     annualEntitlementNote: "ما زال الموظف على رأس عمله",
     availableBalanceTodayNote: "اليوم",
     sickEntitlementAnnualNote: "يُستحق سنوياً",
     statTakenThisYear: "المستخدم هذا العام",
     statRemaining: "المتاح اليوم",
     statPendingApproval: "بانتظار الموافقة",
-    statSickEntitlement: "رصيد الإجازة المرضية",
+    statSickEntitlement: "الاستحقاق المرضي",
     statSickRemaining: "المرضي المتبقي",
     applyForLeaveTitle: "تقديم طلب إجازة",
     startDateLabel: "تاريخ البدء",
