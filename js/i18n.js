@@ -72,7 +72,8 @@ const translations = {
 
     // Staff — My leave
     myLeaveTitle: "My leave",
-    statAnnualEntitlement: "Annual entitlement",
+    statAnnualEntitlement: "Full Year Annual Entitlement",
+    annualEntitlementNote: "As long as on active contract",
     statTakenThisYear: "Taken this year",
     statRemaining: "Available",
     statPendingApproval: "Pending approval",
@@ -126,7 +127,7 @@ const translations = {
     colIdNum: "ID #",
     colPeriod: "Period",
     monthsLabel: "months",
-    colAnnual: "Annual",
+    colAnnual: "Full Year Annual Entitlement",
     colPrevYearBalance: "Prev. Year Balance",
     colTaken: "Taken",
     colRemaining: "Available Balance",
@@ -497,7 +498,8 @@ const translations = {
 
     // Staff — My leave
     myLeaveTitle: "إجازتي",
-    statAnnualEntitlement: "رصيد الإجازة السنوية",
+    statAnnualEntitlement: "الاستحقاق السنوي الكامل",
+    annualEntitlementNote: "ما زال الموظف على رأس عمله",
     statTakenThisYear: "المستخدم هذا العام",
     statRemaining: "المتاح",
     statPendingApproval: "بانتظار الموافقة",
@@ -551,7 +553,7 @@ const translations = {
     colIdNum: "الرقم الوظيفي",
     colPeriod: "المدة",
     monthsLabel: "أشهر",
-    colAnnual: "سنوية",
+    colAnnual: "الاستحقاق السنوي الكامل",
     colPrevYearBalance: "رصيد العام السابق",
     colTaken: "مستخدم",
     colRemaining: "الرصيد المتاح",
