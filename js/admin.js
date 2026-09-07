@@ -544,6 +544,15 @@ async function openRenewContractModal(employeeId) {
   document.getElementById("contractJobTitle").value = expiring ? (expiring.job_title || "") : "";
   document.getElementById("contractPeriodMonths").value = expiring ? (expiring.contract_period_months ?? "") : "";
 
+  // New contract's start date is the date this renewal is being issued
+  // (today), not the day after the old contract's end date — the admin may
+  // be preparing this renewal before, on, or after the old contract's
+  // actual expiry, and the new contract should reflect when it's actually
+  // being issued.
+  // New contract's start date is the day right after the old contract's
+  // end date — the admin may be preparing this renewal before, on, or
+  // after the old contract's actual expiry, but the new contract should
+  // pick up exactly where the old one left off with no gap or overlap.
   let newStartDate = new Date().toISOString().slice(0, 10);
   if (expiring && expiring.end_date) {
     const d = new Date(expiring.end_date);
@@ -2548,6 +2557,13 @@ const EMP_WIZARD_STEPS = [
     ...ewSimpleField("taken_this_year", t("takenThisYearLabel"), t("takenThisYearLabel"), "number", false),
     showIf: (v) => !(yearsSinceHire(v.hiring_date) >= 1 && Number(v.carryover) > 0),
   },
+  // Sick leave doesn't carry over between years the way annual leave can,
+  // so unlike the field above this isn't gated behind a carryover check —
+  // it's just "how many sick days has this employee already used this
+  // year" (relevant when onboarding someone who's already taken some,
+  // whether backfilling an existing employee into the system or recording
+  // sick days taken earlier in the year before their record was created).
+  ewSimpleField("taken_sick_this_year", "Sick leave already taken this year", "Sick leave already taken this year", "number", false),
   ewSimpleField("social_security_number", "Social security number", "Social security number", "text", false),
   {
     key: "company", title: t("companyClientLabel"), required: true,
@@ -2789,6 +2805,7 @@ async function ewFinalizeCreation() {
       supervisor_file_number: v.supervisor_file_number,
       carryover_balance: v.carryover || 0,
       taken_this_year: v.taken_this_year || 0,
+      taken_sick_this_year: v.taken_sick_this_year || 0,
       national_id: v.national_id || null,
       id_number: v.id_number || null,
       social_security_number: v.social_security_number || null,
@@ -3009,7 +3026,7 @@ document.getElementById("showAddFormBtn").addEventListener("click", async () => 
     full_name: "", dob: "", email: "", address: "", education: "",
     phone_prefix: "+962", phone_number: "", hiring_date: "",
     contract_period_months: "", salary: "",
-    carryover: 0, taken_this_year: 0,
+    carryover: 0, taken_this_year: 0, taken_sick_this_year: 0,
     company: COMPANY_FILTER || "", department: "", supervisor_file_number: "", job_title: "",
   };
   EMP_WIZARD.stagedFiles = [];
