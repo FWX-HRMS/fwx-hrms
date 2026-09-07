@@ -1928,8 +1928,8 @@ async function openEditModal(id) {
   document.getElementById("editHiringDate").value = e.hiring_date || "";
   document.getElementById("editAnnualEntitlement").value = bal ? bal.annual_entitlement : (e.annual_entitlement ?? "");
   document.getElementById("editCarryoverBalance").value = e.carryover_balance ?? 0;
-  document.getElementById("editTakenThisYear").value = 0;
-  document.getElementById("editTakenSickThisYear").value = 0;
+  document.getElementById("editTakenThisYear").value = bal ? bal.taken : 0;
+  document.getElementById("editTakenSickThisYear").value = bal ? bal.sick_taken : 0;
   populateDepartmentOptions(document.getElementById("editDepartment"), e.client_company, e.department);
   document.getElementById("editDob").value = e.dob || "";
   document.getElementById("editNationality").value = e.nationality || "";
