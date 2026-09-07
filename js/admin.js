@@ -364,10 +364,10 @@ function renderDirectory() {
       <td>${e.department || "—"}</td>
       <td>${supervisorName}</td>
       <td style="white-space:nowrap">${e.frozen ? fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null) : "—"}</td>
-      <td>${e.role === "supervisor" ? "—" : (e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0)}</td>
-      <td>${e.role === "supervisor" ? "—" : (bal ? bal.annual_entitlement : "—")}</td>
-      <td>${e.role === "supervisor" ? "—" : (bal ? bal.taken : "—")}</td>
       <td>${e.role === "supervisor" ? "—" : (bal ? bal.remaining : "—")}</td>
+      <td>${e.role === "supervisor" ? "—" : (bal ? bal.annual_entitlement : "—")}</td>
+      <td>${e.role === "supervisor" ? "—" : (e.carryover_balance !== null && e.carryover_balance !== undefined ? e.carryover_balance : 0)}</td>
+      <td>${e.role === "supervisor" ? "—" : (bal ? bal.taken : "—")}</td>
       <td>${e.role === "supervisor" ? "—" : (bal ? bal.sick_entitlement : "—")}</td>
       <td>${e.role === "supervisor" ? "—" : (bal ? bal.sick_taken : "—")}</td>
       <td>${e.role === "supervisor" ? "—" : (bal ? bal.sick_remaining : "—")}</td>
