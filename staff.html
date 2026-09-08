@@ -41,7 +41,10 @@
     </div>
 
     <div class="panel">
-      <h2 data-i18n="applyForLeaveTitle">Apply for leave</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px">
+        <h2 style="margin:0" data-i18n="applyForLeaveTitle">Apply for leave</h2>
+        <button type="button" class="btn btn-blue" id="openHourlyLeaveBtn" style="width:auto; padding:0 18px; height:38px" data-i18n="applyHourlyLeaveBtn">Apply for Hourly Leave</button>
+      </div>
       <form id="leaveForm">
         <div class="field-row">
           <div>
@@ -134,6 +137,38 @@
     <h2 style="margin:0 0 10px" data-i18n="newContractPopupTitle">You have a new job contract</h2>
     <p class="help-text" id="newContractPopupText" style="margin-bottom:18px" data-i18n="newContractPopupMsg">Admin has shared a job contract with you. Please review it in My Contract.</p>
     <button type="button" class="btn btn-primary" id="closeNewContractBtn" data-i18n="ok">OK</button>
+  </div>
+</div>
+
+<!-- Apply for Hourly Leave (مغادرة) -->
+<div id="hourlyLeaveOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:460px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+      <h2 style="margin:0" data-i18n="applyHourlyLeaveBtn">Apply for Hourly Leave</h2>
+      <button type="button" class="btn btn-blue btn-sm" id="closeHourlyLeaveBtn" data-i18n="close">Close</button>
+    </div>
+    <p class="help-text" style="margin-bottom:14px" data-i18n="hourlyLeaveLimitsNote">Maximum 4 hours per request, 4 hours per month, 48 hours per year.</p>
+    <form id="hourlyLeaveForm">
+      <label for="hourlyDate" data-i18n="dateLabel">Date</label>
+      <input type="date" id="hourlyDate" required>
+      <div class="field-row">
+        <div>
+          <label for="hourlyTimeFrom" data-i18n="fromTimeLabel">From</label>
+          <input type="time" id="hourlyTimeFrom" required>
+        </div>
+        <div>
+          <label for="hourlyTimeTo" data-i18n="toTimeLabel">To</label>
+          <input type="time" id="hourlyTimeTo" required>
+        </div>
+      </div>
+      <p class="help-text" id="hourlyHoursPreview" style="margin:2px 0 12px"></p>
+      <label for="hourlyReason" data-i18n="reasonOptionalLabel">Reason (optional)</label>
+      <textarea id="hourlyReason" rows="2"></textarea>
+      <label for="hourlyDocument" data-i18n="attachDocOptionalLabel">Attach supporting document (optional)</label>
+      <input type="file" id="hourlyDocument" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
+      <button type="submit" class="btn btn-primary" id="hourlyLeaveSubmitBtn" style="max-width:220px; margin-top:10px" data-i18n="submitRequestBtn">Submit request</button>
+      <div class="error-msg" id="hourlyLeaveError"></div>
+    </form>
   </div>
 </div>
 
