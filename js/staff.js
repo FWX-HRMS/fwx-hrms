@@ -206,12 +206,9 @@ document.getElementById("leaveType").addEventListener("change", (e) => {
 });
 
 // --- Apply for Hourly Leave (مغادرة) -------------------------------------
-document.getElementById("openHourlyLeaveBtn").addEventListener("click", () => {
-  document.getElementById("hourlyLeaveForm").reset();
-  document.getElementById("hourlyHoursPreview").textContent = "";
-  document.getElementById("hourlyLeaveError").classList.remove("show");
-  document.getElementById("hourlyLeaveOverlay").style.display = "flex";
-});
+// Listener attached further down, after setupLeaveWizard() runs — that
+// function dynamically rebuilds this whole panel (including this button),
+// so attaching here first would bind to an element that gets discarded.
 document.getElementById("closeHourlyLeaveBtn").addEventListener("click", () => {
   document.getElementById("hourlyLeaveOverlay").style.display = "none";
 });
@@ -587,8 +584,15 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
     <h2 style="margin:0 0 10px">Apply for leave</h2>
     <p class="help-text" style="margin:0 0 16px">Request annual, sick, or other leave in a few quick steps.</p>
     <button type="button" class="btn btn-blue" id="openLeaveWizardBtn" style="max-width:220px">Apply for Vacation</button>
+    <button type="button" class="btn btn-blue" id="openHourlyLeaveBtn" style="max-width:220px; margin-inline-start:10px">Apply for Hourly Leave</button>
   `;
   originalPanel.parentNode.insertBefore(trigger, originalPanel);
+  document.getElementById("openHourlyLeaveBtn").addEventListener("click", () => {
+    document.getElementById("hourlyLeaveForm").reset();
+    document.getElementById("hourlyHoursPreview").textContent = "";
+    document.getElementById("hourlyLeaveError").classList.remove("show");
+    document.getElementById("hourlyLeaveOverlay").style.display = "flex";
+  });
 
   const overlay = document.createElement("div");
   overlay.id = "leaveWizardOverlay";
