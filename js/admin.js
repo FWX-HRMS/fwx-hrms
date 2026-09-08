@@ -1918,6 +1918,39 @@ function populateEditSupervisorOptions(companyFilter, selectedFileNumber) {
   if (selectedFileNumber) select.value = selectedFileNumber;
 }
 
+// Mirrors the Edge Function's computeAnnualEntitlement (server-side) and
+// the leave_balances_calendar_year SQL view exactly, so the number shown
+// here always matches what the database will actually compute — see
+// clever-action's computeAnnualEntitlement for the canonical version.
+function computeFullYearEntitlementClientSide(hiringDateStr) {
+  if (!hiringDateStr) return 14;
+  const hire = new Date(hiringDateStr);
+  const years = (Date.now() - hire.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+  const fullEntitlement = years >= 5 ? 21 : 14;
+  if (years >= 1) return fullEntitlement;
+
+  const hireYear = hire.getFullYear();
+  const yearEnd = new Date(Date.UTC(hireYear, 11, 31));
+  const daysRemainingInHireYear = Math.max(0, Math.round((yearEnd.getTime() - hire.getTime()) / (1000 * 60 * 60 * 24)));
+  return Math.round((fullEntitlement * daysRemainingInHireYear / 365) * 100) / 100;
+}
+
+// EoY Annual Entitlement = Prev. Year Balance + full-year entitlement - Taken.
+// Recalculated live as any of those three inputs change, so the (disabled,
+// auto-calculated) field never drifts out of sync with what's actually saved.
+function recalculateEditAnnualEntitlement() {
+  const hiringDate = document.getElementById("editHiringDate").value;
+  const carryover = Number(document.getElementById("editCarryoverBalance").value) || 0;
+  const takenThisYear = Number(document.getElementById("editTakenThisYear").value) || 0;
+  const fullYearEntitlement = computeFullYearEntitlementClientSide(hiringDate);
+  const eoyEntitlement = Math.round((carryover + fullYearEntitlement - takenThisYear) * 100) / 100;
+  document.getElementById("editAnnualEntitlement").value = eoyEntitlement;
+}
+["editHiringDate", "editCarryoverBalance", "editTakenThisYear"].forEach(id => {
+  document.getElementById(id).addEventListener("input", recalculateEditAnnualEntitlement);
+  document.getElementById(id).addEventListener("change", recalculateEditAnnualEntitlement);
+});
+
 async function openEditModal(id) {
   const e = DIRECTORY.find(x => x.id === id);
   if (!e) return;
@@ -1926,10 +1959,10 @@ async function openEditModal(id) {
   document.getElementById("editFullName").value = e.full_name || "";
   document.getElementById("editEmail").value = e.email || "";
   document.getElementById("editHiringDate").value = e.hiring_date || "";
-  document.getElementById("editAnnualEntitlement").value = bal ? bal.annual_entitlement : (e.annual_entitlement ?? "");
   document.getElementById("editCarryoverBalance").value = e.carryover_balance ?? 0;
   document.getElementById("editTakenThisYear").value = bal ? bal.taken : 0;
   document.getElementById("editTakenSickThisYear").value = bal ? bal.sick_taken : 0;
+  recalculateEditAnnualEntitlement();
   populateDepartmentOptions(document.getElementById("editDepartment"), e.client_company, e.department);
   document.getElementById("editDob").value = e.dob || "";
   document.getElementById("editNationality").value = e.nationality || "";
