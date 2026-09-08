@@ -302,6 +302,12 @@ async function loadBalances() {
   const { data, error } = await db.from("leave_balances_calendar_year").select("*");
   if (error || !data) return;
   BALANCES_BY_ID = Object.fromEntries(data.map(b => [b.employee_id, b]));
+  // loadDirectory() re-renders after its own fetch, but these two run
+  // concurrently (Promise.all) — if this one finishes last, the freshly
+  // fetched balances would otherwise sit in memory without ever being
+  // painted. Re-render here too so whichever finishes last still draws
+  // the final, correct state.
+  renderDirectory();
 }
 
 async function loadDirectory() {
