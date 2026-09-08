@@ -235,7 +235,15 @@ function renderLeaveRequests() {
       <td>${r.reason ? r.reason : "—"}</td>
       <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">View Attachment</button>` : "—"}</td>
       <td>${badgeFor(r.status)}${newBadge(r.requested_at)}</td>
-      <td><button type="button" class="btn btn-danger btn-sm" data-delete-leave="${r.id}">${t("deleteBtn")}</button></td>
+      <td class="row-actions">
+        <div class="action-menu-wrap">
+          <button type="button" class="btn btn-blue btn-sm" data-action-toggle="lr-${r.id}">${t("actionsBtn")} ▾</button>
+          <div class="action-menu" id="actionMenu-lr-${r.id}">
+            <button type="button" data-edit-leave="${r.id}">${t("editBtn")}</button>
+            <button type="button" class="danger" data-delete-leave="${r.id}">${t("deleteBtn")}</button>
+          </div>
+        </div>
+      </td>
     `;
     body.appendChild(tr);
   }
@@ -250,8 +258,44 @@ function renderLeaveRequests() {
     });
   });
 
+  body.querySelectorAll("button[data-action-toggle]").forEach(btn => {
+    btn.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const menu = document.getElementById(`actionMenu-${btn.dataset.actionToggle}`);
+      const wasOpen = menu.classList.contains("open");
+      document.querySelectorAll(".action-menu.open").forEach(m => m.classList.remove("open"));
+      if (wasOpen) return;
+
+      const rect = btn.getBoundingClientRect();
+      const menuWidth = Math.max(190, rect.width);
+      menu.style.minWidth = `${menuWidth}px`;
+      menu.classList.add("open");
+
+      const menuHeight = menu.offsetHeight;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const openUpward = spaceBelow < menuHeight + 12 && spaceAbove > spaceBelow;
+
+      let top = openUpward ? rect.top - menuHeight - 6 : rect.bottom + 6;
+      if (top + menuHeight > window.innerHeight - 8) top = window.innerHeight - menuHeight - 8;
+      if (top < 8) top = 8;
+      menu.style.bottom = "auto";
+      menu.style.top = `${top}px`;
+
+      let left = document.documentElement.dir === "rtl" ? rect.left : rect.right - menuWidth;
+      if (left + menuWidth > window.innerWidth - 8) left = window.innerWidth - menuWidth - 8;
+      if (left < 8) left = 8;
+      menu.style.left = `${left}px`;
+    });
+  });
+
+  body.querySelectorAll("button[data-edit-leave]").forEach(btn => {
+    btn.addEventListener("click", () => { closeActionMenus(); openEditLeaveRequestModal(btn.dataset.editLeave); });
+  });
+
   body.querySelectorAll("button[data-delete-leave]").forEach(btn => {
     btn.addEventListener("click", async () => {
+      closeActionMenus();
       if (!(await showConfirm(t("deleteBtn"), t("confirmDeleteLeaveRequest"), t("deleteBtn"), true))) return;
       showGlobalSpinner();
       const { data, error } = await db.functions.invoke("clever-action", {
@@ -267,6 +311,72 @@ function renderLeaveRequests() {
     });
   });
 }
+
+// Opens a small modal to correct a leave request's date/time details.
+// Saving recalculates days_requested/hours_requested server-side (not
+// relying on whatever database trigger normally computes it on insert),
+// so the employee's balance — which reads live off this same table — is
+// automatically correct the next time it's viewed. No separate
+// "recalculate balance" step needed.
+function openEditLeaveRequestModal(id) {
+  const r = LEAVE_REQUESTS_LIST.find(x => x.id === id);
+  if (!r) return;
+  const isHourly = r.leave_type === "hourly";
+  document.getElementById("editLeaveOverlay").dataset.leaveId = id;
+  document.getElementById("editLeaveOverlay").dataset.isHourly = isHourly ? "1" : "0";
+  document.getElementById("editLeaveDayFields").style.display = isHourly ? "none" : "";
+  document.getElementById("editLeaveHourlyFields").style.display = isHourly ? "" : "none";
+  if (isHourly) {
+    document.getElementById("editLeaveDate").value = r.start_date || "";
+    document.getElementById("editLeaveTimeFrom").value = r.time_from ? r.time_from.slice(0, 5) : "";
+    document.getElementById("editLeaveTimeTo").value = r.time_to ? r.time_to.slice(0, 5) : "";
+  } else {
+    document.getElementById("editLeaveStartDate").value = r.start_date || "";
+    document.getElementById("editLeaveEndDate").value = r.end_date || "";
+  }
+  document.getElementById("editLeaveReason").value = r.reason || "";
+  document.getElementById("editLeaveError").classList.remove("show");
+  document.getElementById("editLeaveOverlay").style.display = "flex";
+}
+
+document.getElementById("closeEditLeaveBtn").addEventListener("click", () => {
+  document.getElementById("editLeaveOverlay").style.display = "none";
+});
+
+document.getElementById("editLeaveSaveBtn").addEventListener("click", async () => {
+  const overlay = document.getElementById("editLeaveOverlay");
+  const leave_request_id = overlay.dataset.leaveId;
+  const isHourly = overlay.dataset.isHourly === "1";
+  const errBox = document.getElementById("editLeaveError");
+  errBox.classList.remove("show");
+
+  const reason = document.getElementById("editLeaveReason").value.trim();
+  const payload = { action: "update_leave_request", leave_request_id, reason: reason || null };
+
+  if (isHourly) {
+    payload.date = document.getElementById("editLeaveDate").value;
+    payload.time_from = document.getElementById("editLeaveTimeFrom").value;
+    payload.time_to = document.getElementById("editLeaveTimeTo").value;
+  } else {
+    payload.start_date = document.getElementById("editLeaveStartDate").value;
+    payload.end_date = document.getElementById("editLeaveEndDate").value;
+  }
+
+  const btn = document.getElementById("editLeaveSaveBtn");
+  setBtnLoading(btn, true);
+  const { data, error } = await db.functions.invoke("clever-action", { body: payload });
+  setBtnLoading(btn, false);
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSubmitting");
+    errBox.classList.add("show");
+    return;
+  }
+
+  overlay.style.display = "none";
+  showToast(t("savedToast"));
+  await loadLeaveRequests();
+});
 
 document.getElementById("closeDetailsBtn").addEventListener("click", () => {
   document.getElementById("detailsOverlay").style.display = "none";
