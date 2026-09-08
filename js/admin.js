@@ -1922,17 +1922,15 @@ function populateEditSupervisorOptions(companyFilter, selectedFileNumber) {
 // the leave_balances_calendar_year SQL view exactly, so the number shown
 // here always matches what the database will actually compute — see
 // clever-action's computeAnnualEntitlement for the canonical version.
+// Per Jordan Labour Law No. 8/1996 Art. 61: 14 days per year of service,
+// rising to 21 after 5 successive years — a flat annual grant, no separate
+// first-year proration needed (the accrual fraction handles that on its
+// own). Mirrors clever-action's computeAnnualEntitlement exactly.
 function computeFullYearEntitlementClientSide(hiringDateStr) {
   if (!hiringDateStr) return 14;
   const hire = new Date(hiringDateStr);
   const years = (Date.now() - hire.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
-  const fullEntitlement = years >= 5 ? 21 : 14;
-  if (years >= 1) return fullEntitlement;
-
-  const hireYear = hire.getFullYear();
-  const yearEnd = new Date(Date.UTC(hireYear, 11, 31));
-  const daysRemainingInHireYear = Math.max(0, Math.round((yearEnd.getTime() - hire.getTime()) / (1000 * 60 * 60 * 24)));
-  return Math.round((fullEntitlement * daysRemainingInHireYear / 365) * 100) / 100;
+  return years >= 5 ? 21 : 14;
 }
 
 // EoY Annual Entitlement = Prev. Year Balance + full-year entitlement - Taken.
