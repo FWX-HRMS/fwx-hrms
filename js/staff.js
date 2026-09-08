@@ -169,9 +169,14 @@ function renderRequests() {
   for (const r of pageItems) {
     const tr = document.createElement("tr");
     const canCancel = r.status === "pending";
+    const isHourly = r.leave_type === "hourly";
+    const dateCell = isHourly
+      ? `${fmtDate(r.start_date)} (${r.time_from ? r.time_from.slice(0,5) : "—"}–${r.time_to ? r.time_to.slice(0,5) : "—"})`
+      : `${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`;
+    const amountCell = isHourly ? `${r.hours_requested}h` : r.days_requested;
     tr.innerHTML = `
-      <td>${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}</td>
-      <td>${r.days_requested}</td>
+      <td>${dateCell}</td>
+      <td>${amountCell}</td>
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${badgeFor(r.status)}</td>
       <td>${canCancel ? `<button class="btn btn-danger btn-sm" data-id="${r.id}" data-confirm-close="1">${t("cancelBtn")}</button>` : ""}</td>
@@ -198,6 +203,82 @@ document.getElementById("leaveType").addEventListener("change", (e) => {
   const isSick = e.target.value === "sick";
   const docLabel = document.getElementById("documentLabel");
   if (docLabel) docLabel.textContent = isSick ? t("attachDocRequiredLabel") : t("attachDocOptionalLabel");
+});
+
+// --- Apply for Hourly Leave (مغادرة) -------------------------------------
+document.getElementById("openHourlyLeaveBtn").addEventListener("click", () => {
+  document.getElementById("hourlyLeaveForm").reset();
+  document.getElementById("hourlyHoursPreview").textContent = "";
+  document.getElementById("hourlyLeaveError").classList.remove("show");
+  document.getElementById("hourlyLeaveOverlay").style.display = "flex";
+});
+document.getElementById("closeHourlyLeaveBtn").addEventListener("click", () => {
+  document.getElementById("hourlyLeaveOverlay").style.display = "none";
+});
+
+function updateHourlyPreview() {
+  const from = document.getElementById("hourlyTimeFrom").value;
+  const to = document.getElementById("hourlyTimeTo").value;
+  const preview = document.getElementById("hourlyHoursPreview");
+  if (!from || !to) { preview.textContent = ""; return; }
+  const [fh, fm] = from.split(":").map(Number);
+  const [th, tm] = to.split(":").map(Number);
+  const hours = Math.round(((th * 60 + tm) - (fh * 60 + fm)) / 60 * 100) / 100;
+  if (hours <= 0) { preview.textContent = t("endTimeBeforeStart") || "End time must be after start time."; return; }
+  if (hours > 4) { preview.textContent = `${hours}h — exceeds the 4-hour per-request limit.`; return; }
+  preview.textContent = `${hours} hour${hours === 1 ? "" : "s"} requested.`;
+}
+document.getElementById("hourlyTimeFrom").addEventListener("input", updateHourlyPreview);
+document.getElementById("hourlyTimeTo").addEventListener("input", updateHourlyPreview);
+
+document.getElementById("hourlyLeaveForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById("hourlyLeaveError");
+  errBox.classList.remove("show");
+
+  const date = document.getElementById("hourlyDate").value;
+  const time_from = document.getElementById("hourlyTimeFrom").value;
+  const time_to = document.getElementById("hourlyTimeTo").value;
+  const reason = document.getElementById("hourlyReason").value.trim();
+  const fileInput = document.getElementById("hourlyDocument");
+  const file = fileInput.files[0];
+
+  const btn = document.getElementById("hourlyLeaveSubmitBtn");
+  setBtnLoading(btn, true, t("submitting"));
+
+  let document_path = null;
+  if (file) {
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+    document_path = `${ME.id}/${Date.now()}_${safeName}`;
+    const { error: uploadError } = await db.storage.from("leave-documents").upload(document_path, file);
+    if (uploadError) {
+      setBtnLoading(btn, false);
+      errBox.textContent = t("couldNotUploadDoc");
+      errBox.classList.add("show");
+      return;
+    }
+  }
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "submit_hourly_leave", date, time_from, time_to, reason: reason || null, document_path }
+  });
+
+  setBtnLoading(btn, false);
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSubmitting");
+    errBox.classList.add("show");
+    return;
+  }
+
+  // Best-effort email to the supervisor — same as day-leave, doesn't block the UI.
+  db.functions.invoke("clever-api", {
+    body: { leave_request_id: data.request.id, type: "submitted" }
+  }).catch(() => {});
+
+  document.getElementById("hourlyLeaveOverlay").style.display = "none";
+  showToast(t("leaveRequestSubmittedToast"));
+  await Promise.all([loadRequests(), loadBalance()]);
 });
 
 document.getElementById("leaveForm").addEventListener("submit", async (e) => {

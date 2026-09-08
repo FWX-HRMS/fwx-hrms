@@ -220,12 +220,17 @@ function renderLeaveRequests() {
   for (const r of rows) {
     const emp = byId[r.employee_id];
     const tr = document.createElement("tr");
+    const isHourly = r.leave_type === "hourly";
+    const dateCell = isHourly
+      ? `${fmtDate(r.start_date)} (${r.time_from ? r.time_from.slice(0,5) : "—"}–${r.time_to ? r.time_to.slice(0,5) : "—"})`
+      : `${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`;
+    const amountCell = isHourly ? `${r.hours_requested}h` : r.days_requested;
     tr.innerHTML = `
       <td>${emp ? emp.full_name : "—"}</td>
       <td>${emp ? emp.file_number : "—"}</td>
       <td>${emp ? (emp.client_company || "—") : "—"}</td>
-      <td>${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}</td>
-      <td>${r.days_requested}</td>
+      <td>${dateCell}</td>
+      <td>${amountCell}</td>
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${r.reason ? r.reason : "—"}</td>
       <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">View Attachment</button>` : "—"}</td>
@@ -1796,8 +1801,8 @@ async function showDetails(id) {
       <tbody>
         ${history.map(r => `
           <tr>
-            <td>${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}</td>
-            <td>${r.days_requested}</td>
+            <td>${r.leave_type === "hourly" ? `${fmtDate(r.start_date)} (${r.time_from ? r.time_from.slice(0,5) : "—"}–${r.time_to ? r.time_to.slice(0,5) : "—"})` : `${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`}</td>
+            <td>${r.leave_type === "hourly" ? `${r.hours_requested}h` : r.days_requested}</td>
             <td style="text-transform:capitalize">${r.leave_type}</td>
             <td>${badgeForLocal(r.status)}</td>
           </tr>
@@ -2332,11 +2337,14 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   const pdfRows = rows.map((r, i) => {
     const emp = byId[r.employee_id];
     if (emp && emp.frozen) redRowIndices.add(i);
+    const isHourly = r.leave_type === "hourly";
     return [
       emp ? emp.full_name : "—",
       emp ? (emp.client_company || "—") : "—",
-      `${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`,
-      String(r.days_requested),
+      isHourly
+        ? `${fmtDate(r.start_date)} (${r.time_from ? r.time_from.slice(0,5) : "—"}–${r.time_to ? r.time_to.slice(0,5) : "—"})`
+        : `${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`,
+      isHourly ? `${r.hours_requested}h` : String(r.days_requested),
       r.leave_type,
       r.status
     ];

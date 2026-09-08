@@ -269,10 +269,15 @@ function renderPending() {
           <button class="btn btn-danger btn-sm" data-action="rejected" data-id="${r.id}">${t("rejectBtn")}</button>
           ${newBadge(r.requested_at)}
         </td>`;
+    const isHourly = r.leave_type === "hourly";
+    const dateCell = isHourly
+      ? `${fmtDate(r.start_date)} (${r.time_from ? r.time_from.slice(0,5) : "—"}–${r.time_to ? r.time_to.slice(0,5) : "—"})`
+      : `${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`;
+    const amountCell = isHourly ? `${r.hours_requested}h` : r.days_requested;
     tr.innerHTML = `
       <td>${emp.full_name}</td>
-      <td>${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}</td>
-      <td>${r.days_requested}</td>
+      <td>${dateCell}</td>
+      <td>${amountCell}</td>
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${r.reason ? r.reason : "—"}</td>
       <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">View Attachment</button>` : "—"}</td>
@@ -334,10 +339,15 @@ function renderHistory() {
   for (const r of pageItems) {
     const emp = TEAM_BY_ID[r.employee_id];
     const tr = document.createElement("tr");
+    const isHourly = r.leave_type === "hourly";
+    const dateCell = isHourly
+      ? `${fmtDate(r.start_date)} (${r.time_from ? r.time_from.slice(0,5) : "—"}–${r.time_to ? r.time_to.slice(0,5) : "—"})`
+      : `${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`;
+    const amountCell = isHourly ? `${r.hours_requested}h` : r.days_requested;
     tr.innerHTML = `
       <td>${emp.full_name}</td>
-      <td>${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}</td>
-      <td>${r.days_requested}</td>
+      <td>${dateCell}</td>
+      <td>${amountCell}</td>
       <td style="text-transform:capitalize">${r.leave_type}</td>
       <td>${badgeFor(r.status)}${newBadge(r.requested_at)}</td>
     `;
