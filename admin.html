@@ -437,6 +437,49 @@
   </div>
 </div>
 
+<!-- Edit a leave/hourly-leave request's date, time, or reason. Saving
+     recalculates days_requested/hours_requested server-side, so the
+     employee's balance (read live off this same table) stays correct —
+     no separate recalculation step needed. -->
+<div id="editLeaveOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:460px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+      <h2 style="margin:0" data-i18n="editLeaveRequestTitle">Edit leave request</h2>
+      <button type="button" class="btn btn-blue btn-sm" id="closeEditLeaveBtn" data-confirm-close="1" data-i18n="close">Close</button>
+    </div>
+    <div id="editLeaveDayFields" class="field-row">
+      <div>
+        <label for="editLeaveStartDate" data-i18n="startDateLabel">Start date</label>
+        <input type="date" id="editLeaveStartDate">
+      </div>
+      <div>
+        <label for="editLeaveEndDate" data-i18n="endDateLabel">End date</label>
+        <input type="date" id="editLeaveEndDate">
+      </div>
+    </div>
+    <div id="editLeaveHourlyFields" class="field-row" style="display:none">
+      <div>
+        <label for="editLeaveDate" data-i18n="dateLabel">Date</label>
+        <input type="date" id="editLeaveDate">
+      </div>
+      <div>
+        <label for="editLeaveTimeFrom" data-i18n="fromTimeLabel">From</label>
+        <input type="time" id="editLeaveTimeFrom">
+      </div>
+      <div>
+        <label for="editLeaveTimeTo" data-i18n="toTimeLabel">To</label>
+        <input type="time" id="editLeaveTimeTo">
+      </div>
+    </div>
+    <label for="editLeaveReason" data-i18n="reasonOptionalLabel">Reason (optional)</label>
+    <textarea id="editLeaveReason" rows="2"></textarea>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px">
+      <button type="button" class="btn btn-primary" id="editLeaveSaveBtn" style="width:160px" data-i18n="save">Save</button>
+    </div>
+    <div class="error-msg" id="editLeaveError"></div>
+  </div>
+</div>
+
 <!-- View details modal -->
 <div id="detailsOverlay" class="modal-overlay" style="display:none">
   <div class="modal-box">
