@@ -2045,6 +2045,28 @@ async function unfreezeEmployee(id, employee) {
   showToast(t("accountUnfrozenToast"));
   await Promise.all([loadDirectory(), loadBalances()]);
 
+  // Also reset the password on unfreeze — reuses the exact same
+  // reset_password action the standalone "Reset password" button uses,
+  // just triggered automatically here instead of requiring a separate
+  // manual step.
+  showGlobalSpinner();
+  const pwResult = await db.functions.invoke("clever-action", {
+    body: { action: "reset_password", target_id: id }
+  });
+  hideGlobalSpinner();
+
+  if (!pwResult.error && pwResult.data && !pwResult.data.error) {
+    await showInfo(
+      t("employeeActiveNewPasswordTitle"),
+      tv("employeeActiveNewPasswordMsg", { name: employee.full_name, password: pwResult.data.password }),
+      `${t("fileNumColonLabel")} ${employee.file_number}\n${t("initialPasswordColonLabel")} ${pwResult.data.password}`
+    );
+  } else {
+    // Unfreeze itself already succeeded — a failed password reset
+    // shouldn't block the rest of the flow, just surface it.
+    showToast(t("couldNotResetPasswordToast"));
+  }
+
   openUnfreezeNextActionMenu(id, employee);
 }
 
