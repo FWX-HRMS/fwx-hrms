@@ -498,8 +498,6 @@ function renderDirectory() {
           <div class="action-menu" id="actionMenu-${e.id}">
             <button type="button" data-view="${e.id}">${t("view")}</button>
             <button type="button" data-edit="${e.id}">${t("editBtn")}</button>
-            ${e.role === "staff" ? `<button type="button" data-reset-vacation="${e.id}">${t("resetVacationBalanceBtn")}</button>` : ""}
-            ${e.role === "staff" ? `<button type="button" data-edit-vacation="${e.id}">${t("editVacationBalanceBtn")}</button>` : ""}
             ${e.role === "staff" && !CONTRACTS_LIST.some(c => c.employee_id === e.id) ? `<button type="button" data-contract="${e.id}">${t("shareContractBtn")}</button>` : ""}
             ${e.role === "staff" && CONTRACTS_LIST.some(c => c.employee_id === e.id) ? `<button type="button" data-renew-contract="${e.id}">Renew Contract</button>` : ""}
             ${e.role === "staff" ? `<button type="button" class="danger" data-warning="${e.id}">${t("giveWarningBtn")}</button>` : ""}
@@ -1994,19 +1992,9 @@ async function unfreezeEmployee(id, employee) {
   );
   if (!ok) return;
 
-  // Always ask whether tenure/leave tracking should restart from today
-  // (a fresh start — resets hiring_date, so entitlement tier and accrual
-  // calculate from the unfreeze date going forward) or continue counting
-  // from the employee's original hiring date as before.
-  const resetCounter = await showConfirm(
-    t("resetVacationCounterTitle"),
-    t("resetVacationCounterMsg"),
-    t("resetVacationCounterYesBtn")
-  );
-
   showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "unfreeze_employee", target_id: id, reset_hiring_date: resetCounter }
+    body: { action: "unfreeze_employee", target_id: id }
   });
   hideGlobalSpinner();
 
@@ -2018,15 +2006,34 @@ async function unfreezeEmployee(id, employee) {
   showToast(t("accountUnfrozenToast"));
   await Promise.all([loadDirectory(), loadBalances()]);
 
-  // If the admin chose NOT to reset the counter, prompt them to manually
-  // enter what's already been taken this year instead — since the
-  // original hiring date (and its running tally) is being kept, someone
-  // needs to reconcile those numbers rather than leaving them stale.
-  if (!resetCounter) {
-    showToast(t("pleaseUpdateTakenLeaveToast"));
-    openEditModal(id);
-  }
+  openUnfreezeNextActionMenu(id, employee);
 }
+
+function openUnfreezeNextActionMenu(id, employee) {
+  document.getElementById("unfreezeNextActionOverlay").dataset.employeeId = id;
+  document.getElementById("unfreezeNextActionEmployeeName").textContent = employee.full_name || "";
+  document.getElementById("unfreezeNextActionOverlay").style.display = "flex";
+}
+document.getElementById("unfreezeActionEditInfoBtn").addEventListener("click", () => {
+  const id = document.getElementById("unfreezeNextActionOverlay").dataset.employeeId;
+  document.getElementById("unfreezeNextActionOverlay").style.display = "none";
+  openEditModal(id);
+});
+document.getElementById("unfreezeActionResetBtn").addEventListener("click", () => {
+  const overlay = document.getElementById("unfreezeNextActionOverlay");
+  const id = overlay.dataset.employeeId;
+  const employee = DIRECTORY.find(x => x.id === id);
+  overlay.style.display = "none";
+  if (employee) resetVacationBalance(id, employee);
+});
+document.getElementById("unfreezeActionEditVacationBtn").addEventListener("click", () => {
+  const id = document.getElementById("unfreezeNextActionOverlay").dataset.employeeId;
+  document.getElementById("unfreezeNextActionOverlay").style.display = "none";
+  openEditVacationBalanceModal(id);
+});
+document.getElementById("unfreezeActionSkipBtn").addEventListener("click", () => {
+  document.getElementById("unfreezeNextActionOverlay").style.display = "none";
+});
 
 async function resetVacationBalance(id, employee) {
   const ok = await showConfirm(
