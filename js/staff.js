@@ -89,6 +89,30 @@ async function loadHourlyStats() {
   document.getElementById("statHourlyYear").textContent = `${yearTotal}h`;
 }
 
+// Only shown once the employee actually has at least one fully-approved
+// unpaid leave request — "fully-approved" here means status = 'approved',
+// which unpaid leave only reaches after BOTH the supervisor and admin
+// approval steps complete (a two-step approval, unlike other leave types).
+async function loadUnpaidStats() {
+  const { data, error } = await db
+    .from("leave_requests")
+    .select("days_requested")
+    .eq("employee_id", ME.id)
+    .eq("leave_type", "unpaid")
+    .eq("status", "approved");
+
+  if (error || !data) return;
+
+  const total = data.reduce((sum, r) => sum + (Number(r.days_requested) || 0), 0);
+  const card = document.getElementById("statUnpaidCard");
+  if (total > 0) {
+    document.getElementById("statUnpaidTaken").textContent = total;
+    card.style.display = "";
+  } else {
+    card.style.display = "none";
+  }
+}
+
 function badgeFor(status) {
   const key = "status" + status[0].toUpperCase() + status.slice(1);
   return `<span class="badge badge-${status}">${t(key)}</span>`;
@@ -224,7 +248,7 @@ function renderRequests() {
         .eq("id", btn.dataset.id);
       if (error) { showToast(t("couldNotCancelToast")); setBtnLoading(btn, false); return; }
       showToast(t("requestCancelledToast"));
-      await Promise.all([loadRequests(), loadBalance(), loadHourlyStats()]);
+      await Promise.all([loadRequests(), loadBalance(), loadHourlyStats(), loadUnpaidStats()]);
     });
   });
 }
@@ -314,7 +338,7 @@ document.getElementById("hourlyLeaveForm").addEventListener("submit", async (e) 
 
   document.getElementById("hourlyLeaveOverlay").style.display = "none";
   showToast(t("leaveRequestSubmittedToast"));
-  await Promise.all([loadRequests(), loadBalance(), loadHourlyStats()]);
+  await Promise.all([loadRequests(), loadBalance(), loadHourlyStats(), loadUnpaidStats()]);
 });
 
 document.getElementById("leaveForm").addEventListener("submit", async (e) => {
@@ -382,7 +406,7 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   document.getElementById("leaveForm").reset();
   fileInput.value = "";
   showToast(t("leaveRequestSubmittedToast"));
-  await Promise.all([loadRequests(), loadBalance(), loadHourlyStats()]);
+  await Promise.all([loadRequests(), loadBalance(), loadHourlyStats(), loadUnpaidStats()]);
 });
 
 function warningStatusBadge(status) {
@@ -871,5 +895,5 @@ document.getElementById("closeLimitExceededBtn").addEventListener("click", () =>
   document.getElementById("deptLine").textContent = ME.department ? `${ME.department}` : "";
   document.getElementById("statHiringDate").textContent = fmtDate(ME.hiring_date);
   startLocationSharing();
-  await Promise.all([loadBalance(), loadHourlyStats(), loadRequests(), checkNewDocsNotification(), loadDashboardWarnings()]);
+  await Promise.all([loadBalance(), loadHourlyStats(), loadUnpaidStats(), loadRequests(), checkNewDocsNotification(), loadDashboardWarnings()]);
 })();
