@@ -1985,13 +1985,6 @@ async function freezeEmployee(id, employee) {
 }
 
 async function unfreezeEmployee(id, employee) {
-  const ok = await showConfirm(
-    t("unfreezeConfirmTitle"),
-    tv("unfreezeConfirmMsg", { name: employee.full_name }),
-    t("unfreezeBtn")
-  );
-  if (!ok) return;
-
   showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "unfreeze_employee", target_id: id }
