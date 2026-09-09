@@ -498,6 +498,8 @@ function renderDirectory() {
           <div class="action-menu" id="actionMenu-${e.id}">
             <button type="button" data-view="${e.id}">${t("view")}</button>
             <button type="button" data-edit="${e.id}">${t("editBtn")}</button>
+            ${e.role === "staff" ? `<button type="button" data-reset-vacation="${e.id}">${t("resetVacationBalanceBtn")}</button>` : ""}
+            ${e.role === "staff" ? `<button type="button" data-edit-vacation="${e.id}">${t("editVacationBalanceBtn")}</button>` : ""}
             ${e.role === "staff" && !CONTRACTS_LIST.some(c => c.employee_id === e.id) ? `<button type="button" data-contract="${e.id}">${t("shareContractBtn")}</button>` : ""}
             ${e.role === "staff" && CONTRACTS_LIST.some(c => c.employee_id === e.id) ? `<button type="button" data-renew-contract="${e.id}">Renew Contract</button>` : ""}
             ${e.role === "staff" ? `<button type="button" class="danger" data-warning="${e.id}">${t("giveWarningBtn")}</button>` : ""}
@@ -578,6 +580,12 @@ function renderDirectory() {
   });
   body.querySelectorAll("button[data-unfreeze]").forEach(btn => {
     btn.addEventListener("click", () => { closeActionMenus(); unfreezeEmployee(btn.dataset.unfreeze, byId[btn.dataset.unfreeze]); });
+  });
+  body.querySelectorAll("button[data-reset-vacation]").forEach(btn => {
+    btn.addEventListener("click", () => { closeActionMenus(); resetVacationBalance(btn.dataset.resetVacation, byId[btn.dataset.resetVacation]); });
+  });
+  body.querySelectorAll("button[data-edit-vacation]").forEach(btn => {
+    btn.addEventListener("click", () => { closeActionMenus(); openEditVacationBalanceModal(btn.dataset.editVacation); });
   });
 }
 
@@ -2019,6 +2027,93 @@ async function unfreezeEmployee(id, employee) {
     openEditModal(id);
   }
 }
+
+async function resetVacationBalance(id, employee) {
+  const ok = await showConfirm(
+    t("resetVacationCounterTitle"),
+    tv("resetVacationBalanceStandaloneMsg", { name: employee.full_name }),
+    t("resetVacationCounterYesBtn")
+  );
+  if (!ok) return;
+
+  showGlobalSpinner();
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "reset_vacation_balance", target_id: id }
+  });
+  hideGlobalSpinner();
+
+  if (error || (data && data.error)) {
+    showToast((data && data.error) ? data.error : t("somethingWrongUpdatingEmployee"));
+    return;
+  }
+
+  showToast(t("vacationBalanceResetToast"));
+  await Promise.all([loadDirectory(), loadBalances()]);
+}
+
+async function openEditVacationBalanceModal(id) {
+  const e = DIRECTORY.find(x => x.id === id);
+  if (!e) return;
+
+  document.getElementById("editVacationOverlay").dataset.employeeId = id;
+  document.getElementById("editVacationEmployeeName").textContent = e.full_name || "";
+  document.getElementById("editVacationCarryover").value = e.carryover_balance ?? 0;
+
+  // Same as the full Edit Employee modal: look up only the dedicated
+  // admin-backfill record, never the combined total that also includes
+  // real employee-submitted requests — so this stays consistent with
+  // openEditModal's identical logic for the same two fields.
+  const currentYear = new Date().getFullYear();
+  const { data: backfillRows } = await db
+    .from("leave_requests")
+    .select("leave_type, days_requested")
+    .eq("employee_id", e.id)
+    .in("reason", [
+      "Recorded via admin edit — leave already taken this year",
+      "Recorded via admin edit — sick leave already taken this year",
+    ])
+    .gte("start_date", `${currentYear}-01-01`)
+    .lte("start_date", `${currentYear}-12-31`);
+  const annualBackfill = (backfillRows || []).find(r => r.leave_type === "annual");
+  const sickBackfill = (backfillRows || []).find(r => r.leave_type === "sick");
+  document.getElementById("editVacationTakenThisYear").value = annualBackfill ? annualBackfill.days_requested : 0;
+  document.getElementById("editVacationTakenSickThisYear").value = sickBackfill ? sickBackfill.days_requested : 0;
+
+  document.getElementById("editVacationError").classList.remove("show");
+  document.getElementById("editVacationOverlay").style.display = "flex";
+}
+
+document.getElementById("closeEditVacationBtn").addEventListener("click", () => {
+  document.getElementById("editVacationOverlay").style.display = "none";
+});
+
+document.getElementById("editVacationSaveBtn").addEventListener("click", async () => {
+  const overlay = document.getElementById("editVacationOverlay");
+  const target_id = overlay.dataset.employeeId;
+  const errBox = document.getElementById("editVacationError");
+  errBox.classList.remove("show");
+
+  const carryover_balance = Number(document.getElementById("editVacationCarryover").value) || 0;
+  const taken_this_year = Number(document.getElementById("editVacationTakenThisYear").value) || 0;
+  const taken_sick_this_year = Number(document.getElementById("editVacationTakenSickThisYear").value) || 0;
+
+  const btn = document.getElementById("editVacationSaveBtn");
+  setBtnLoading(btn, true);
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "update_vacation_balance", target_id, carryover_balance, taken_this_year, taken_sick_this_year }
+  });
+  setBtnLoading(btn, false);
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongUpdatingEmployee");
+    errBox.classList.add("show");
+    return;
+  }
+
+  overlay.style.display = "none";
+  showToast(t("vacationBalanceUpdatedToast"));
+  await Promise.all([loadDirectory(), loadBalances()]);
+});
 
 function toggleEditLeaveFields() {
   const isSupervisor = document.getElementById("editRole").value === "supervisor";

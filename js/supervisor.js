@@ -114,9 +114,13 @@ function badgeFor(status) {
 
 async function loadTeam() {
   const query = db.from("employees").select("*").order("full_name");
+  // Admin still needs to see frozen employees (to unfreeze them) — only
+  // the supervisor's own team view hides them, since a frozen employee
+  // is no longer active and shouldn't clutter a supervisor's day-to-day
+  // team list.
   const { data, error } = ME.role === "admin"
     ? await query.neq("role", "admin")
-    : await query.eq("supervisor_id", ME.id);
+    : await query.eq("supervisor_id", ME.id).eq("frozen", false);
 
   if (error || !data) return [];
   TEAM_BY_ID = Object.fromEntries(data.map(e => [e.id, e]));
