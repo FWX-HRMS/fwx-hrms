@@ -83,7 +83,7 @@ const translations = {
     statSickRemaining: "Sick remaining",
     statSickTakenLabel: "Sick Taken",
     statHourlyMonth: "Hourly Leave Taken This Month",
-    statHourlyYear: "Hourly Leave This Year",
+    statHourlyYear: "Hourly Leave Taken This Year",
     applyForLeaveTitle: "Apply for leave",
     startDateLabel: "Start date",
     endDateLabel: "End date",
