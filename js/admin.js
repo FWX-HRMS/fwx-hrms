@@ -2045,10 +2045,16 @@ async function unfreezeEmployee(id, employee) {
   showToast(t("accountUnfrozenToast"));
   await Promise.all([loadDirectory(), loadBalances()]);
 
-  // Also reset the password on unfreeze — reuses the exact same
-  // reset_password action the standalone "Reset password" button uses,
-  // just triggered automatically here instead of requiring a separate
-  // manual step.
+  openUnfreezeNextActionMenu(id, employee);
+}
+
+// Shown once the admin finishes whichever action they picked from the
+// unfreeze menu (Edit Employee Profile / Reset vacation balance / Edit
+// vacation balance / Keep previous Profile) — not before it, so it reads
+// as a final confirmation rather than interrupting the actual choice.
+// Resets the password the same way the standalone "Reset password"
+// button does, just triggered automatically here.
+async function showActiveEmployeeNotification(id, employee) {
   showGlobalSpinner();
   const pwResult = await db.functions.invoke("clever-action", {
     body: { action: "reset_password", target_id: id }
@@ -2062,12 +2068,8 @@ async function unfreezeEmployee(id, employee) {
       `${t("fileNumColonLabel")} ${employee.file_number}\n${t("initialPasswordColonLabel")} ${pwResult.data.password}`
     );
   } else {
-    // Unfreeze itself already succeeded — a failed password reset
-    // shouldn't block the rest of the flow, just surface it.
     showToast(t("couldNotResetPasswordToast"));
   }
-
-  openUnfreezeNextActionMenu(id, employee);
 }
 
 function openUnfreezeNextActionMenu(id, employee) {
@@ -2097,7 +2099,11 @@ document.getElementById("unfreezeActionEditVacationBtn").addEventListener("click
   openEditVacationBalanceModal(id);
 });
 document.getElementById("unfreezeActionSkipBtn").addEventListener("click", () => {
-  document.getElementById("unfreezeNextActionOverlay").style.display = "none";
+  const overlay = document.getElementById("unfreezeNextActionOverlay");
+  const id = overlay.dataset.employeeId;
+  const employee = DIRECTORY.find(x => x.id === id);
+  overlay.style.display = "none";
+  if (employee) showActiveEmployeeNotification(id, employee);
 });
 
 async function resetVacationBalance(id, employee, resetDate, returnToMenuOnCancel) {
@@ -2124,6 +2130,7 @@ async function resetVacationBalance(id, employee, resetDate, returnToMenuOnCance
 
   showToast(t("vacationBalanceResetToast"));
   await Promise.all([loadDirectory(), loadBalances()]);
+  if (returnToMenuOnCancel) showActiveEmployeeNotification(id, employee);
 }
 
 async function openEditVacationBalanceModal(id) {
@@ -2192,9 +2199,14 @@ document.getElementById("editVacationSaveBtn").addEventListener("click", async (
   }
 
   overlay.style.display = "none";
+  const cameFromUnfreezeMenu = editVacationOpenedFromUnfreezeMenu;
   editVacationOpenedFromUnfreezeMenu = null;
   showToast(t("vacationBalanceUpdatedToast"));
   await Promise.all([loadDirectory(), loadBalances()]);
+  if (cameFromUnfreezeMenu) {
+    const employee = DIRECTORY.find(x => x.id === target_id);
+    if (employee) showActiveEmployeeNotification(target_id, employee);
+  }
 });
 
 function toggleEditLeaveFields() {
@@ -2427,9 +2439,14 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
   }
 
   document.getElementById("editOverlay").style.display = "none";
+  const cameFromUnfreezeMenu = editOpenedFromUnfreezeMenu;
   editOpenedFromUnfreezeMenu = null;
   showToast(t("employeeUpdatedToast"));
   await Promise.all([loadDirectory(), loadBalances(), loadSupervisors()]);
+  if (cameFromUnfreezeMenu) {
+    const employee = DIRECTORY.find(x => x.id === target_id);
+    if (employee) showActiveEmployeeNotification(target_id, employee);
+  }
 });
 
 async function resetPassword(id, employee) {
