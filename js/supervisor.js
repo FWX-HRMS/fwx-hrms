@@ -302,14 +302,24 @@ function renderPending() {
     btn.addEventListener("click", async () => {
       pendingBody.querySelectorAll("button").forEach(b => b.disabled = true);
       showGlobalSpinner();
+
+      // Unpaid leave needs a second sign-off from admin (to confirm the
+      // salary deduction) before it's truly approved — so a supervisor
+      // "approving" an unpaid request moves it to pending_admin instead
+      // of approved directly. Every other leave type still goes straight
+      // to approved/rejected as before.
+      const req = PENDING_REQUESTS.find(r => r.id === btn.dataset.id);
+      const isUnpaidApproval = btn.dataset.action === "approved" && req && req.leave_type === "unpaid";
+      const newStatus = isUnpaidApproval ? "pending_admin" : btn.dataset.action;
+
       const { error } = await db
         .from("leave_requests")
-        .update({ status: btn.dataset.action, decided_by: ME.id, decided_at: new Date().toISOString() })
+        .update({ status: newStatus, decided_by: ME.id, decided_at: new Date().toISOString() })
         .eq("id", btn.dataset.id);
       hideGlobalSpinner();
       if (error) { showToast(t("couldNotUpdateRequest")); }
       else {
-        showToast(t(btn.dataset.action === "approved" ? "statusApproved" : "statusRejected"));
+        showToast(isUnpaidApproval ? t("statusSentToAdmin") : t(btn.dataset.action === "approved" ? "statusApproved" : "statusRejected"));
         db.functions.invoke("clever-api", {
           body: { leave_request_id: btn.dataset.id, type: "decided" }
         }).catch(() => {});

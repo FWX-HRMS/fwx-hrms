@@ -239,6 +239,8 @@ function renderLeaveRequests() {
         <div class="action-menu-wrap">
           <button type="button" class="btn btn-blue btn-sm" data-action-toggle="lr-${r.id}">${t("actionsBtn")} ▾</button>
           <div class="action-menu" id="actionMenu-lr-${r.id}">
+            ${r.status === "pending_admin" ? `<button type="button" data-admin-approve="${r.id}">${t("approveBtn")}</button>` : ""}
+            ${r.status === "pending_admin" ? `<button type="button" class="danger" data-admin-reject="${r.id}">${t("rejectBtn")}</button>` : ""}
             <button type="button" data-edit-leave="${r.id}">${t("editBtn")}</button>
             <button type="button" class="danger" data-delete-leave="${r.id}">${t("deleteBtn")}</button>
           </div>
@@ -293,6 +295,13 @@ function renderLeaveRequests() {
     btn.addEventListener("click", () => { closeActionMenus(); openEditLeaveRequestModal(btn.dataset.editLeave); });
   });
 
+  body.querySelectorAll("button[data-admin-approve]").forEach(btn => {
+    btn.addEventListener("click", () => { closeActionMenus(); decideAdminApproval(btn.dataset.adminApprove, "approved"); });
+  });
+  body.querySelectorAll("button[data-admin-reject]").forEach(btn => {
+    btn.addEventListener("click", () => { closeActionMenus(); decideAdminApproval(btn.dataset.adminReject, "rejected"); });
+  });
+
   body.querySelectorAll("button[data-delete-leave]").forEach(btn => {
     btn.addEventListener("click", async () => {
       closeActionMenus();
@@ -310,6 +319,40 @@ function renderLeaveRequests() {
       await loadLeaveRequests();
     });
   });
+}
+
+// The second half of unpaid leave's two-step approval — admin's own
+// sign-off, needed specifically to confirm the salary deduction. Uses the
+// same delete/edit privileges admin already has here (a direct table
+// update, matching the pattern supervisor's own approve/reject already
+// uses), rather than a new Edge Function action, since admin already has
+// full table access via RLS.
+async function decideAdminApproval(leave_request_id, newStatus) {
+  const ok = await showConfirm(
+    newStatus === "approved" ? t("approveBtn") : t("rejectBtn"),
+    t("confirmAdminApprovalMsg"),
+    newStatus === "approved" ? t("approveBtn") : t("rejectBtn"),
+    newStatus === "rejected"
+  );
+  if (!ok) return;
+
+  showGlobalSpinner();
+  const { error } = await db
+    .from("leave_requests")
+    .update({ status: newStatus, decided_by: ME.id, decided_at: new Date().toISOString() })
+    .eq("id", leave_request_id);
+  hideGlobalSpinner();
+
+  if (error) {
+    showToast(t("couldNotUpdateRequest"));
+    return;
+  }
+
+  showToast(newStatus === "approved" ? t("statusApproved") : t("statusRejected"));
+  db.functions.invoke("clever-api", {
+    body: { leave_request_id, type: "decided" }
+  }).catch(() => {});
+  await loadLeaveRequests();
 }
 
 // Opens a small modal to correct a leave request's date/time details.

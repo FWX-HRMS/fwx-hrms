@@ -155,6 +155,9 @@ const translations = {
     statusRejected: "Rejected",
     statusPending: "Pending",
     statusCancelled: "Cancelled",
+    statusPending_admin: "Pending Admin Approval",
+    statusSentToAdmin: "Sent to admin for approval.",
+    confirmAdminApprovalMsg: "This is the final approval step for this unpaid leave request — confirming here means it's fully approved (or rejected) and will be recorded.",
 
     // Date range / report prompt
     selectReportPeriodTitle: "Select report period",
@@ -609,6 +612,9 @@ const translations = {
     statusRejected: "مرفوض",
     statusPending: "معلق",
     statusCancelled: "ملغى",
+    statusPending_admin: "بانتظار موافقة الإدارة",
+    statusSentToAdmin: "تم إرساله إلى الإدارة للموافقة.",
+    confirmAdminApprovalMsg: "هذه هي خطوة الموافقة النهائية لطلب الإجازة غير المدفوعة هذا — التأكيد هنا يعني أنه تمت الموافقة عليه (أو رفضه) بشكل نهائي وسيتم تسجيله.",
 
     // Date range / report prompt
     selectReportPeriodTitle: "اختر فترة التقرير",
