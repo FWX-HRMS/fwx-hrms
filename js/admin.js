@@ -235,12 +235,12 @@ function renderLeaveRequests() {
       <td>${r.reason ? r.reason : "—"}</td>
       <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">View Attachment</button>` : "—"}</td>
       <td>${badgeFor(r.status)}${newBadge(r.requested_at)}</td>
-      <td class="row-actions">
+      <td class="row-actions" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+        ${r.status === "pending_admin" ? `<button type="button" class="btn btn-primary btn-sm" data-admin-approve="${r.id}">${t("approveBtn")}</button>` : ""}
+        ${r.status === "pending_admin" ? `<button type="button" class="btn btn-danger btn-sm" data-admin-reject="${r.id}">${t("rejectBtn")}</button>` : ""}
         <div class="action-menu-wrap">
           <button type="button" class="btn btn-blue btn-sm" data-action-toggle="lr-${r.id}">${t("actionsBtn")} ▾</button>
           <div class="action-menu" id="actionMenu-lr-${r.id}">
-            ${r.status === "pending_admin" ? `<button type="button" data-admin-approve="${r.id}">${t("approveBtn")}</button>` : ""}
-            ${r.status === "pending_admin" ? `<button type="button" class="danger" data-admin-reject="${r.id}">${t("rejectBtn")}</button>` : ""}
             <button type="button" data-edit-leave="${r.id}">${t("editBtn")}</button>
             <button type="button" class="danger" data-delete-leave="${r.id}">${t("deleteBtn")}</button>
           </div>
