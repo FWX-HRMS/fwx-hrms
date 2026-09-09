@@ -5,6 +5,7 @@ let DIRECTORY = [];
 // next action" menu, so cancelling without saving can return there
 // instead of just closing to nothing.
 let editOpenedFromUnfreezeMenu = null;
+let editVacationOpenedFromUnfreezeMenu = null;
 let BALANCES_BY_ID = {};
 let ACTIVE_TAB = "all"; // "all" | "supervisors"
 const COMPANY_FILTER = new URLSearchParams(window.location.search).get("company");
@@ -628,7 +629,7 @@ function renderDirectory() {
     btn.addEventListener("click", () => { closeActionMenus(); resetVacationBalance(btn.dataset.resetVacation, byId[btn.dataset.resetVacation]); });
   });
   body.querySelectorAll("button[data-edit-vacation]").forEach(btn => {
-    btn.addEventListener("click", () => { closeActionMenus(); openEditVacationBalanceModal(btn.dataset.editVacation); });
+    btn.addEventListener("click", () => { closeActionMenus(); editVacationOpenedFromUnfreezeMenu = null; openEditVacationBalanceModal(btn.dataset.editVacation); });
   });
 }
 
@@ -2065,24 +2066,28 @@ document.getElementById("unfreezeActionResetBtn").addEventListener("click", () =
   const employee = DIRECTORY.find(x => x.id === id);
   const chosenDate = document.getElementById("unfreezeDateInput").value;
   overlay.style.display = "none";
-  if (employee) resetVacationBalance(id, employee, chosenDate);
+  if (employee) resetVacationBalance(id, employee, chosenDate, true);
 });
 document.getElementById("unfreezeActionEditVacationBtn").addEventListener("click", () => {
   const id = document.getElementById("unfreezeNextActionOverlay").dataset.employeeId;
   document.getElementById("unfreezeNextActionOverlay").style.display = "none";
+  editVacationOpenedFromUnfreezeMenu = id;
   openEditVacationBalanceModal(id);
 });
 document.getElementById("unfreezeActionSkipBtn").addEventListener("click", () => {
   document.getElementById("unfreezeNextActionOverlay").style.display = "none";
 });
 
-async function resetVacationBalance(id, employee, resetDate) {
+async function resetVacationBalance(id, employee, resetDate, returnToMenuOnCancel) {
   const ok = await showConfirm(
     t("resetVacationCounterTitle"),
     tv("resetVacationBalanceStandaloneMsg", { name: employee.full_name }),
     t("resetVacationConfirmDeleteBtn")
   );
-  if (!ok) return;
+  if (!ok) {
+    if (returnToMenuOnCancel) openUnfreezeNextActionMenu(id, employee);
+    return;
+  }
 
   showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
@@ -2133,6 +2138,12 @@ async function openEditVacationBalanceModal(id) {
 
 document.getElementById("closeEditVacationBtn").addEventListener("click", () => {
   document.getElementById("editVacationOverlay").style.display = "none";
+  if (editVacationOpenedFromUnfreezeMenu) {
+    const id = editVacationOpenedFromUnfreezeMenu;
+    editVacationOpenedFromUnfreezeMenu = null;
+    const employee = DIRECTORY.find(x => x.id === id);
+    if (employee) openUnfreezeNextActionMenu(id, employee);
+  }
 });
 
 document.getElementById("editVacationSaveBtn").addEventListener("click", async () => {
@@ -2159,6 +2170,7 @@ document.getElementById("editVacationSaveBtn").addEventListener("click", async (
   }
 
   overlay.style.display = "none";
+  editVacationOpenedFromUnfreezeMenu = null;
   showToast(t("vacationBalanceUpdatedToast"));
   await Promise.all([loadDirectory(), loadBalances()]);
 });
