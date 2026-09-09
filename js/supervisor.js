@@ -236,8 +236,11 @@ async function loadRequests() {
 
   if (error || !data) { PENDING_REQUESTS = []; HISTORY_REQUESTS = []; renderPending(); renderHistory(); return; }
 
-  PENDING_REQUESTS = data.filter(r => r.status === "pending" && TEAM_BY_ID[r.employee_id]);
-  HISTORY_REQUESTS = data.filter(r => r.status !== "pending" && TEAM_BY_ID[r.employee_id]);
+  // Admin viewing this page also needs to see pending_admin rows here
+  // (the unpaid-leave second approval step) — a regular supervisor only
+  // ever sees plain "pending" items awaiting their own action.
+  PENDING_REQUESTS = data.filter(r => TEAM_BY_ID[r.employee_id] && (r.status === "pending" || (ME.role === "admin" && r.status === "pending_admin")));
+  HISTORY_REQUESTS = data.filter(r => r.status !== "pending" && r.status !== "pending_admin" && TEAM_BY_ID[r.employee_id]);
   PENDING_PAGE = 0;
   HISTORY_PAGE = 0;
   renderPending();
@@ -267,7 +270,13 @@ function renderPending() {
     const emp = TEAM_BY_ID[r.employee_id];
     const tr = document.createElement("tr");
     const actionsCell = ME.role === "admin"
-      ? `<td>${badgeFor(r.status)}${newBadge(r.requested_at)}</td>`
+      ? (r.status === "pending_admin"
+          ? `<td class="row-actions">
+              <button class="btn btn-primary btn-sm" data-admin-action="approved" data-admin-id="${r.id}">${t("approveBtn")}</button>
+              <button class="btn btn-danger btn-sm" data-admin-action="rejected" data-admin-id="${r.id}">${t("rejectBtn")}</button>
+              ${newBadge(r.requested_at)}
+            </td>`
+          : `<td>${badgeFor(r.status)}${newBadge(r.requested_at)}</td>`)
       : `<td class="row-actions">
           <button class="btn btn-primary btn-sm" data-action="approved" data-id="${r.id}">${t("approveBtn")}</button>
           <button class="btn btn-danger btn-sm" data-action="rejected" data-id="${r.id}">${t("rejectBtn")}</button>
@@ -322,6 +331,26 @@ function renderPending() {
         showToast(isUnpaidApproval ? t("statusSentToAdmin") : t(btn.dataset.action === "approved" ? "statusApproved" : "statusRejected"));
         db.functions.invoke("clever-api", {
           body: { leave_request_id: btn.dataset.id, type: "decided" }
+        }).catch(() => {});
+      }
+      await refreshAll();
+    });
+  });
+
+  pendingBody.querySelectorAll("button[data-admin-id]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      pendingBody.querySelectorAll("button").forEach(b => b.disabled = true);
+      showGlobalSpinner();
+      const { error } = await db
+        .from("leave_requests")
+        .update({ status: btn.dataset.adminAction, decided_by: ME.id, decided_at: new Date().toISOString() })
+        .eq("id", btn.dataset.adminId);
+      hideGlobalSpinner();
+      if (error) { showToast(t("couldNotUpdateRequest")); }
+      else {
+        showToast(t(btn.dataset.adminAction === "approved" ? "statusApproved" : "statusRejected"));
+        db.functions.invoke("clever-api", {
+          body: { leave_request_id: btn.dataset.adminId, type: "decided" }
         }).catch(() => {});
       }
       await refreshAll();
