@@ -438,6 +438,22 @@
   </div>
 </div>
 
+<!-- Shown right after a successful unfreeze — lets the admin immediately
+     pick what to do next for this employee's records, rather than these
+     living as permanent, always-visible Actions menu items. -->
+<div id="unfreezeNextActionOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:420px">
+    <h2 style="margin:0 0 6px" data-i18n="unfreezeNextActionTitle">What would you like to do next?</h2>
+    <p class="help-text" id="unfreezeNextActionEmployeeName" style="margin-bottom:16px; font-weight:600"></p>
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <button type="button" class="btn btn-blue" id="unfreezeActionEditInfoBtn" data-i18n="editBtn">Edit</button>
+      <button type="button" class="btn btn-blue" id="unfreezeActionResetBtn" data-i18n="resetVacationBalanceBtn">Reset vacation balance</button>
+      <button type="button" class="btn btn-blue" id="unfreezeActionEditVacationBtn" data-i18n="editVacationBalanceBtn">Edit vacation balance</button>
+      <button type="button" class="btn btn-danger" id="unfreezeActionSkipBtn" data-i18n="skipBtn">Skip</button>
+    </div>
+  </div>
+</div>
+
 <!-- Focused edit for just the three vacation-balance fields — separate
      from the full Edit Employee modal, reachable directly from the
      Actions menu for a quicker adjustment. -->
