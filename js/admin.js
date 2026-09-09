@@ -235,9 +235,7 @@ function renderLeaveRequests() {
       <td>${r.reason ? r.reason : "—"}</td>
       <td>${r.document_path ? `<button type="button" class="btn btn-blue btn-sm" data-doc="${r.document_path}">View Attachment</button>` : "—"}</td>
       <td>${badgeFor(r.status)}${newBadge(r.requested_at)}</td>
-      <td class="row-actions" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
-        ${r.status === "pending_admin" ? `<button type="button" class="btn btn-primary btn-sm" data-admin-approve="${r.id}">${t("approveBtn")}</button>` : ""}
-        ${r.status === "pending_admin" ? `<button type="button" class="btn btn-danger btn-sm" data-admin-reject="${r.id}">${t("rejectBtn")}</button>` : ""}
+      <td class="row-actions">
         <div class="action-menu-wrap">
           <button type="button" class="btn btn-blue btn-sm" data-action-toggle="lr-${r.id}">${t("actionsBtn")} ▾</button>
           <div class="action-menu" id="actionMenu-lr-${r.id}">
@@ -2048,6 +2046,7 @@ async function unfreezeEmployee(id, employee) {
 function openUnfreezeNextActionMenu(id, employee) {
   document.getElementById("unfreezeNextActionOverlay").dataset.employeeId = id;
   document.getElementById("unfreezeNextActionEmployeeName").textContent = employee.full_name || "";
+  document.getElementById("unfreezeDateInput").value = new Date().toISOString().slice(0, 10);
   document.getElementById("unfreezeNextActionOverlay").style.display = "flex";
 }
 document.getElementById("unfreezeActionEditInfoBtn").addEventListener("click", () => {
@@ -2059,8 +2058,9 @@ document.getElementById("unfreezeActionResetBtn").addEventListener("click", () =
   const overlay = document.getElementById("unfreezeNextActionOverlay");
   const id = overlay.dataset.employeeId;
   const employee = DIRECTORY.find(x => x.id === id);
+  const chosenDate = document.getElementById("unfreezeDateInput").value;
   overlay.style.display = "none";
-  if (employee) resetVacationBalance(id, employee);
+  if (employee) resetVacationBalance(id, employee, chosenDate);
 });
 document.getElementById("unfreezeActionEditVacationBtn").addEventListener("click", () => {
   const id = document.getElementById("unfreezeNextActionOverlay").dataset.employeeId;
@@ -2071,7 +2071,7 @@ document.getElementById("unfreezeActionSkipBtn").addEventListener("click", () =>
   document.getElementById("unfreezeNextActionOverlay").style.display = "none";
 });
 
-async function resetVacationBalance(id, employee) {
+async function resetVacationBalance(id, employee, resetDate) {
   const ok = await showConfirm(
     t("resetVacationCounterTitle"),
     tv("resetVacationBalanceStandaloneMsg", { name: employee.full_name }),
@@ -2081,7 +2081,7 @@ async function resetVacationBalance(id, employee) {
 
   showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "reset_vacation_balance", target_id: id }
+    body: { action: "reset_vacation_balance", target_id: id, reset_date: resetDate || null }
   });
   hideGlobalSpinner();
 
