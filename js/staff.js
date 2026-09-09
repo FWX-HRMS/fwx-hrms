@@ -60,6 +60,36 @@ async function loadBalance() {
   document.getElementById("statSickRemaining").textContent = data.sick_remaining;
 }
 
+// Hourly leave isn't in leave_balances_calendar_year at all (tracked
+// entirely separately from the day-based balances), so this queries
+// leave_requests directly. Pending + approved both count, matching how
+// the 4h/4h/48h caps themselves are enforced server-side — a pending
+// request already "holds" hours against the cap, so it should show as
+// used here too, not just approved ones.
+async function loadHourlyStats() {
+  const now = new Date();
+  const yearStart = `${now.getFullYear()}-01-01`;
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+
+  const { data, error } = await db
+    .from("leave_requests")
+    .select("hours_requested, start_date")
+    .eq("employee_id", ME.id)
+    .eq("leave_type", "hourly")
+    .in("status", ["pending", "approved"])
+    .gte("start_date", yearStart);
+
+  if (error || !data) return;
+
+  const yearTotal = data.reduce((sum, r) => sum + (Number(r.hours_requested) || 0), 0);
+  const monthTotal = data
+    .filter(r => r.start_date >= monthStart)
+    .reduce((sum, r) => sum + (Number(r.hours_requested) || 0), 0);
+
+  document.getElementById("statHourlyMonth").textContent = `${monthTotal}h`;
+  document.getElementById("statHourlyYear").textContent = `${yearTotal}h`;
+}
+
 function badgeFor(status) {
   const key = "status" + status[0].toUpperCase() + status.slice(1);
   return `<span class="badge badge-${status}">${t(key)}</span>`;
@@ -195,7 +225,7 @@ function renderRequests() {
         .eq("id", btn.dataset.id);
       if (error) { showToast(t("couldNotCancelToast")); setBtnLoading(btn, false); return; }
       showToast(t("requestCancelledToast"));
-      await Promise.all([loadRequests(), loadBalance()]);
+      await Promise.all([loadRequests(), loadBalance(), loadHourlyStats()]);
     });
   });
 }
@@ -271,8 +301,10 @@ document.getElementById("hourlyLeaveForm").addEventListener("submit", async (e) 
   setBtnLoading(btn, false);
 
   if (error || (data && data.error)) {
-    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSubmitting");
+    const msg = (data && data.error) ? data.error : t("somethingWrongSubmitting");
+    errBox.textContent = msg;
     errBox.classList.add("show");
+    showLimitExceededPopup(msg);
     return;
   }
 
@@ -283,7 +315,7 @@ document.getElementById("hourlyLeaveForm").addEventListener("submit", async (e) 
 
   document.getElementById("hourlyLeaveOverlay").style.display = "none";
   showToast(t("leaveRequestSubmittedToast"));
-  await Promise.all([loadRequests(), loadBalance()]);
+  await Promise.all([loadRequests(), loadBalance(), loadHourlyStats()]);
 });
 
 document.getElementById("leaveForm").addEventListener("submit", async (e) => {
@@ -336,9 +368,10 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   setBtnLoading(btn, false);
 
   if (error || (data && data.error)) {
-    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSubmitting");
+    const msg = (data && data.error) ? data.error : t("somethingWrongSubmitting");
+    errBox.textContent = msg;
     errBox.classList.add("show");
-    showToast((data && data.error) ? data.error : t("somethingWrongSubmitting"));
+    showLimitExceededPopup(msg);
     return;
   }
 
@@ -350,7 +383,7 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
   document.getElementById("leaveForm").reset();
   fileInput.value = "";
   showToast(t("leaveRequestSubmittedToast"));
-  await Promise.all([loadRequests(), loadBalance()]);
+  await Promise.all([loadRequests(), loadBalance(), loadHourlyStats()]);
 });
 
 function warningStatusBadge(status) {
@@ -572,6 +605,18 @@ async function checkNewDocsNotification() {
 document.getElementById("closeNewWarningBtn").dataset.skipConfirm = "1";
 document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
   document.getElementById("newWarningOverlay").style.display = "none";
+});
+
+// Shown whenever a leave submission (annual/sick/hourly) is rejected for
+// exceeding an available balance or a cap — more attention-grabbing than
+// the inline error text alone, since missing a rejected submission means
+// the employee might assume it went through when it didn't.
+function showLimitExceededPopup(message) {
+  document.getElementById("limitExceededPopupText").textContent = message;
+  document.getElementById("limitExceededOverlay").style.display = "flex";
+}
+document.getElementById("closeLimitExceededBtn").addEventListener("click", () => {
+  document.getElementById("limitExceededOverlay").style.display = "none";
 });
 
 // ================= Apply for Leave wizard =================
@@ -827,5 +872,5 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
   document.getElementById("deptLine").textContent = ME.department ? `${ME.department}` : "";
   document.getElementById("statHiringDate").textContent = fmtDate(ME.hiring_date);
   startLocationSharing();
-  await Promise.all([loadBalance(), loadRequests(), checkNewDocsNotification(), loadDashboardWarnings()]);
+  await Promise.all([loadBalance(), loadHourlyStats(), loadRequests(), checkNewDocsNotification(), loadDashboardWarnings()]);
 })();
