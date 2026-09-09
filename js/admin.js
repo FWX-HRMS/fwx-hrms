@@ -2083,8 +2083,29 @@ async function openEditModal(id) {
   document.getElementById("editEmail").value = e.email || "";
   document.getElementById("editHiringDate").value = e.hiring_date || "";
   document.getElementById("editCarryoverBalance").value = e.carryover_balance ?? 0;
-  document.getElementById("editTakenThisYear").value = bal ? bal.taken : 0;
-  document.getElementById("editTakenSickThisYear").value = bal ? bal.sick_taken : 0;
+
+  // This field edits ONLY the dedicated admin-backfill record (tagged with
+  // a specific reason text), never the combined total shown in the table
+  // — that total also includes any real leave requests the employee
+  // submitted themselves via "Apply for Vacation", which this field must
+  // never overwrite or conflate with. So look up that one specific record
+  // rather than pre-filling from the aggregate balance view.
+  const currentYear = new Date().getFullYear();
+  const { data: backfillRows } = await db
+    .from("leave_requests")
+    .select("leave_type, days_requested")
+    .eq("employee_id", e.id)
+    .in("reason", [
+      "Recorded via admin edit — leave already taken this year",
+      "Recorded via admin edit — sick leave already taken this year",
+    ])
+    .gte("start_date", `${currentYear}-01-01`)
+    .lte("start_date", `${currentYear}-12-31`);
+  const annualBackfill = (backfillRows || []).find(r => r.leave_type === "annual");
+  const sickBackfill = (backfillRows || []).find(r => r.leave_type === "sick");
+  document.getElementById("editTakenThisYear").value = annualBackfill ? annualBackfill.days_requested : 0;
+  document.getElementById("editTakenSickThisYear").value = sickBackfill ? sickBackfill.days_requested : 0;
+
   recalculateEditAnnualEntitlement();
   populateDepartmentOptions(document.getElementById("editDepartment"), e.client_company, e.department);
   document.getElementById("editDob").value = e.dob || "";
