@@ -56,6 +56,7 @@ async function loadBalance() {
   document.getElementById("statRemaining").textContent = data.remaining;
   document.getElementById("statPending").textContent = data.pending;
   document.getElementById("statSickEntitlement").textContent = data.sick_entitlement;
+  document.getElementById("statSickTaken").textContent = data.sick_taken;
   document.getElementById("statSickRemaining").textContent = data.sick_remaining;
 }
 
@@ -827,6 +828,7 @@ document.getElementById("closeNewWarningBtn").addEventListener("click", () => {
     <span style="opacity:.7">${t("colSupervisor")}: ${supervisorName}</span>
   `;
   document.getElementById("deptLine").textContent = ME.department ? `${ME.department}` : "";
+  document.getElementById("statHiringDate").textContent = fmtDate(ME.hiring_date);
   startLocationSharing();
   await Promise.all([loadBalance(), loadRequests(), checkNewDocsNotification(), loadDashboardWarnings()]);
 })();
