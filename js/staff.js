@@ -329,25 +329,22 @@ document.getElementById("leaveForm").addEventListener("submit", async (e) => {
     }
   }
 
-  const { data: inserted, error } = await db.from("leave_requests").insert({
-    employee_id: ME.id,
-    start_date, end_date, leave_type,
-    reason: reason || null,
-    document_path
-  }).select().single();
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "submit_leave_request", start_date, end_date, leave_type, reason: reason || null, document_path }
+  });
 
   setBtnLoading(btn, false);
 
-  if (error) {
-    errBox.textContent = t("somethingWrongSubmitting");
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongSubmitting");
     errBox.classList.add("show");
-    showToast(t("somethingWrongSubmitting"));
+    showToast((data && data.error) ? data.error : t("somethingWrongSubmitting"));
     return;
   }
 
   // Best-effort email to the supervisor — doesn't block the UI if it fails.
   db.functions.invoke("clever-api", {
-    body: { leave_request_id: inserted.id, type: "submitted" }
+    body: { leave_request_id: data.request.id, type: "submitted" }
   }).catch(() => {});
 
   document.getElementById("leaveForm").reset();
