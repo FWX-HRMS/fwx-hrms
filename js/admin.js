@@ -1,6 +1,10 @@
 let ME = null;
 let SUPERVISORS = [];
 let DIRECTORY = [];
+// Tracks whether the Edit Employee modal was opened from the "unfreeze
+// next action" menu, so cancelling without saving can return there
+// instead of just closing to nothing.
+let editOpenedFromUnfreezeMenu = null;
 let BALANCES_BY_ID = {};
 let ACTIVE_TAB = "all"; // "all" | "supervisors"
 const COMPANY_FILTER = new URLSearchParams(window.location.search).get("company");
@@ -597,7 +601,7 @@ function renderDirectory() {
     btn.addEventListener("click", () => { closeActionMenus(); showDetails(btn.dataset.view); });
   });
   body.querySelectorAll("button[data-edit]").forEach(btn => {
-    btn.addEventListener("click", () => { closeActionMenus(); openEditModal(btn.dataset.edit); });
+    btn.addEventListener("click", () => { closeActionMenus(); editOpenedFromUnfreezeMenu = null; openEditModal(btn.dataset.edit); });
   });
   body.querySelectorAll("button[data-contract]").forEach(btn => {
     btn.addEventListener("click", async () => { closeActionMenus(); await openContractCreateModal(btn.dataset.contract); });
@@ -2052,6 +2056,7 @@ function openUnfreezeNextActionMenu(id, employee) {
 document.getElementById("unfreezeActionEditInfoBtn").addEventListener("click", () => {
   const id = document.getElementById("unfreezeNextActionOverlay").dataset.employeeId;
   document.getElementById("unfreezeNextActionOverlay").style.display = "none";
+  editOpenedFromUnfreezeMenu = id;
   openEditModal(id);
 });
 document.getElementById("unfreezeActionResetBtn").addEventListener("click", () => {
@@ -2308,12 +2313,17 @@ async function openEditModal(id) {
   document.getElementById("editOverlay").style.display = "flex";
 }
 
-document.getElementById("closeEditBtn").addEventListener("click", () => {
+function closeEditModalAndMaybeReturnToUnfreezeMenu() {
   document.getElementById("editOverlay").style.display = "none";
-});
-document.getElementById("cancelEditBtn").addEventListener("click", () => {
-  document.getElementById("editOverlay").style.display = "none";
-});
+  if (editOpenedFromUnfreezeMenu) {
+    const id = editOpenedFromUnfreezeMenu;
+    editOpenedFromUnfreezeMenu = null;
+    const employee = DIRECTORY.find(x => x.id === id);
+    if (employee) openUnfreezeNextActionMenu(id, employee);
+  }
+}
+document.getElementById("closeEditBtn").addEventListener("click", closeEditModalAndMaybeReturnToUnfreezeMenu);
+document.getElementById("cancelEditBtn").addEventListener("click", closeEditModalAndMaybeReturnToUnfreezeMenu);
 
 document.getElementById("editForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
@@ -2383,6 +2393,7 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
   }
 
   document.getElementById("editOverlay").style.display = "none";
+  editOpenedFromUnfreezeMenu = null;
   showToast(t("employeeUpdatedToast"));
   await Promise.all([loadDirectory(), loadBalances(), loadSupervisors()]);
 });
