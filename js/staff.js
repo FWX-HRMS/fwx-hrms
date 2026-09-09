@@ -228,6 +228,31 @@ function updateHourlyPreview() {
 document.getElementById("hourlyTimeFrom").addEventListener("input", updateHourlyPreview);
 document.getElementById("hourlyTimeTo").addEventListener("input", updateHourlyPreview);
 
+// Whatever picker UI the browser shows for <input type="time"> (native
+// wheel, extension overlay, etc.) doesn't reliably respect the step="1800"
+// HTML attribute across all browsers — so instead of depending on that,
+// snap whatever value actually gets picked to the nearest :00 or :30 once
+// the selection is finalized. This works regardless of which UI was used
+// to set it.
+function snapToHalfHour(inputEl) {
+  const val = inputEl.value;
+  if (!val) return;
+  const [h, m] = val.split(":").map(Number);
+  if (isNaN(h) || isNaN(m)) return;
+  let snappedHour = h;
+  let snappedMinute;
+  if (m < 15) snappedMinute = 0;
+  else if (m < 45) snappedMinute = 30;
+  else { snappedMinute = 0; snappedHour = (h + 1) % 24; }
+  inputEl.value = `${String(snappedHour).padStart(2, "0")}:${String(snappedMinute).padStart(2, "0")}`;
+}
+["hourlyTimeFrom", "hourlyTimeTo"].forEach(id => {
+  document.getElementById(id).addEventListener("change", () => {
+    snapToHalfHour(document.getElementById(id));
+    updateHourlyPreview();
+  });
+});
+
 document.getElementById("hourlyLeaveForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const errBox = document.getElementById("hourlyLeaveError");
