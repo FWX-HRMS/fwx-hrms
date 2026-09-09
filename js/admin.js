@@ -2032,7 +2032,7 @@ async function resetVacationBalance(id, employee) {
   const ok = await showConfirm(
     t("resetVacationCounterTitle"),
     tv("resetVacationBalanceStandaloneMsg", { name: employee.full_name }),
-    t("resetVacationCounterYesBtn")
+    t("resetVacationConfirmDeleteBtn")
   );
   if (!ok) return;
 
