@@ -1986,9 +1986,19 @@ async function unfreezeEmployee(id, employee) {
   );
   if (!ok) return;
 
+  // Always ask whether tenure/leave tracking should restart from today
+  // (a fresh start — resets hiring_date, so entitlement tier and accrual
+  // calculate from the unfreeze date going forward) or continue counting
+  // from the employee's original hiring date as before.
+  const resetCounter = await showConfirm(
+    t("resetVacationCounterTitle"),
+    t("resetVacationCounterMsg"),
+    t("resetVacationCounterYesBtn")
+  );
+
   showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "unfreeze_employee", target_id: id }
+    body: { action: "unfreeze_employee", target_id: id, reset_hiring_date: resetCounter }
   });
   hideGlobalSpinner();
 
@@ -1999,6 +2009,15 @@ async function unfreezeEmployee(id, employee) {
 
   showToast(t("accountUnfrozenToast"));
   await Promise.all([loadDirectory(), loadBalances()]);
+
+  // If the admin chose NOT to reset the counter, prompt them to manually
+  // enter what's already been taken this year instead — since the
+  // original hiring date (and its running tally) is being kept, someone
+  // needs to reconcile those numbers rather than leaving them stale.
+  if (!resetCounter) {
+    showToast(t("pleaseUpdateTakenLeaveToast"));
+    openEditModal(id);
+  }
 }
 
 function toggleEditLeaveFields() {
