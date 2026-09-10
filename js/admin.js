@@ -753,6 +753,10 @@ function buildFullContractText({ employeeName, nationalId, jobTitle, salary, sta
     if (!startDate || !contractPeriodMonths) return null;
     const d = new Date(startDate);
     d.setMonth(d.getMonth() + Number(contractPeriodMonths));
+    // End date is one day before the calculated date — e.g. a 1-year
+    // contract starting Jan 15, 2026 ends Jan 14, 2027, not Jan 15, so
+    // consecutive renewals don't overlap by a day.
+    d.setDate(d.getDate() - 1);
     return d.toISOString().slice(0, 10);
   })();
 
@@ -831,6 +835,10 @@ function buildFullContractTextEnglish({ employeeName, nationalId, jobTitle, sala
     if (!startDate || !contractPeriodMonths) return null;
     const d = new Date(startDate);
     d.setMonth(d.getMonth() + Number(contractPeriodMonths));
+    // End date is one day before the calculated date — e.g. a 1-year
+    // contract starting Jan 15, 2026 ends Jan 14, 2027, not Jan 15, so
+    // consecutive renewals don't overlap by a day.
+    d.setDate(d.getDate() - 1);
     return d.toISOString().slice(0, 10);
   })();
 
