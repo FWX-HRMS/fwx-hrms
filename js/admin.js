@@ -2509,6 +2509,15 @@ async function deleteEmployee(id, employee) {
   await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
 }
 
+// PDF and Excel are mutually exclusive — checking one unchecks the other,
+// rather than both being independently selectable.
+document.getElementById("rangeFormatPdf").addEventListener("change", (e) => {
+  if (e.target.checked) document.getElementById("rangeFormatExcel").checked = false;
+});
+document.getElementById("rangeFormatExcel").addEventListener("change", (e) => {
+  if (e.target.checked) document.getElementById("rangeFormatPdf").checked = false;
+});
+
 function showDateRangePrompt(title, optionalColumns) {
   return new Promise(async (resolve) => {
     document.getElementById("dateRangeTitle").textContent = title;
