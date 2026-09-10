@@ -621,6 +621,18 @@
   </div>
 </div>
 
+<!-- Shown after the date-range modal closes, for the duration of the
+     actual report generation (data fetch + PDF/Excel build) — the
+     date-range modal itself closes immediately on Generate, before this
+     work even starts, so a spinner placed inside that modal would never
+     be visible. -->
+<div id="reportGeneratingOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:320px; text-align:center">
+    <div class="ew-spinner"></div>
+    <p style="margin:0; color:var(--ink-soft); font-size:14px" data-i18n="generatingReportLabel">Generating report…</p>
+  </div>
+</div>
+
 <!-- Freeze account modal -->
 <div id="freezeOverlay" class="modal-overlay" style="display:none">
   <div class="modal-box" style="max-width:380px">
@@ -705,6 +717,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/admin.js?v=spinner1"></script>
+<script src="js/admin.js?v=spinner2"></script>
 </body>
 </html>
