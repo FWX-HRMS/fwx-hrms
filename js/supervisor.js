@@ -312,14 +312,13 @@ function renderPending() {
       pendingBody.querySelectorAll("button").forEach(b => b.disabled = true);
       showGlobalSpinner();
 
-      // Unpaid leave needs a second sign-off from admin (to confirm the
-      // salary deduction) before it's truly approved — so a supervisor
-      // "approving" an unpaid request moves it to pending_admin instead
-      // of approved directly. Every other leave type still goes straight
-      // to approved/rejected as before.
+      // Unpaid AND "other" leave both need a second sign-off from admin
+      // before they're truly approved — "other" is treated identically to
+      // unpaid here per an explicit request to make them behave exactly
+      // the same. Annual and sick still go straight to approved/rejected.
       const req = PENDING_REQUESTS.find(r => r.id === btn.dataset.id);
-      const isUnpaidApproval = btn.dataset.action === "approved" && req && req.leave_type === "unpaid";
-      const newStatus = isUnpaidApproval ? "pending_admin" : btn.dataset.action;
+      const needsAdminApproval = btn.dataset.action === "approved" && req && (req.leave_type === "unpaid" || req.leave_type === "other");
+      const newStatus = needsAdminApproval ? "pending_admin" : btn.dataset.action;
 
       const { error } = await db
         .from("leave_requests")
@@ -328,13 +327,13 @@ function renderPending() {
       hideGlobalSpinner();
       if (error) { showToast(t("couldNotUpdateRequest")); }
       else {
-        showToast(isUnpaidApproval ? t("statusSentToAdmin") : t(btn.dataset.action === "approved" ? "statusApproved" : "statusRejected"));
+        showToast(needsAdminApproval ? t("statusSentToAdmin") : t(btn.dataset.action === "approved" ? "statusApproved" : "statusRejected"));
         db.functions.invoke("clever-api", {
           body: { leave_request_id: btn.dataset.id, type: "decided" }
         }).catch(() => {});
         // Only notify on a genuinely final outcome — unpaid leave moving
         // to pending_admin is still awaiting a second decision, not done yet.
-        if (req && !isUnpaidApproval) {
+        if (req && !needsAdminApproval) {
           const emp = TEAM_BY_ID[req.employee_id];
           db.from("notifications").insert({
             type: "leave_decided",
