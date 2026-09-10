@@ -2755,6 +2755,8 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     return;
   }
 
+  showGlobalSpinner();
+
   const selectedKeys = new Set(range.selectedColumnKeys || []);
   const keepIndices = allColumns
     .map((c, i) => ({ c, i }))
@@ -2776,8 +2778,12 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
   const baseFilename = `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report`;
 
+  // downloadPDF is async (it awaits the logo image and does canvas work
+  // for every Arabic name) — awaiting it here, not just calling it, is
+  // what actually keeps the spinner up until the file is really ready
+  // rather than hiding it the instant this function returns.
   if (range.wantPdf) {
-    downloadPDF(
+    await downloadPDF(
       title,
       `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
       columns,
@@ -2789,6 +2795,8 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   if (range.wantExcel) {
     downloadExcel(title, columns, rows, `${baseFilename}.xlsx`);
   }
+
+  hideGlobalSpinner();
 });
 
 document.getElementById("downloadLeaveReportBtn").addEventListener("click", async () => {
@@ -2823,6 +2831,8 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
     return;
   }
 
+  showGlobalSpinner();
+
   const redRowIndices = new Set();
   const fullPdfRows = rows.map((r, i) => {
     const emp = byId[r.employee_id];
@@ -2854,7 +2864,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}leave_requests_report`;
 
   if (range.wantPdf) {
-    downloadPDF(
+    await downloadPDF(
       `${scope}Leave Requests`,
       `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
       columns,
@@ -2866,6 +2876,8 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   if (range.wantExcel) {
     downloadExcel(`${scope}Leave Requests`, columns, pdfRows, `${baseFilename}.xlsx`);
   }
+
+  hideGlobalSpinner();
 });
 
 async function populateSupAdminCompanyOptions() {
