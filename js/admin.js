@@ -2600,18 +2600,28 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
   doc.setFontSize(10);
   doc.setTextColor(75, 87, 104);
   doc.text(subtitle, textStartX, 25);
+
+  // Font size and margins scale with how many columns there are, so a
+  // wide report (15 columns) gets small enough text and tight enough
+  // margins to fit every column at full width without truncating or
+  // wrapping headers mid-word, while a narrow report (5-6 columns) still
+  // gets to use a comfortably larger, more readable size instead of
+  // needlessly shrinking.
+  const colCount = columns.length;
+  const fontSize = colCount <= 6 ? 9 : colCount <= 9 ? 8 : colCount <= 12 ? 7 : colCount <= 16 ? 6 : 5;
+  const marginSide = colCount <= 9 ? 14 : 8;
+
   doc.autoTable({
     head: [columns],
     body: rows,
     startY: 32,
     theme: "striped",
-    headStyles: { fillColor: [47, 111, 94], fontSize: 7 },
-    // Reduced from 9 to 7 — with this many columns in landscape, 9pt was
-    // forcing narrow column widths, which made words like "Employee" and
-    // "Company" wrap mid-word ("Employ/ee", "Compan/y") instead of fitting
-    // cleanly. 7pt gives enough room to avoid that.
-    styles: { fontSize: 7, cellPadding: 3 },
-    margin: { left: 14, right: 14 },
+    headStyles: { fillColor: [47, 111, 94], fontSize, halign: "left", cellPadding: colCount > 9 ? 2 : 3 },
+    // overflow "linebreak" (the default) wraps rather than truncates or
+    // hides — kept explicit here so a future edit doesn't accidentally
+    // switch it to "ellipsize"/"hidden" and start cutting content again.
+    styles: { fontSize, cellPadding: colCount > 9 ? 2 : 3, overflow: "linebreak" },
+    margin: { left: marginSide, right: marginSide },
     didParseCell: (data) => {
       if (redRowIndices && data.section === "body" && redRowIndices.has(data.row.index)) {
         data.cell.styles.textColor = [165, 64, 43];
@@ -2633,7 +2643,7 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
       drawMixedLine(doc, raw, {
         xMm: data.cell.x + 2,
         yMm: data.cell.y + data.cell.height / 2 + 1.1,
-        sizeMm: 2.6,
+        sizeMm: fontSize * 0.34,
         color: redColor,
       });
     },
