@@ -441,6 +441,33 @@
 <!-- Shown right after a successful unfreeze — lets the admin immediately
      pick what to do next for this employee's records, rather than these
      living as permanent, always-visible Actions menu items. -->
+<!-- Contract expiring soon — surfaced automatically on page load, one at
+     a time, via check_expiring_contracts. -->
+<div id="contractExpiryOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:440px; text-align:center">
+    <div style="font-size:34px; margin-bottom:6px">📄</div>
+    <h2 id="contractExpiryTitle" style="margin:0 0 10px"></h2>
+    <p class="help-text" id="contractExpiryMsg" style="margin-bottom:18px; text-align:left"></p>
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <button type="button" class="btn btn-primary" id="contractExpiryTakeActionBtn">Take Action</button>
+      <button type="button" class="btn btn-blue" id="contractExpiryNotifyLaterBtn">Notify Again Tomorrow</button>
+    </div>
+  </div>
+</div>
+
+<!-- Take Action on an expiring contract — the three outcomes. -->
+<div id="contractActionChoiceOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:440px">
+    <h2 style="margin:0 0 16px">Take Action</h2>
+    <div style="display:flex; flex-direction:column; gap:10px">
+      <button type="button" class="btn btn-danger" id="contractActionDoNotRenewBtn">Do Not Renew</button>
+      <button type="button" class="btn btn-blue" id="contractActionRenewSameBtn">Renew — Same Terms</button>
+      <button type="button" class="btn btn-blue" id="contractActionRenewNewBtn">Renew — New Terms</button>
+      <button type="button" class="btn btn-blue" id="contractActionBackBtn">Back</button>
+    </div>
+  </div>
+</div>
+
 <div id="unfreezeNextActionOverlay" class="modal-overlay" style="display:none">
   <div class="modal-box" style="max-width:420px">
     <h2 style="margin:0 0 6px" data-i18n="unfreezeNextActionTitle">What would you like to do next?</h2>
@@ -673,6 +700,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/admin.js?v=unfreezemenu3"></script>
+<script src="js/admin.js?v=contractexpiry1"></script>
 </body>
 </html>
