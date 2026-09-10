@@ -2755,7 +2755,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     return;
   }
 
-  showGlobalSpinner();
+  document.getElementById("reportGeneratingOverlay").style.display = "flex";
 
   const selectedKeys = new Set(range.selectedColumnKeys || []);
   const keepIndices = allColumns
@@ -2796,7 +2796,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     downloadExcel(title, columns, rows, `${baseFilename}.xlsx`);
   }
 
-  hideGlobalSpinner();
+  document.getElementById("reportGeneratingOverlay").style.display = "none";
 });
 
 document.getElementById("downloadLeaveReportBtn").addEventListener("click", async () => {
@@ -2831,7 +2831,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
     return;
   }
 
-  showGlobalSpinner();
+  document.getElementById("reportGeneratingOverlay").style.display = "flex";
 
   const redRowIndices = new Set();
   const fullPdfRows = rows.map((r, i) => {
@@ -2877,7 +2877,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
     downloadExcel(`${scope}Leave Requests`, columns, pdfRows, `${baseFilename}.xlsx`);
   }
 
-  hideGlobalSpinner();
+  document.getElementById("reportGeneratingOverlay").style.display = "none";
 });
 
 async function populateSupAdminCompanyOptions() {
