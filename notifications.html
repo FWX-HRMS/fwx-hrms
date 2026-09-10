@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notifications — HR Portal</title>
+<link rel="icon" type="image/png" href="images/favicon.png">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <button type="button" class="lang-toggle" id="langToggleBtn">العربية</button>
+    <div class="brand"><a href="https://www.fwxperts.com/" target="_blank" rel="noopener noreferrer" style="line-height:0"><img src="images/logo.png" alt="FWX" class="brand-logo"></a> <span id="brandLabel">HR Portal</span></div>
+    <div class="whoami" id="whoami">Loading…</div>
+    <a href="settings.html" class="settings-link" data-i18n="settingsLink">⚙ Settings</a>
+    <button class="logout" onclick="logout()" data-i18n="logout">Log out</button>
+    <div class="sidebar-divider"></div>
+    <nav id="navLinks"></nav>
+  </aside>
+
+  <main>
+    <h1 class="page-title" data-i18n="notificationsTitle">Notifications</h1>
+    <p class="page-sub" id="pageSub"></p>
+
+    <div class="panel">
+      <div style="position:relative; max-width:480px; margin-bottom:14px">
+        <span style="position:absolute; inset-inline-start:12px; top:50%; transform:translateY(-50%); pointer-events:none; opacity:.55">🔍</span>
+        <input type="text" id="notificationsSearchInput" placeholder="Title" style="width:100%; padding-inline-start:36px">
+      </div>
+      <table>
+        <thead>
+          <tr><th data-i18n="colTitle">Title</th><th data-i18n="colCreatedDate">Date</th><th data-i18n="colStatus">Status</th><th></th></tr>
+        </thead>
+        <tbody id="notificationsBody"></tbody>
+      </table>
+      <div class="empty-state" id="noNotifications" style="display:none" data-i18n="noNotificationsFound">No notifications found.</div>
+      <div id="notificationsPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="notificationsPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-paginate btn-sm" id="notificationsPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-paginate btn-sm" id="notificationsNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Notification detail view -->
+<div id="notificationDetailOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:520px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px">
+      <h2 style="margin:0" id="notificationDetailTitle"></h2>
+      <button type="button" class="btn btn-blue btn-sm" id="closeNotificationDetailBtn" data-i18n="close">Close</button>
+    </div>
+    <p class="help-text" id="notificationDetailDate" style="margin-bottom:12px"></p>
+    <div id="notificationDetailMsg" style="white-space:pre-wrap; font-size:14px; line-height:1.7; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:16px;"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth-guard.js"></script>
+<script src="js/i18n.js"></script>
+<script>initLangToggle();</script>
+<script src="js/notifications.js"></script>
+</body>
+</html>
