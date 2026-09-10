@@ -1,6 +1,8 @@
 let ME = null;
 let SUPERVISORS = [];
 let DIRECTORY = [];
+// Queue of contract-expiry notifications due today, shown one at a time.
+let CONTRACT_EXPIRY_QUEUE = [];
 // Tracks whether the Edit Employee modal was opened from the "unfreeze
 // next action" menu, so cancelling without saving can return there
 // instead of just closing to nothing.
@@ -3437,57 +3439,107 @@ document.getElementById("showAddFormBtn").addEventListener("click", async () => 
   await ewRenderCurrentStep();
 });
 
-// Notifies the admin when a signed contract is entering its final 30 days,
-// so they can decide to renew (via the Renew Contract action) or prepare
-// end-of-service. Uses a per-contract dismissed-list rather than a single
-// "last seen" timestamp, since this is a standing state to address, not a
-// one-off event — it should keep reappearing each visit until acted on,
-// but only for contracts the admin hasn't already dismissed individually.
+// Notifies the admin when a signed contract is entering its 37-day
+// expiry window. Replaces the old localStorage-only version — this one
+// is backed by the notifications table, so state persists across
+// browsers/devices and supports the full snooze/force-action flow.
 async function checkContractExpiryNotifications() {
   try {
-    const today = new Date();
-    const in30Days = new Date();
-    in30Days.setDate(today.getDate() + 30);
-    const todayIso = today.toISOString().slice(0, 10);
-    const in30Iso = in30Days.toISOString().slice(0, 10);
+    const { data, error } = await db.functions.invoke("clever-action", {
+      body: { action: "check_expiring_contracts" }
+    });
+    if (error || (data && data.error) || !data || !data.notifications) return;
 
-    const { data: expiringContracts, error } = await db
-      .from("contracts")
-      .select("id, employee_id, end_date")
-      .eq("status", "signed")
-      .gte("end_date", todayIso)
-      .lte("end_date", in30Iso);
-
-    if (error || !expiringContracts || expiringContracts.length === 0) return;
-
-    const dismissedKey = `fwx_dismissedExpiryContracts_${ME.id}`;
-    let dismissed = [];
-    try { dismissed = JSON.parse(localStorage.getItem(dismissedKey) || "[]"); } catch (e) { dismissed = []; }
-    const dismissedSet = new Set(dismissed);
-    const stillRelevant = expiringContracts.filter(c => !dismissedSet.has(c.id));
-    if (stillRelevant.length === 0) return;
-
-    const nameFor = (employeeId) => {
-      const emp = DIRECTORY.find(x => x.id === employeeId);
-      return emp ? emp.full_name : "An employee";
-    };
-    const lines = stillRelevant
-      .map(c => `${nameFor(c.employee_id)} — expires ${fmtDate(c.end_date)}`)
-      .join("\n");
-
-    showInfoPopup(
-      "Contracts expiring soon",
-      `${stillRelevant.length} contract${stillRelevant.length > 1 ? "s are" : " is"} expiring within 30 days:\n${lines}\n\nUse "Renew Contract" from the employee's Actions menu to prepare a renewal, or prepare end-of-service if the employee is leaving.`,
-      "⏰",
-      () => {
-        const updated = [...dismissedSet, ...stillRelevant.map(c => c.id)];
-        localStorage.setItem(dismissedKey, JSON.stringify(updated));
-      }
-    );
+    CONTRACT_EXPIRY_QUEUE = data.notifications;
+    showNextContractExpiryNotification();
   } catch (err) {
     console.error("checkContractExpiryNotifications: unexpected error", err);
   }
 }
+
+function showNextContractExpiryNotification() {
+  if (CONTRACT_EXPIRY_QUEUE.length === 0) return;
+  const n = CONTRACT_EXPIRY_QUEUE[0];
+
+  document.getElementById("contractExpiryTitle").textContent = n.title;
+  document.getElementById("contractExpiryMsg").textContent = n.message;
+  document.getElementById("contractExpiryOverlay").dataset.notificationId = n.id;
+  document.getElementById("contractExpiryOverlay").dataset.contractId = n.contract_id;
+  document.getElementById("contractExpiryOverlay").dataset.employeeId = n.employee_id;
+  // Once inside the final 7 days, "Notify Later" is no longer offered —
+  // matches the server-side guard on the snooze action itself, so this
+  // can't be bypassed even if someone tried calling it directly.
+  document.getElementById("contractExpiryNotifyLaterBtn").style.display = n.force_action ? "none" : "";
+  document.getElementById("contractExpiryOverlay").style.display = "flex";
+}
+
+document.getElementById("contractExpiryNotifyLaterBtn").addEventListener("click", async () => {
+  const overlay = document.getElementById("contractExpiryOverlay");
+  const notificationId = overlay.dataset.notificationId;
+  overlay.style.display = "none";
+
+  showGlobalSpinner();
+  await db.functions.invoke("clever-action", { body: { action: "snooze_notification", notification_id: notificationId } });
+  hideGlobalSpinner();
+
+  CONTRACT_EXPIRY_QUEUE.shift();
+  showNextContractExpiryNotification();
+});
+
+document.getElementById("contractExpiryTakeActionBtn").addEventListener("click", () => {
+  document.getElementById("contractExpiryOverlay").style.display = "none";
+  document.getElementById("contractActionChoiceOverlay").dataset.notificationId = document.getElementById("contractExpiryOverlay").dataset.notificationId;
+  document.getElementById("contractActionChoiceOverlay").dataset.contractId = document.getElementById("contractExpiryOverlay").dataset.contractId;
+  document.getElementById("contractActionChoiceOverlay").dataset.employeeId = document.getElementById("contractExpiryOverlay").dataset.employeeId;
+  document.getElementById("contractActionChoiceOverlay").style.display = "flex";
+});
+
+document.getElementById("contractActionBackBtn").addEventListener("click", () => {
+  document.getElementById("contractActionChoiceOverlay").style.display = "none";
+  document.getElementById("contractExpiryOverlay").style.display = "flex";
+});
+
+document.getElementById("contractActionDoNotRenewBtn").addEventListener("click", async () => {
+  const overlay = document.getElementById("contractActionChoiceOverlay");
+  const notification_id = overlay.dataset.notificationId;
+  const employee_id = overlay.dataset.employeeId;
+  const contract_id = overlay.dataset.contractId;
+
+  const ok = await showConfirm(
+    "Do Not Renew",
+    "This notifies the employee that their contract is ending and won't be renewed. This can't be undone.",
+    "Yes, Do Not Renew",
+    true
+  );
+  if (!ok) return;
+
+  showGlobalSpinner();
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "do_not_renew_contract", notification_id, employee_id, contract_id }
+  });
+  hideGlobalSpinner();
+
+  if (error || (data && data.error)) {
+    showToast((data && data.error) ? data.error : "Something went wrong.");
+    return;
+  }
+
+  overlay.style.display = "none";
+  showToast("Employee notified — contract will not be renewed.");
+  CONTRACT_EXPIRY_QUEUE.shift();
+  showNextContractExpiryNotification();
+});
+
+// "Renew — Same Terms" and "Renew — New Terms" involve creating/cloning
+// a full contract record and routing it through the existing signing
+// flow — substantial enough that they're built out in a follow-up step
+// rather than guessed at here.
+document.getElementById("contractActionRenewSameBtn").addEventListener("click", () => {
+  showToast("Renew with same terms — coming next.");
+});
+document.getElementById("contractActionRenewNewBtn").addEventListener("click", () => {
+  showToast("Renew with new terms — coming next.");
+});
 
 async function checkAdminEmployeeActionNotifications() {
   try {
