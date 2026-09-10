@@ -17,6 +17,8 @@ let DIRECTORY_PAGE = 0;
 let LEAVE_REQUESTS_PAGE = 0;
 let CONTRACTS_PAGE = 0;
 let WARNINGS_PAGE = 0;
+let NOTIFICATIONS_LIST = [];
+let NOTIFICATIONS_PAGE = 0;
 
 function updatePaginationControls(prefix, page, totalCount) {
   const wrap = document.getElementById(`${prefix}Pagination`);
@@ -50,6 +52,7 @@ document.getElementById("directorySearchInput").addEventListener("input", () => 
 document.getElementById("leaveRequestsSearchInput").addEventListener("input", () => { LEAVE_REQUESTS_PAGE = 0; renderLeaveRequests(); });
 document.getElementById("contractsSearchInput").addEventListener("input", () => { CONTRACTS_PAGE = 0; renderContracts(); });
 document.getElementById("warningsSearchInput").addEventListener("input", () => { WARNINGS_PAGE = 0; renderWarnings(); });
+document.getElementById("notificationsSearchInput").addEventListener("input", () => { NOTIFICATIONS_PAGE = 0; renderNotifications(); });
 
 function showToast(msg) {
   const t = document.getElementById("toast");
@@ -112,14 +115,17 @@ function applyTab(tab) {
   document.getElementById("tabLeaveBtn").classList.toggle("active", tab === "leave");
   document.getElementById("tabContractsBtn").classList.toggle("active", tab === "contracts");
   document.getElementById("tabWarningsBtn").classList.toggle("active", tab === "warnings");
+  document.getElementById("tabNotificationsBtn").classList.toggle("active", tab === "notifications");
 
   const isLeave = tab === "leave";
   const isContracts = tab === "contracts";
   const isWarnings = tab === "warnings";
-  document.getElementById("directoryPanel").style.display = (isLeave || isContracts || isWarnings) ? "none" : "";
+  const isNotifications = tab === "notifications";
+  document.getElementById("directoryPanel").style.display = (isLeave || isContracts || isWarnings || isNotifications) ? "none" : "";
   document.getElementById("leavePanel").style.display = isLeave ? "" : "none";
   document.getElementById("contractsPanel").style.display = isContracts ? "" : "none";
   document.getElementById("warningsPanel").style.display = isWarnings ? "" : "none";
+  document.getElementById("notificationsPanel").style.display = isNotifications ? "" : "none";
 
   if (isLeave) {
     loadLeaveRequests();
@@ -131,6 +137,10 @@ function applyTab(tab) {
   }
   if (isWarnings) {
     loadWarnings();
+    return;
+  }
+  if (isNotifications) {
+    loadNotifications();
     return;
   }
 
@@ -145,6 +155,7 @@ document.getElementById("tabSupervisorsBtn").addEventListener("click", () => app
 document.getElementById("tabContractsBtn").addEventListener("click", () => applyTab("contracts"));
 document.getElementById("tabWarningsBtn").addEventListener("click", () => applyTab("warnings"));
 document.getElementById("tabLeaveBtn").addEventListener("click", () => applyTab("leave"));
+document.getElementById("tabNotificationsBtn").addEventListener("click", () => applyTab("notifications"));
 
 function roleLabel(role) {
   if (role === "supervisor") return t("roleSupervisor");
@@ -1135,6 +1146,58 @@ function renderWarnings() {
     });
   });
 }
+
+async function loadNotifications() {
+  const { data, error } = await db.from("notifications").select("*").order("created_at", { ascending: false });
+  NOTIFICATIONS_LIST = error || !data ? [] : data;
+  NOTIFICATIONS_PAGE = 0;
+  renderNotifications();
+}
+
+function renderNotifications() {
+  const body = document.getElementById("notificationsBody");
+  const empty = document.getElementById("noNotifications");
+  body.innerHTML = "";
+
+  const query = document.getElementById("notificationsSearchInput").value.trim().toLowerCase();
+  const filtered = query
+    ? NOTIFICATIONS_LIST.filter(n => (n.title || "").toLowerCase().includes(query))
+    : NOTIFICATIONS_LIST;
+  empty.style.display = filtered.length ? "none" : "block";
+
+  const start = NOTIFICATIONS_PAGE * PAGE_SIZE;
+  const pageItems = filtered.slice(start, start + PAGE_SIZE);
+  for (const n of pageItems) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${n.title}${n.read ? "" : ` <span class="badge badge-pending" style="margin-inline-start:6px">New</span>`}</td>
+      <td>${fmtDate(n.created_at ? n.created_at.slice(0, 10) : null)}</td>
+      <td>${n.status === "needs_action" ? `<span class="badge badge-pending">Needs Action</span>` : `<span class="badge badge-approved">Resolved</span>`}</td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-view-notification="${n.id}">View</button></td>
+    `;
+    body.appendChild(tr);
+  }
+  updatePaginationControls("notifications", NOTIFICATIONS_PAGE, filtered.length);
+
+  body.querySelectorAll("button[data-view-notification]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const n = NOTIFICATIONS_LIST.find(x => x.id === btn.dataset.viewNotification);
+      if (!n) return;
+      document.getElementById("notificationDetailTitle").textContent = n.title;
+      document.getElementById("notificationDetailDate").textContent = fmtDate(n.created_at ? n.created_at.slice(0, 10) : null);
+      document.getElementById("notificationDetailMsg").textContent = n.message;
+      document.getElementById("notificationDetailOverlay").style.display = "flex";
+
+      if (!n.read) {
+        n.read = true;
+        db.from("notifications").update({ read: true }).eq("id", n.id).then(() => {});
+      }
+    });
+  });
+}
+document.getElementById("closeNotificationDetailBtn").addEventListener("click", () => {
+  document.getElementById("notificationDetailOverlay").style.display = "none";
+});
 
 let WARNING_ALT_TEXT = "";
 let WARNING_LANG = "ar";
