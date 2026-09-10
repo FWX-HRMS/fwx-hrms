@@ -701,6 +701,43 @@ document.getElementById("closeLimitExceededBtn").addEventListener("click", () =>
     return `<label for="${id}">${labelText}</label>${inputHtml}`;
   }
 
+  // Live preview as the employee picks dates — shows how many days that
+  // range represents and compares it against their actual current
+  // balance (fetched fresh, same numbers the server will check at
+  // submission time), so they see a problem immediately instead of only
+  // after submitting and getting rejected.
+  async function lwUpdateDatesPreview() {
+    const preview = document.getElementById("lw_days_preview");
+    if (!preview) return;
+    const startEl = document.getElementById("lw_start");
+    const endEl = document.getElementById("lw_end");
+    if (!startEl || !endEl || !startEl.value || !endEl.value) { preview.textContent = ""; return; }
+    if (endEl.value < startEl.value) { preview.textContent = ""; return; }
+
+    const days = Math.round((new Date(endEl.value) - new Date(startEl.value)) / (1000 * 60 * 60 * 24)) + 1;
+
+    if (LW.values.type !== "annual" && LW.values.type !== "sick") {
+      preview.textContent = `${days} day${days === 1 ? "" : "s"} requested.`;
+      preview.style.color = "";
+      return;
+    }
+
+    const { data: bal } = await db
+      .from("leave_balances_calendar_year")
+      .select("remaining, sick_remaining")
+      .eq("employee_id", ME.id)
+      .maybeSingle();
+    const available = bal ? (LW.values.type === "annual" ? bal.remaining : bal.sick_remaining) : 0;
+
+    if (days > available) {
+      preview.innerHTML = `<strong>${days} day${days === 1 ? "" : "s"} requested — this exceeds your available balance of ${available} day${available === 1 ? "" : "s"}.</strong> You can still try to proceed, but it will be rejected unless you adjust the dates.`;
+      preview.style.color = "#B3261E";
+    } else {
+      preview.textContent = `${days} day${days === 1 ? "" : "s"} requested (${available} available).`;
+      preview.style.color = "";
+    }
+  }
+
   const LW_STEPS = [
     {
       key: "type", title: "Leave type",
@@ -718,25 +755,30 @@ document.getElementById("closeLimitExceededBtn").addEventListener("click", () =>
       valid() { return true; },
     },
     {
-      key: "start_date", title: "Start date",
+      key: "dates", title: "Dates",
       render(container) {
-        container.innerHTML = lwField("lw_start", t("startDateLabel"), `<input type="date" id="lw_start" value="${LW.values.start_date}">`);
+        container.innerHTML = `
+          <div class="field-row">
+            <div>${lwField("lw_start", t("startDateLabel"), `<input type="date" id="lw_start" value="${LW.values.start_date}">`)}</div>
+            <div>${lwField("lw_end", t("endDateLabel"), `<input type="date" id="lw_end" value="${LW.values.end_date}">`)}</div>
+          </div>
+          <p class="help-text" id="lw_days_preview" style="margin-top:8px"></p>
+        `;
+        const updatePreview = () => lwUpdateDatesPreview();
+        document.getElementById("lw_start").addEventListener("input", updatePreview);
+        document.getElementById("lw_end").addEventListener("input", updatePreview);
+        updatePreview();
       },
-      save() { LW.values.start_date = document.getElementById("lw_start").value; },
-      valid() { return !!LW.values.start_date || !!document.getElementById("lw_start").value; },
-      errorMsg: "Please select a start date.",
-    },
-    {
-      key: "end_date", title: "End date",
-      render(container) {
-        container.innerHTML = lwField("lw_end", t("endDateLabel"), `<input type="date" id="lw_end" value="${LW.values.end_date}">`);
+      save() {
+        LW.values.start_date = document.getElementById("lw_start").value;
+        LW.values.end_date = document.getElementById("lw_end").value;
       },
-      save() { LW.values.end_date = document.getElementById("lw_end").value; },
       valid() {
-        const v = document.getElementById("lw_end").value;
-        return !!v && v >= LW.values.start_date;
+        const s = document.getElementById("lw_start").value;
+        const e = document.getElementById("lw_end").value;
+        return !!s && !!e && e >= s;
       },
-      errorMsg: "Please select a valid end date (on or after the start date).",
+      errorMsg: "Please select a valid date range (end date on or after the start date).",
     },
     {
       key: "reason", title: "Reason (optional)", skippable: true,
