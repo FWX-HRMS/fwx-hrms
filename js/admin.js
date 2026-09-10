@@ -3530,16 +3530,28 @@ document.getElementById("contractActionDoNotRenewBtn").addEventListener("click",
   showNextContractExpiryNotification();
 });
 
-// "Renew — Same Terms" and "Renew — New Terms" involve creating/cloning
-// a full contract record and routing it through the existing signing
-// flow — substantial enough that they're built out in a follow-up step
-// rather than guessed at here.
-document.getElementById("contractActionRenewSameBtn").addEventListener("click", () => {
-  showToast("Renew with same terms — coming next.");
-});
-document.getElementById("contractActionRenewNewBtn").addEventListener("click", () => {
-  showToast("Renew with new terms — coming next.");
-});
+// Both "Same Terms" and "New Terms" reuse the exact same, already-working
+// Renew Contract modal — it pre-fills every field from the current
+// contract and is fully editable, so "same terms" just means the admin
+// submits without changing anything, and "new terms" means they edit
+// fields first. No need for two separate flows.
+async function handleRenewFromExpiryNotification() {
+  const overlay = document.getElementById("contractActionChoiceOverlay");
+  const notification_id = overlay.dataset.notificationId;
+  const employee_id = overlay.dataset.employeeId;
+  overlay.style.display = "none";
+
+  // Resolve the admin notification now that action is being taken — the
+  // renewal itself proceeds through the existing signing flow from here,
+  // so this notification shouldn't keep reappearing.
+  if (notification_id) {
+    db.functions.invoke("clever-action", { body: { action: "resolve_notification", notification_id } }).catch(() => {});
+  }
+
+  await openRenewContractModal(employee_id);
+}
+document.getElementById("contractActionRenewSameBtn").addEventListener("click", handleRenewFromExpiryNotification);
+document.getElementById("contractActionRenewNewBtn").addEventListener("click", handleRenewFromExpiryNotification);
 
 async function checkAdminEmployeeActionNotifications() {
   try {
@@ -3615,8 +3627,14 @@ async function checkAdminEmployeeActionNotifications() {
     if (!document.hidden) checkAdminEmployeeActionNotifications();
   });
   window.addEventListener("focus", () => checkAdminEmployeeActionNotifications());
-  checkContractExpiryNotifications();
-  setInterval(checkContractExpiryNotifications, 60000);
+  // Contract-expiry popups should surface once per login, not on every
+  // page load/navigation within the same session (previously also had a
+  // 60-second re-check interval, which was far too frequent for a
+  // "review and decide" style notification).
+  if (!sessionStorage.getItem("fwx_contractExpiryCheckedThisSession")) {
+    sessionStorage.setItem("fwx_contractExpiryCheckedThisSession", "1");
+    checkContractExpiryNotifications();
+  }
 
   // Deep link from the dashboard's "View" buttons: ?tab=contracts&contractId=... / ?tab=warnings&warningId=...
   const qs = new URLSearchParams(window.location.search);
