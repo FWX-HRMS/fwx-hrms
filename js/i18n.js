@@ -175,6 +175,7 @@ const translations = {
     nextBtn: "Next ›",
     showingRangeLabel: "Showing %start%–%end% of %total%",
     includeFrozenLabel: "Include frozen staff",
+    reportFieldsLabel: "Fields to include in the report",
     noMatchingEmployeeToast: "No matching employee found for that ID.",
     noMatchingRequestsToast: "No matching leave requests found.",
 
@@ -642,6 +643,7 @@ const translations = {
     nextBtn: "التالي ›",
     showingRangeLabel: "عرض %start%–%end% من %total%",
     includeFrozenLabel: "تضمين الموظفين المجمّدين",
+    reportFieldsLabel: "الحقول المطلوب تضمينها في التقرير",
     noMatchingEmployeeToast: "لم يتم العثور على موظف مطابق لهذا الرقم.",
     noMatchingRequestsToast: "لم يتم العثور على طلبات إجازة مطابقة.",
 

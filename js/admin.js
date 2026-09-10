@@ -2509,7 +2509,7 @@ async function deleteEmployee(id, employee) {
   await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
 }
 
-function showDateRangePrompt(title) {
+function showDateRangePrompt(title, optionalColumns) {
   return new Promise(async (resolve) => {
     document.getElementById("dateRangeTitle").textContent = title;
     document.getElementById("rangeFromInput").value = "";
@@ -2519,6 +2519,24 @@ function showDateRangePrompt(title) {
     document.getElementById("rangeFormatPdf").checked = true;
     document.getElementById("rangeFormatExcel").checked = false;
     document.getElementById("rangeFormatError").classList.remove("show");
+
+    // Name (and ID, where the report has one) are always included and
+    // never shown as a checkbox — everything else defaults to checked,
+    // so nothing is hidden unless the admin actually unchecks it.
+    const columnsSection = document.getElementById("rangeColumnsSection");
+    const checkboxContainer = document.getElementById("rangeColumnsCheckboxes");
+    if (optionalColumns && optionalColumns.length > 0) {
+      columnsSection.style.display = "";
+      checkboxContainer.innerHTML = optionalColumns.map(col => `
+        <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:400">
+          <input type="checkbox" class="range-column-checkbox" value="${col.key}" checked style="width:auto">
+          <span>${col.label}</span>
+        </label>
+      `).join("");
+    } else {
+      columnsSection.style.display = "none";
+      checkboxContainer.innerHTML = "";
+    }
 
     const companySelect = document.getElementById("rangeCompanySelect");
     const { data: companies } = await db.from("client_companies").select("name").order("name");
@@ -2549,8 +2567,9 @@ function showDateRangePrompt(title) {
       const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
       const company = document.getElementById("rangeCompanySelect").value || null;
       const includeFrozen = document.getElementById("rangeIncludeFrozen").checked;
+      const selectedColumnKeys = Array.from(document.querySelectorAll(".range-column-checkbox:checked")).map(el => el.value);
       cleanup();
-      resolve({ from, to, employeeId, company, includeFrozen, wantPdf, wantExcel });
+      resolve({ from, to, employeeId, company, includeFrozen, wantPdf, wantExcel, selectedColumnKeys });
     };
     const onCancel = () => {
       cleanup();
@@ -2660,7 +2679,24 @@ function downloadExcel(sheetName, columns, rows, filename) {
 }
 
 document.getElementById("downloadReportBtn").addEventListener("click", async () => {
-  const range = await showDateRangePrompt(t("selectReportPeriodTitle"));
+  const allColumns = [
+    { key: "name", label: "Employee Name", always: true },
+    { key: "id", label: "ID #", always: true },
+    { key: "company", label: "Company" },
+    { key: "department", label: "Department" },
+    { key: "role", label: "Role" },
+    { key: "hiring_date", label: "Hiring Date" },
+    { key: "frozen_date", label: "Frozen Date" },
+    { key: "active_warning", label: "Active Warning" },
+    { key: "prev_balance", label: "Prev. Balance" },
+    { key: "annual", label: "Annual" },
+    { key: "ann_taken", label: "Ann. Taken" },
+    { key: "available_balance", label: "Available Balance" },
+    { key: "sick", label: "Sick" },
+    { key: "sick_taken", label: "Sick Taken" },
+    { key: "sick_left", label: "Sick Left" },
+  ];
+  const range = await showDateRangePrompt(t("selectReportPeriodTitle"), allColumns.filter(c => !c.always));
   if (!range) return;
 
   let source = range.employeeId
@@ -2679,17 +2715,25 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     return;
   }
 
+  const selectedKeys = new Set(range.selectedColumnKeys || []);
+  const keepIndices = allColumns
+    .map((c, i) => ({ c, i }))
+    .filter(({ c }) => c.always || selectedKeys.has(c.key))
+    .map(({ i }) => i);
+
   const redRowIndices = new Set();
-  const rows = source.map((e, i) => {
+  const fullRows = source.map((e, i) => {
     if (e.frozen) redRowIndices.add(i);
     const bal = BALANCES_BY_ID[e.id] || {};
     return [e.full_name, e.file_number, e.client_company || "—", e.department || "—", e.role, fmtDate(e.hiring_date), e.frozen ? fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null) : "—", "W".repeat(Math.min(countActiveWarnings(e.id), 3)) || "—", String(e.carryover_balance ?? 0), String(bal.annual_entitlement ?? "—"), String(bal.taken ?? "—"), String(bal.remaining ?? "—"), String(bal.sick_entitlement ?? "—"), String(bal.sick_taken ?? "—"), String(bal.sick_remaining ?? "—")];
   });
+  const columns = keepIndices.map(i => allColumns[i].label);
+  const rows = fullRows.map(row => keepIndices.map(i => row[i]));
+
   const scope = companyToApply ? `${companyToApply} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
   const filenamePrefix = companyToApply ? `${companyToApply.toLowerCase()}_` : "";
   const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
-  const columns = ["Employee Name", "ID #", "Company", "Department", "Role", "Hiring Date", "Frozen Date", "Active Warning", "Prev. Balance", "Annual", "Ann. Taken", "Available Balance", "Sick", "Sick Taken", "Sick Left"];
   const baseFilename = `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report`;
 
   if (range.wantPdf) {
@@ -2708,7 +2752,15 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
 });
 
 document.getElementById("downloadLeaveReportBtn").addEventListener("click", async () => {
-  const range = await showDateRangePrompt(t("selectReportPeriodTitle"));
+  const leaveAllColumns = [
+    { key: "name", label: "Employee Name", always: true },
+    { key: "company", label: "Company" },
+    { key: "dates", label: "Dates" },
+    { key: "days", label: "Days" },
+    { key: "type", label: "Type" },
+    { key: "status", label: "Status" },
+  ];
+  const range = await showDateRangePrompt(t("selectReportPeriodTitle"), leaveAllColumns.filter(c => !c.always));
   if (!range) return;
 
   const { data, error } = await db.from("leave_requests").select("*").order("requested_at", { ascending: false });
@@ -2732,7 +2784,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   }
 
   const redRowIndices = new Set();
-  const pdfRows = rows.map((r, i) => {
+  const fullPdfRows = rows.map((r, i) => {
     const emp = byId[r.employee_id];
     if (emp && emp.frozen) redRowIndices.add(i);
     const isHourly = r.leave_type === "hourly";
@@ -2748,10 +2800,17 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
     ];
   });
 
+  const leaveSelectedKeys = new Set(range.selectedColumnKeys || []);
+  const leaveKeepIndices = leaveAllColumns
+    .map((c, i) => ({ c, i }))
+    .filter(({ c }) => c.always || leaveSelectedKeys.has(c.key))
+    .map(({ i }) => i);
+  const columns = leaveKeepIndices.map(i => leaveAllColumns[i].label);
+  const pdfRows = fullPdfRows.map(row => leaveKeepIndices.map(i => row[i]));
+
   const companyScope = range.company || COMPANY_FILTER;
   const scope = companyScope ? `${companyScope} — ` : "";
   const rangeNote = (range.from || range.to) ? ` — ${range.from || "…"} to ${range.to || "…"}` : "";
-  const columns = ["Employee Name", "Company", "Dates", "Days", "Type", "Status"];
   const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}leave_requests_report`;
 
   if (range.wantPdf) {
