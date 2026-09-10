@@ -332,6 +332,20 @@ function renderPending() {
         db.functions.invoke("clever-api", {
           body: { leave_request_id: btn.dataset.id, type: "decided" }
         }).catch(() => {});
+        // Only notify on a genuinely final outcome — unpaid leave moving
+        // to pending_admin is still awaiting a second decision, not done yet.
+        if (req && !isUnpaidApproval) {
+          const emp = TEAM_BY_ID[req.employee_id];
+          db.from("notifications").insert({
+            type: "leave_decided",
+            employee_id: req.employee_id,
+            target_role: "admin",
+            title: `Leave request ${newStatus}`,
+            message: `${emp ? emp.full_name : "Your"} ${req.leave_type} leave request (${req.start_date} to ${req.end_date}) was ${newStatus}.`,
+            status: "resolved",
+            read: false,
+          }).then(() => {});
+        }
       }
       await refreshAll();
     });
@@ -341,6 +355,7 @@ function renderPending() {
     btn.addEventListener("click", async () => {
       pendingBody.querySelectorAll("button").forEach(b => b.disabled = true);
       showGlobalSpinner();
+      const adminReq = PENDING_REQUESTS.find(r => r.id === btn.dataset.adminId);
       const { error } = await db
         .from("leave_requests")
         .update({ status: btn.dataset.adminAction, decided_by: ME.id, decided_at: new Date().toISOString() })
@@ -352,6 +367,18 @@ function renderPending() {
         db.functions.invoke("clever-api", {
           body: { leave_request_id: btn.dataset.adminId, type: "decided" }
         }).catch(() => {});
+        if (adminReq) {
+          const emp = TEAM_BY_ID[adminReq.employee_id];
+          db.from("notifications").insert({
+            type: "leave_decided",
+            employee_id: adminReq.employee_id,
+            target_role: "admin",
+            title: `Unpaid leave request ${btn.dataset.adminAction}`,
+            message: `${emp ? emp.full_name : "Your"} unpaid leave request (${adminReq.start_date} to ${adminReq.end_date}) was ${btn.dataset.adminAction} by admin.`,
+            status: "resolved",
+            read: false,
+          }).then(() => {});
+        }
       }
       await refreshAll();
     });
