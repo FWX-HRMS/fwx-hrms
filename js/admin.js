@@ -2605,13 +2605,37 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
     body: rows,
     startY: 32,
     theme: "striped",
-    headStyles: { fillColor: [47, 111, 94] },
-    styles: { fontSize: 9, cellPadding: 4 },
+    headStyles: { fillColor: [47, 111, 94], fontSize: 7 },
+    // Reduced from 9 to 7 — with this many columns in landscape, 9pt was
+    // forcing narrow column widths, which made words like "Employee" and
+    // "Company" wrap mid-word ("Employ/ee", "Compan/y") instead of fitting
+    // cleanly. 7pt gives enough room to avoid that.
+    styles: { fontSize: 7, cellPadding: 3 },
     margin: { left: 14, right: 14 },
     didParseCell: (data) => {
       if (redRowIndices && data.section === "body" && redRowIndices.has(data.row.index)) {
         data.cell.styles.textColor = [165, 64, 43];
       }
+      // jsPDF's built-in fonts have no Arabic glyphs at all — left as
+      // plain text, Arabic cell content (employee names) renders as
+      // corrupted characters. Blank the cell's own text out here; the
+      // actual text gets drawn as a canvas-rendered image in
+      // didDrawCell instead, which correctly shapes Arabic.
+      if (data.section === "body" && typeof data.cell.text === "object" && containsArabic(String(data.cell.raw ?? ""))) {
+        data.cell.text = [""];
+      }
+    },
+    didDrawCell: (data) => {
+      if (data.section !== "body") return;
+      const raw = String(data.cell.raw ?? "");
+      if (!containsArabic(raw)) return;
+      const redColor = redRowIndices && redRowIndices.has(data.row.index) ? "#A5402B" : "#1b2430";
+      drawMixedLine(doc, raw, {
+        xMm: data.cell.x + 2,
+        yMm: data.cell.y + data.cell.height / 2 + 1.1,
+        sizeMm: 2.6,
+        color: redColor,
+      });
     },
   });
   doc.save(filename);
