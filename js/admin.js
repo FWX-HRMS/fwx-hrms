@@ -2630,6 +2630,34 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
   const fontSize = colCount <= 6 ? 9 : colCount <= 9 ? 8 : colCount <= 12 ? 7 : colCount <= 16 ? 6 : 5;
   const marginSide = colCount <= 9 ? 14 : 8;
 
+  // Pre-measure every Arabic cell's actual rendered width (same font/size
+  // math drawMixedLine uses internally) so autoTable can be told the real
+  // minimum width each column needs. Without this, a column with Arabic
+  // content — which autoTable can't measure itself, since its own font
+  // has no Arabic glyphs and the cell text gets blanked out below — could
+  // end up narrower than the name actually needs, clipping it.
+  const measureArabicWidthMm = (text, sizeMm) => {
+    const scale = 3;
+    const pxPerMm = 3.7795 * scale;
+    const fontSizePx = Math.round(sizeMm * pxPerMm);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.font = `${fontSizePx}px Tahoma, Arial, sans-serif`;
+    return ctx.measureText(text || "").width / pxPerMm;
+  };
+  const columnStyles = {};
+  const arabicSizeMm = fontSize * 0.34;
+  columns.forEach((_, colIndex) => {
+    let maxWidthMm = 0;
+    for (const row of rows) {
+      const raw = String(row[colIndex] ?? "");
+      if (!containsArabic(raw)) continue;
+      const w = measureArabicWidthMm(raw, arabicSizeMm) + 4; // 4mm padding
+      if (w > maxWidthMm) maxWidthMm = w;
+    }
+    if (maxWidthMm > 0) columnStyles[colIndex] = { minCellWidth: Math.min(maxWidthMm, 70) };
+  });
+
   doc.autoTable({
     head: [columns],
     body: rows,
@@ -2640,6 +2668,7 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
     // hides — kept explicit here so a future edit doesn't accidentally
     // switch it to "ellipsize"/"hidden" and start cutting content again.
     styles: { fontSize, cellPadding: colCount > 9 ? 2 : 3, overflow: "linebreak" },
+    columnStyles,
     margin: { left: marginSide, right: marginSide },
     didParseCell: (data) => {
       if (redRowIndices && data.section === "body" && redRowIndices.has(data.row.index)) {
@@ -2649,7 +2678,9 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
       // plain text, Arabic cell content (employee names) renders as
       // corrupted characters. Blank the cell's own text out here; the
       // actual text gets drawn as a canvas-rendered image in
-      // didDrawCell instead, which correctly shapes Arabic.
+      // didDrawCell instead, which correctly shapes Arabic. The
+      // columnStyles minCellWidth set above (not this blanked text)
+      // is what keeps the column itself wide enough to fit it.
       if (data.section === "body" && typeof data.cell.text === "object" && containsArabic(String(data.cell.raw ?? ""))) {
         data.cell.text = [""];
       }
@@ -2662,7 +2693,7 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
       drawMixedLine(doc, raw, {
         xMm: data.cell.x + 2,
         yMm: data.cell.y + data.cell.height / 2 + 1.1,
-        sizeMm: fontSize * 0.34,
+        sizeMm: arabicSizeMm,
         color: redColor,
       });
     },
@@ -2733,7 +2764,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const scope = companyToApply ? `${companyToApply} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
   const filenamePrefix = companyToApply ? `${companyToApply.toLowerCase()}_` : "";
-  const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
+  const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
   const baseFilename = `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report`;
 
   if (range.wantPdf) {
@@ -2810,7 +2841,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
 
   const companyScope = range.company || COMPANY_FILTER;
   const scope = companyScope ? `${companyScope} — ` : "";
-  const rangeNote = (range.from || range.to) ? ` — ${range.from || "…"} to ${range.to || "…"}` : "";
+  const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
   const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}leave_requests_report`;
 
   if (range.wantPdf) {
