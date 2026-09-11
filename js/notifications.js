@@ -88,10 +88,16 @@ async function loadNotifications() {
 const TYPE_LABELS = {
   contract_expiring: "Contract Expiring",
   contract_not_renewing: "Contract Not Renewing",
+  contract_shared: "Contract Shared",
+  contract_signed: "Contract Signed",
   leave_submitted: "Leave Submitted",
   leave_decided: "Leave Decided",
   warning_issued: "Warning Issued",
   warning_acknowledged: "Warning Acknowledged",
+  employee_frozen: "Account Frozen",
+  employee_unfrozen: "Account Unfrozen",
+  employee_deleted: "Employee Deleted",
+  profile_edited: "Profile Edited",
   general: "General",
 };
 
