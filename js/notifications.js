@@ -90,7 +90,10 @@ const TYPE_LABELS = {
   contract_not_renewing: "Contract Not Renewing",
   contract_shared: "Contract Shared",
   contract_signed: "Contract Signed",
+  contract_commented: "Contract Commented",
   leave_submitted: "Leave Submitted",
+  leave_approved: "Leave Approved",
+  leave_rejected: "Leave Rejected",
   leave_decided: "Leave Decided",
   warning_issued: "Warning Issued",
   warning_acknowledged: "Warning Acknowledged",
@@ -100,6 +103,34 @@ const TYPE_LABELS = {
   profile_edited: "Profile Edited",
   general: "General",
 };
+
+// Status is forced into one of a fixed set of values, regardless of the
+// underlying notification type — every type maps to whichever of these
+// is the closest fit, even ones that don't perfectly correspond (e.g.
+// "Contract Expiring" reminders and profile edits don't have a clean
+// match, but get mapped to the nearest sensible option rather than
+// having their own separate status vocabulary).
+const STATUS_LABELS = {
+  leave_submitted: "Submitted",
+  leave_approved: "Approved",
+  leave_rejected: "Rejected",
+  leave_decided: "Approved",
+  contract_shared: "Submitted",
+  contract_signed: "Signed",
+  contract_commented: "Employee Commented",
+  contract_expiring: "Acc Renewal",
+  contract_not_renewing: "Rejected",
+  employee_frozen: "Acc Frozen",
+  employee_unfrozen: "Acc Unfrozen",
+  employee_deleted: "Rejected",
+  profile_edited: "Submitted",
+  warning_issued: "Submitted",
+  warning_acknowledged: "Approved",
+  general: "Submitted",
+};
+function statusLabelFor(n) {
+  return STATUS_LABELS[n.type] || "Submitted";
+}
 
 function renderNotifications() {
   const body = document.getElementById("notificationsBody");
@@ -130,7 +161,7 @@ function renderNotifications() {
       <td>${empName}${n.read ? "" : ` <span class="badge badge-pending" style="margin-inline-start:6px">New</span>`}</td>
       <td>${empId}</td>
       <td>${fmtDate(n.created_at ? n.created_at.slice(0, 10) : null)}</td>
-      <td>${n.status === "needs_action" ? `<span class="badge badge-pending">Needs Action</span>` : `<span class="badge badge-approved">Resolved</span>`}</td>
+      <td>${statusLabelFor(n)}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-notification="${n.id}">View</button></td>
     `;
     body.appendChild(tr);

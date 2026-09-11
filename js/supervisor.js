@@ -336,7 +336,7 @@ function renderPending() {
         if (req && !needsAdminApproval) {
           const emp = TEAM_BY_ID[req.employee_id];
           db.from("notifications").insert({
-            type: "leave_decided",
+            type: newStatus === "approved" ? "leave_approved" : "leave_rejected",
             employee_id: req.employee_id,
             target_role: "admin",
             title: `Leave request ${newStatus}`,
@@ -369,7 +369,7 @@ function renderPending() {
         if (adminReq) {
           const emp = TEAM_BY_ID[adminReq.employee_id];
           db.from("notifications").insert({
-            type: "leave_decided",
+            type: btn.dataset.adminAction === "approved" ? "leave_approved" : "leave_rejected",
             employee_id: adminReq.employee_id,
             target_role: "admin",
             title: `Unpaid leave request ${btn.dataset.adminAction}`,
