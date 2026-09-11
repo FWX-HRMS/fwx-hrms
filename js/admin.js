@@ -3798,12 +3798,15 @@ async function checkAdminEmployeeActionNotifications() {
     if (!document.hidden) checkAdminEmployeeActionNotifications();
   });
   window.addEventListener("focus", () => checkAdminEmployeeActionNotifications());
-  // Contract-expiry popups should surface once per login, not on every
-  // page load/navigation within the same session (previously also had a
-  // 60-second re-check interval, which was far too frequent for a
-  // "review and decide" style notification).
-  if (!sessionStorage.getItem("fwx_contractExpiryCheckedThisSession")) {
-    sessionStorage.setItem("fwx_contractExpiryCheckedThisSession", "1");
+  // Contract-expiry popups surface once per calendar day, not once per
+  // browser tab/session — sessionStorage doesn't reliably clear on a
+  // normal logout/login if you stay in the same tab (it only clears when
+  // the tab itself closes), which meant logging back out and in often
+  // didn't actually re-trigger the check. A date comparison in
+  // localStorage is a clearer, more predictable "once per day" model.
+  const todayIso = new Date().toISOString().slice(0, 10);
+  if (localStorage.getItem("fwx_contractExpiryLastChecked") !== todayIso) {
+    localStorage.setItem("fwx_contractExpiryLastChecked", todayIso);
     checkContractExpiryNotifications();
   }
 
