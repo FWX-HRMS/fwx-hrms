@@ -2323,6 +2323,7 @@ async function openEditModal(id) {
   document.getElementById("editFullName").value = e.full_name || "";
   document.getElementById("editEmail").value = e.email || "";
   document.getElementById("editHiringDate").value = e.hiring_date || "";
+  document.getElementById("editContractPeriodMonths").value = e.contract_period_months ?? "";
   document.getElementById("editCarryoverBalance").value = e.carryover_balance ?? 0;
 
   // This field edits ONLY the dedicated admin-backfill record (tagged with
@@ -2413,6 +2414,7 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
   const full_name = document.getElementById("editFullName").value.trim();
   const email = document.getElementById("editEmail").value.trim();
   const hiring_date = document.getElementById("editHiringDate").value || null;
+  const contract_period_months = document.getElementById("editContractPeriodMonths").value ? Number(document.getElementById("editContractPeriodMonths").value) : null;
   const department = document.getElementById("editDepartment").value;
   const client_company = document.getElementById("editClientCompany").value;
   const role = document.getElementById("editRole").value;
@@ -2455,7 +2457,7 @@ document.getElementById("editForm").addEventListener("submit", async (ev) => {
 
   const { data, error } = await db.functions.invoke("clever-action", {
     body: {
-      action: "update_employee", target_id, full_name, email, hiring_date, department, client_company, role,
+      action: "update_employee", target_id, full_name, email, hiring_date, contract_period_months, department, client_company, role,
       supervisor_file_number, annual_entitlement_override, carryover_balance, dob, nationality, address, education,
       salary, taken_this_year, taken_sick_this_year, national_id, id_number, emergency_contact_name, emergency_contact_phone,
       social_security_number, bank_account_number, iban, employment_type, hazardous_occupation, vehicle_status,
