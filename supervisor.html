@@ -57,6 +57,20 @@
       </div>
     </div>
 
+    <!-- Admin-only: contracts entering their 37-day expiry window, with
+         quick Renew / Do Not Renew actions right here — same underlying
+         37-day threshold the automatic notification popup already uses. -->
+    <div class="panel" id="contractRenewalPanel" style="display:none">
+      <h2>Contract Renewal</h2>
+      <table>
+        <thead>
+          <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colIdNum">ID #</th><th data-i18n="colSupervisor">Supervisor</th><th data-i18n="colCompany">Company</th><th>Days Left</th><th></th></tr>
+        </thead>
+        <tbody id="contractRenewalBody"></tbody>
+      </table>
+      <div class="empty-state" id="noContractRenewal" style="display:none">No contracts expiring within 37 days.</div>
+    </div>
+
     <div class="panel">
       <h2 data-i18n="usersListTitle">Users</h2>
       <table>
@@ -229,6 +243,56 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- Renew contract from the Contract Renewal table — pre-filled from the
+     current contract's details, fully editable (submitting unchanged =
+     "same terms", editing first = "new terms", same distinction as the
+     contract-expiry popup's Take Action flow). -->
+<div id="renewContractOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <h2 style="margin:0 0 4px">Renew Contract</h2>
+    <p class="help-text" id="renewContractEmployeeInfo" style="margin:0 0 16px"></p>
+    <form id="renewContractForm">
+      <div class="field-row">
+        <div>
+          <label for="renewContractDob">Date of birth</label>
+          <input type="date" id="renewContractDob">
+        </div>
+        <div>
+          <label for="renewContractEducation">Education</label>
+          <input type="text" id="renewContractEducation">
+        </div>
+      </div>
+      <label for="renewContractAddress">Address</label>
+      <input type="text" id="renewContractAddress">
+      <div class="field-row">
+        <div>
+          <label for="renewContractSalary">Salary (JOD/month)</label>
+          <input type="number" id="renewContractSalary" min="0" step="1" required>
+        </div>
+        <div>
+          <label for="renewContractJobTitle">Job Title</label>
+          <input type="text" id="renewContractJobTitle" required>
+        </div>
+      </div>
+      <div class="field-row">
+        <div>
+          <label for="renewContractStartDate">Contract start date</label>
+          <input type="date" id="renewContractStartDate" required>
+        </div>
+        <div>
+          <label for="renewContractPeriodMonths">Contract period (months)</label>
+          <input type="number" id="renewContractPeriodMonths" min="1" max="60" step="1" required>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:6px">
+        <button type="submit" class="btn btn-primary" id="renewContractSubmitBtn" style="width:220px">Prepare Renewed Contract</button>
+        <button type="button" class="btn btn-danger" id="renewContractCancelBtn" data-confirm-close="1" style="width:220px">Cancel</button>
+      </div>
+      <div class="error-msg" id="renewContractError"></div>
+    </form>
+  </div>
+</div>
 
 <script src="js/supabaseClient.js"></script>
 <script src="js/auth-guard.js"></script>
