@@ -994,9 +994,132 @@ document.getElementById("adminContractsNextBtn").addEventListener("click", () =>
 document.getElementById("adminWarningsPrevBtn").addEventListener("click", () => { if (ADMIN_WARNINGS_PAGE > 0) { ADMIN_WARNINGS_PAGE--; renderAdminWarnings(); } });
 document.getElementById("adminWarningsNextBtn").addEventListener("click", () => { if ((ADMIN_WARNINGS_PAGE + 1) * PAGE_SIZE < ADMIN_WARNINGS_LIST.length) { ADMIN_WARNINGS_PAGE++; renderAdminWarnings(); } });
 
+async function loadContractRenewalTable() {
+  const panel = document.getElementById("contractRenewalPanel");
+  if (ME.role !== "admin") { panel.style.display = "none"; return; }
+  panel.style.display = "";
+
+  const { data, error } = await db.functions.invoke("clever-action", { body: { action: "get_expiring_contracts_list" } });
+  const body = document.getElementById("contractRenewalBody");
+  const empty = document.getElementById("noContractRenewal");
+  body.innerHTML = "";
+
+  if (error || (data && data.error) || !data || !data.contracts || data.contracts.length === 0) {
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+
+  for (const c of data.contracts) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${c.full_name}</td>
+      <td>${c.file_number}</td>
+      <td>${c.supervisor_name}</td>
+      <td>${c.client_company || "—"}</td>
+      <td>${c.days_left}</td>
+      <td class="row-actions">
+        <button class="btn btn-primary btn-sm" data-renew-employee="${c.employee_id}" data-renew-contract="${c.contract_id}">Renew</button>
+        <button class="btn btn-danger btn-sm" data-donotrenew-employee="${c.employee_id}" data-donotrenew-contract="${c.contract_id}">Do Not Renew</button>
+      </td>
+    `;
+    body.appendChild(tr);
+  }
+
+  body.querySelectorAll("button[data-renew-employee]").forEach(btn => {
+    btn.addEventListener("click", () => openRenewContractForm(btn.dataset.renewEmployee));
+  });
+  body.querySelectorAll("button[data-donotrenew-employee]").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const target_id = btn.dataset.donotrenewEmployee;
+      const contract_id = btn.dataset.donotrenewContract;
+      const ok = await showConfirm(
+        "Do Not Renew",
+        "This schedules the employee to be frozen automatically once their current contract ends, and sends them a notification that their contract won't be renewed. This can't be undone.",
+        "Yes, Do Not Renew",
+        true
+      );
+      if (!ok) return;
+      showGlobalSpinner();
+      const { data: result, error: err } = await db.functions.invoke("clever-action", {
+        body: { action: "schedule_do_not_renew", target_id, contract_id }
+      });
+      hideGlobalSpinner();
+      if (err || (result && result.error)) {
+        showToast((result && result.error) ? result.error : "Something went wrong.");
+        return;
+      }
+      showToast("Scheduled — employee will be frozen and notified when their contract ends.");
+      await loadContractRenewalTable();
+    });
+  });
+}
+
+async function openRenewContractForm(employeeId) {
+  const { data: contract } = await db
+    .from("contracts")
+    .select("*")
+    .eq("employee_id", employeeId)
+    .eq("status", "signed")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const emp = TEAM_BY_ID[employeeId] || (await db.from("employees").select("*").eq("id", employeeId).maybeSingle()).data;
+  if (!emp) return;
+
+  document.getElementById("renewContractOverlay").dataset.employeeId = employeeId;
+  document.getElementById("renewContractEmployeeInfo").textContent = `${emp.full_name} · #${emp.file_number}`;
+  document.getElementById("renewContractDob").value = contract?.dob || emp.dob || "";
+  document.getElementById("renewContractEducation").value = contract?.education || emp.education || "";
+  document.getElementById("renewContractAddress").value = contract?.address || emp.address || "";
+  document.getElementById("renewContractSalary").value = contract?.salary || emp.salary || "";
+  document.getElementById("renewContractJobTitle").value = contract?.job_title || "";
+  // New contract starts the day after the current one ends, so there's
+  // no gap or overlap between the two.
+  const nextStart = contract?.end_date ? new Date(contract.end_date) : new Date();
+  if (contract?.end_date) nextStart.setDate(nextStart.getDate() + 1);
+  document.getElementById("renewContractStartDate").value = nextStart.toISOString().slice(0, 10);
+  document.getElementById("renewContractPeriodMonths").value = contract?.contract_period_months || emp.contract_period_months || "";
+  document.getElementById("renewContractError").classList.remove("show");
+  document.getElementById("renewContractOverlay").style.display = "flex";
+}
+
+document.getElementById("renewContractForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById("renewContractError");
+  errBox.classList.remove("show");
+  const target_id = document.getElementById("renewContractOverlay").dataset.employeeId;
+
+  showGlobalSpinner();
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: {
+      action: "create_contract",
+      target_id,
+      dob: document.getElementById("renewContractDob").value || null,
+      education: document.getElementById("renewContractEducation").value || null,
+      address: document.getElementById("renewContractAddress").value || null,
+      salary: Number(document.getElementById("renewContractSalary").value),
+      job_title: document.getElementById("renewContractJobTitle").value,
+      start_date: document.getElementById("renewContractStartDate").value,
+      contract_period_months: Number(document.getElementById("renewContractPeriodMonths").value),
+    }
+  });
+  hideGlobalSpinner();
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : "Something went wrong.";
+    errBox.classList.add("show");
+    return;
+  }
+
+  document.getElementById("renewContractOverlay").style.display = "none";
+  showToast("Renewed contract prepared as a draft — review and share it from the Contracts tab.");
+  await loadContractRenewalTable();
+});
+
 async function refreshAll() {
   await loadTeam();
-  await Promise.allSettled([loadBalances(), loadRequests(), loadTeamWarnings(), loadAdminContracts(), loadAdminWarnings()]);
+  await Promise.allSettled([loadBalances(), loadRequests(), loadTeamWarnings(), loadAdminContracts(), loadAdminWarnings(), loadContractRenewalTable()]);
   renderUsers();
   await checkAdminContractActivity();
   checkSupervisorWarningNotification();
@@ -1013,6 +1136,19 @@ async function refreshAll() {
   const downloadReportBtn = document.getElementById("downloadReportBtn");
   if (downloadReportBtn) downloadReportBtn.textContent = "Download Leave Report";
   await refreshAll();
+  if (ME.role === "admin") {
+    // Applies any scheduled freezes whose date has arrived (from "Do Not
+    // Renew"), and refreshes the table if any were applied — same
+    // once-per-day pattern the contract-expiry check uses, for the same
+    // reason (no reliable cron available).
+    const todayIso = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem("fwx_scheduledFreezeLastChecked") !== todayIso) {
+      localStorage.setItem("fwx_scheduledFreezeLastChecked", todayIso);
+      db.functions.invoke("clever-action", { body: { action: "apply_scheduled_freezes" } })
+        .then(({ data }) => { if (data && data.frozen_count > 0) refreshAll(); })
+        .catch(() => {});
+    }
+  }
   checkAdminEmployeeActionNotifications();
   setInterval(checkAdminEmployeeActionNotifications, 8000);
   document.addEventListener("visibilitychange", () => {
