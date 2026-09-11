@@ -2074,7 +2074,7 @@ async function showActiveEmployeeNotification(id, employee) {
   if (!pwResult.error && pwResult.data && !pwResult.data.error) {
     await showInfo(
       t("employeeActiveNewPasswordTitle"),
-      tv("employeeActiveNewPasswordMsg", { name: employee.full_name, password: pwResult.data.password }),
+      tv("employeeActiveNewPasswordMsg", { name: `${employee.full_name} (${employee.file_number})`, password: pwResult.data.password }),
       `${t("fileNumColonLabel")} ${employee.file_number}\n${t("initialPasswordColonLabel")} ${pwResult.data.password}`
     );
   } else {
