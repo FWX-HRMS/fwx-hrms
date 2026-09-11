@@ -524,6 +524,27 @@ function renderDirectory() {
     const supervisorName = e.supervisor_id && byId[e.supervisor_id] ? byId[e.supervisor_id].full_name : "—";
     const isSelf = e.id === ME.id;
     const bal = BALANCES_BY_ID[e.id];
+
+    // Three-way contract action: Share (no contract yet, or one exists
+    // but isn't signed), Show (signed, more than 37 days until expiry —
+    // nothing actionable yet), or Renew (signed, 37 days or fewer left —
+    // matches the same 37-day window the expiry-notification system
+    // already uses, so the two stay consistent with each other).
+    const empContract = CONTRACTS_LIST.find(c => c.employee_id === e.id);
+    let contractActionHtml = "";
+    if (e.role === "staff") {
+      if (!empContract || empContract.status !== "signed") {
+        contractActionHtml = `<button type="button" data-contract="${e.id}">${t("shareContractBtn")}</button>`;
+      } else {
+        const daysLeft = empContract.end_date
+          ? Math.round((new Date(empContract.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          : null;
+        contractActionHtml = (daysLeft !== null && daysLeft <= 37)
+          ? `<button type="button" data-renew-contract="${e.id}">Renew Contract</button>`
+          : `<button type="button" data-show-contract="${empContract.id}">Show Contract</button>`;
+      }
+    }
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${e.full_name}${activeWarningBadge(e.id)}${e.frozen ? ` <span class="badge badge-frozen">${t("statusFrozenBadge")} - ${e.frozen_reason === "termination" ? "T" : e.frozen_reason === "resignation" ? "R" : e.frozen_reason === "end_of_contract" ? "E" : "?"}</span>` : ""}</td>
@@ -546,8 +567,7 @@ function renderDirectory() {
           <div class="action-menu" id="actionMenu-${e.id}">
             <button type="button" data-view="${e.id}">${t("view")}</button>
             <button type="button" data-edit="${e.id}">${t("editBtn")}</button>
-            ${e.role === "staff" && !CONTRACTS_LIST.some(c => c.employee_id === e.id) ? `<button type="button" data-contract="${e.id}">${t("shareContractBtn")}</button>` : ""}
-            ${e.role === "staff" && CONTRACTS_LIST.some(c => c.employee_id === e.id) ? `<button type="button" data-renew-contract="${e.id}">Renew Contract</button>` : ""}
+            ${contractActionHtml}
             ${e.role === "staff" ? `<button type="button" class="danger" data-warning="${e.id}">${t("giveWarningBtn")}</button>` : ""}
             <button type="button" data-reset="${e.id}">${t("resetPasswordBtn")}</button>
             ${!isSelf ? (e.frozen
@@ -611,6 +631,9 @@ function renderDirectory() {
   });
   body.querySelectorAll("button[data-renew-contract]").forEach(btn => {
     btn.addEventListener("click", async () => { closeActionMenus(); await openRenewContractModal(btn.dataset.renewContract); });
+  });
+  body.querySelectorAll("button[data-show-contract]").forEach(btn => {
+    btn.addEventListener("click", () => { closeActionMenus(); openContractViewModal(btn.dataset.showContract); });
   });
   body.querySelectorAll("button[data-warning]").forEach(btn => {
     btn.addEventListener("click", () => { closeActionMenus(); openWarningCreateModal(btn.dataset.warning); });
