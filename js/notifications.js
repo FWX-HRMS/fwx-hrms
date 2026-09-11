@@ -116,9 +116,8 @@ function renderNotifications() {
     const empName = EMPLOYEE_NAMES_BY_ID[n.employee_id] || "—";
     const typeLabel = TYPE_LABELS[n.type] || n.type || "—";
     tr.innerHTML = `
-      <td>${empName}</td>
-      <td>${n.title}${n.read ? "" : ` <span class="badge badge-pending" style="margin-inline-start:6px">New</span>`}</td>
       <td>${typeLabel}</td>
+      <td>${empName}${n.read ? "" : ` <span class="badge badge-pending" style="margin-inline-start:6px">New</span>`}</td>
       <td>${fmtDate(n.created_at ? n.created_at.slice(0, 10) : null)}</td>
       <td>${n.status === "needs_action" ? `<span class="badge badge-pending">Needs Action</span>` : `<span class="badge badge-approved">Resolved</span>`}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-notification="${n.id}">View</button></td>
