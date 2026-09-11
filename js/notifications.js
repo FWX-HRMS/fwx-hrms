@@ -1,4 +1,5 @@
 let ME = null;
+let EMPLOYEE_NAMES_BY_ID = {};
 let NOTIFICATIONS_LIST = [];
 let NOTIFICATIONS_PAGE = 0;
 const PAGE_SIZE = 10;
@@ -69,9 +70,30 @@ async function loadNotifications() {
   // their own) — no manual filtering needed here.
   const { data, error } = await db.from("notifications").select("*").order("created_at", { ascending: false });
   NOTIFICATIONS_LIST = error || !data ? [] : data;
+
+  // Separate lookup for employee names rather than an embedded-join
+  // query — keeps this simple and doesn't depend on assuming exactly how
+  // PostgREST resolves the notifications->employees relationship.
+  const employeeIds = [...new Set(NOTIFICATIONS_LIST.map(n => n.employee_id).filter(Boolean))];
+  EMPLOYEE_NAMES_BY_ID = {};
+  if (employeeIds.length > 0) {
+    const { data: emps } = await db.from("employees").select("id, full_name").in("id", employeeIds);
+    (emps || []).forEach(e => { EMPLOYEE_NAMES_BY_ID[e.id] = e.full_name; });
+  }
+
   NOTIFICATIONS_PAGE = 0;
   renderNotifications();
 }
+
+const TYPE_LABELS = {
+  contract_expiring: "Contract Expiring",
+  contract_not_renewing: "Contract Not Renewing",
+  leave_submitted: "Leave Submitted",
+  leave_decided: "Leave Decided",
+  warning_issued: "Warning Issued",
+  warning_acknowledged: "Warning Acknowledged",
+  general: "General",
+};
 
 function renderNotifications() {
   const body = document.getElementById("notificationsBody");
@@ -80,7 +102,10 @@ function renderNotifications() {
 
   const query = document.getElementById("notificationsSearchInput").value.trim().toLowerCase();
   const filtered = query
-    ? NOTIFICATIONS_LIST.filter(n => (n.title || "").toLowerCase().includes(query))
+    ? NOTIFICATIONS_LIST.filter(n =>
+        (n.title || "").toLowerCase().includes(query) ||
+        (EMPLOYEE_NAMES_BY_ID[n.employee_id] || "").toLowerCase().includes(query)
+      )
     : NOTIFICATIONS_LIST;
   empty.style.display = filtered.length ? "none" : "block";
 
@@ -88,8 +113,12 @@ function renderNotifications() {
   const pageItems = filtered.slice(start, start + PAGE_SIZE);
   for (const n of pageItems) {
     const tr = document.createElement("tr");
+    const empName = EMPLOYEE_NAMES_BY_ID[n.employee_id] || "—";
+    const typeLabel = TYPE_LABELS[n.type] || n.type || "—";
     tr.innerHTML = `
+      <td>${empName}</td>
       <td>${n.title}${n.read ? "" : ` <span class="badge badge-pending" style="margin-inline-start:6px">New</span>`}</td>
+      <td>${typeLabel}</td>
       <td>${fmtDate(n.created_at ? n.created_at.slice(0, 10) : null)}</td>
       <td>${n.status === "needs_action" ? `<span class="badge badge-pending">Needs Action</span>` : `<span class="badge badge-approved">Resolved</span>`}</td>
       <td><button type="button" class="btn btn-blue btn-sm" data-view-notification="${n.id}">View</button></td>
