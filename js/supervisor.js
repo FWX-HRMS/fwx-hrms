@@ -1068,22 +1068,56 @@ document.getElementById("renewChoiceEditBtn").addEventListener("click", () => {
   openRenewContractForm(employeeId);
 });
 document.getElementById("renewChoiceSameBtn").addEventListener("click", async () => {
-  const overlay = document.getElementById("renewChoiceOverlay");
+  const choiceOverlay = document.getElementById("renewChoiceOverlay");
+  const target_id = choiceOverlay.dataset.employeeId;
+  const contract_id = choiceOverlay.dataset.contractId;
+  choiceOverlay.style.display = "none";
+
+  const { data: contract } = await db.from("contracts").select("end_date, contract_period_months, employee_id").eq("id", contract_id).maybeSingle();
+  const emp = TEAM_BY_ID[target_id];
+
+  const periodSelect = document.getElementById("renewSameTermsPeriodMonths");
+  periodSelect.innerHTML = Array.from({ length: 60 }, (_, i) => i + 1).map(n => `<option value="${n}">${n}</option>`).join("");
+
+  const nextStart = contract && contract.end_date ? new Date(contract.end_date) : new Date();
+  if (contract && contract.end_date) nextStart.setDate(nextStart.getDate() + 1);
+
+  document.getElementById("renewSameTermsOverlay").dataset.employeeId = target_id;
+  document.getElementById("renewSameTermsOverlay").dataset.contractId = contract_id;
+  document.getElementById("renewSameTermsEmployeeInfo").textContent = emp ? `${emp.full_name} · #${emp.file_number}` : "";
+  document.getElementById("renewSameTermsStartDate").value = nextStart.toISOString().slice(0, 10);
+  periodSelect.value = contract && contract.contract_period_months ? String(contract.contract_period_months) : "12";
+  document.getElementById("renewSameTermsError").classList.remove("show");
+  document.getElementById("renewSameTermsOverlay").style.display = "flex";
+});
+
+document.getElementById("renewSameTermsCancelBtn").addEventListener("click", () => {
+  document.getElementById("renewSameTermsOverlay").style.display = "none";
+});
+
+document.getElementById("renewSameTermsForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const overlay = document.getElementById("renewSameTermsOverlay");
   const target_id = overlay.dataset.employeeId;
   const contract_id = overlay.dataset.contractId;
-  overlay.style.display = "none";
+  const start_date = document.getElementById("renewSameTermsStartDate").value;
+  const contract_period_months = Number(document.getElementById("renewSameTermsPeriodMonths").value);
+  const errBox = document.getElementById("renewSameTermsError");
+  errBox.classList.remove("show");
 
   showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "renew_same_terms", target_id, contract_id }
+    body: { action: "renew_same_terms", target_id, contract_id, start_date, contract_period_months }
   });
   hideGlobalSpinner();
 
   if (error || (data && data.error)) {
-    showToast((data && data.error) ? data.error : "Something went wrong.");
+    errBox.textContent = (data && data.error) ? data.error : "Something went wrong.";
+    errBox.classList.add("show");
     return;
   }
-  showToast("Renewed contract prepared as a draft — review and share it from the Contracts tab.");
+  overlay.style.display = "none";
+  showToast("Renewed contract created and shared with the employee.");
   await loadContractRenewalTable();
 });
 
@@ -1144,6 +1178,13 @@ document.getElementById("renewContractForm").addEventListener("submit", async (e
     return;
   }
 
+  // Renewals share immediately rather than sitting as a draft — the
+  // admin has already decided to renew by submitting this form, no
+  // separate review/share step needed afterward.
+  if (data && data.contract) {
+    await db.functions.invoke("clever-action", { body: { action: "share_contract", contract_id: data.contract.id } });
+  }
+
   // Same immediate employee notification as "Renew — Same Terms",
   // supervisor excluded — this form is reached from the Contract
   // Renewal table's "Renew and Edit Profile" choice, so the same rule
@@ -1157,14 +1198,14 @@ document.getElementById("renewContractForm").addEventListener("submit", async (e
       target_role: "employee",
       exclude_supervisor: true,
       title: "Your job contract has been renewed",
-      message: `${emp ? emp.full_name : "Your"} job contract has been renewed. It will be shared with you shortly for review.`,
+      message: `${emp ? emp.full_name : "Your"} job contract has been renewed and shared for review and signature.`,
       status: "resolved",
       read: false,
     });
   } catch (_e) { /* best-effort */ }
 
   document.getElementById("renewContractOverlay").style.display = "none";
-  showToast("Renewed contract prepared as a draft — review and share it from the Contracts tab.");
+  showToast("Renewed contract created and shared with the employee.");
   await loadContractRenewalTable();
 });
 
