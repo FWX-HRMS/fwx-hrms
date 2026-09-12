@@ -162,29 +162,97 @@ function renderNotifications() {
       <td>${empId}</td>
       <td>${fmtDate(n.created_at ? n.created_at.slice(0, 10) : null)}</td>
       <td>${statusLabelFor(n)}</td>
-      <td><button type="button" class="btn btn-blue btn-sm" data-view-notification="${n.id}">View</button></td>
+      <td><button type="button" class="btn btn-blue btn-sm" data-actions-toggle="${n.id}">Actions ▾</button></td>
     `;
     body.appendChild(tr);
   }
   updatePaginationControls("notifications", NOTIFICATIONS_PAGE, filtered.length);
 
-  body.querySelectorAll("button[data-view-notification]").forEach(btn => {
-    btn.addEventListener("click", async () => {
-      const n = NOTIFICATIONS_LIST.find(x => x.id === btn.dataset.viewNotification);
-      if (!n) return;
-      document.getElementById("notificationDetailTitle").textContent = n.title;
-      document.getElementById("notificationDetailDate").textContent = fmtDate(n.created_at ? n.created_at.slice(0, 10) : null);
-      document.getElementById("notificationDetailMsg").textContent = n.message;
-      document.getElementById("notificationDetailOverlay").style.display = "flex";
-
-      if (!n.read) {
-        n.read = true;
-        renderNotifications();
-        db.from("notifications").update({ read: true }).eq("id", n.id).then(() => {});
-      }
+  body.querySelectorAll("button[data-actions-toggle]").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const id = btn.dataset.actionsToggle;
+      if (OPEN_ACTIONS_ID === id) { closeActionsMenu(); return; }
+      openActionsMenu(btn, id);
     });
   });
 }
+
+function viewNotification(id) {
+  const n = NOTIFICATIONS_LIST.find(x => x.id === id);
+  if (!n) return;
+  document.getElementById("notificationDetailTitle").textContent = n.title;
+  document.getElementById("notificationDetailDate").textContent = fmtDate(n.created_at ? n.created_at.slice(0, 10) : null);
+  document.getElementById("notificationDetailMsg").textContent = n.message;
+  document.getElementById("notificationDetailOverlay").style.display = "flex";
+
+  if (!n.read) {
+    n.read = true;
+    renderNotifications();
+    db.from("notifications").update({ read: true }).eq("id", n.id).then(() => {});
+  }
+}
+
+// Shared Actions dropdown — one menu element repositioned next to
+// whichever row's button was clicked, rather than one per row.
+let OPEN_ACTIONS_ID = null;
+
+function closeActionsMenu() {
+  document.getElementById("notifActionsMenu").style.display = "none";
+  OPEN_ACTIONS_ID = null;
+}
+
+function openActionsMenu(anchorBtn, notificationId) {
+  const menu = document.getElementById("notifActionsMenu");
+  const rect = anchorBtn.getBoundingClientRect();
+  menu.style.top = `${window.scrollY + rect.bottom + 4}px`;
+  menu.style.left = `${window.scrollX + rect.left}px`;
+  menu.style.display = "block";
+  OPEN_ACTIONS_ID = notificationId;
+}
+
+document.addEventListener("click", (e) => {
+  const menu = document.getElementById("notifActionsMenu");
+  if (menu.style.display !== "none" && !menu.contains(e.target) && !e.target.closest("[data-actions-toggle]")) {
+    closeActionsMenu();
+  }
+});
+
+document.getElementById("notifActionsViewBtn").addEventListener("click", () => {
+  const id = OPEN_ACTIONS_ID;
+  closeActionsMenu();
+  if (id) viewNotification(id);
+});
+
+document.getElementById("notifActionsDeleteBtn").addEventListener("click", () => {
+  const id = OPEN_ACTIONS_ID;
+  closeActionsMenu();
+  if (!id) return;
+  document.getElementById("notifDeleteConfirmOverlay").dataset.notificationId = id;
+  document.getElementById("notifDeleteConfirmOverlay").style.display = "flex";
+});
+
+document.getElementById("notifDeleteCancelBtn").addEventListener("click", () => {
+  document.getElementById("notifDeleteConfirmOverlay").style.display = "none";
+});
+
+document.getElementById("notifDeleteConfirmBtn").addEventListener("click", async () => {
+  const overlay = document.getElementById("notifDeleteConfirmOverlay");
+  const id = overlay.dataset.notificationId;
+  overlay.style.display = "none";
+  if (!id) return;
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "delete_notification", notification_id: id }
+  });
+  if (error || (data && data.error)) {
+    showToast((data && data.error) ? data.error : "Something went wrong.");
+    return;
+  }
+  NOTIFICATIONS_LIST = NOTIFICATIONS_LIST.filter(n => n.id !== id);
+  renderNotifications();
+  showToast("Notification deleted.");
+});
 
 document.getElementById("closeNotificationDetailBtn").addEventListener("click", () => {
   document.getElementById("notificationDetailOverlay").style.display = "none";
