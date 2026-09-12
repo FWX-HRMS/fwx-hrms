@@ -523,6 +523,46 @@ function showDateRangePrompt(title) {
   });
 }
 
+function containsArabic(text) {
+  return /[\u0600-\u06FF]/.test(text || "");
+}
+
+// jsPDF's built-in fonts have no Arabic glyphs at all, so passing Arabic
+// text straight to doc.text()/autoTable renders it as corrupted
+// characters. This draws the line onto a canvas instead — the browser's
+// own text engine correctly shapes Arabic (and any mixed Latin/Arabic
+// run) — and places the result into the PDF as an image. Ported directly
+// from admin.js's existing, already-working solution to this same
+// problem, so both reports render Arabic identically.
+function drawMixedLine(doc, text, { xMm, yMm, bold = false, sizeMm = 3.8, color = "#1b2430" } = {}) {
+  const scale = 3;
+  const pxPerMm = 3.7795 * scale;
+  const fontSizePx = Math.round(sizeMm * pxPerMm);
+  const font = `${bold ? "bold " : ""}${fontSizePx}px Tahoma, Arial, sans-serif`;
+
+  const measureCanvas = document.createElement("canvas");
+  const mctx = measureCanvas.getContext("2d");
+  mctx.font = font;
+  const textWidthPx = Math.max(1, Math.ceil(mctx.measureText(text || "").width) + 6);
+  const ascentPx = Math.round(fontSizePx * 0.82);
+  const heightPx = Math.round(fontSizePx * 1.3);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = textWidthPx;
+  canvas.height = heightPx;
+  const ctx = canvas.getContext("2d");
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.fillText(text || "", 2, ascentPx);
+
+  const widthMm = textWidthPx / pxPerMm;
+  const heightMm = heightPx / pxPerMm;
+  const topMm = yMm - ascentPx / pxPerMm;
+  doc.addImage(canvas.toDataURL("image/png"), "PNG", xMm, topMm, widthMm, heightMm);
+}
+
 function loadLogoDataURL() {
   return new Promise((resolve) => {
     const img = new Image();
@@ -558,18 +598,73 @@ async function downloadPDF(title, subtitle, columns, rows, filename) {
 
   doc.setFontSize(16);
   doc.setTextColor(27, 36, 48);
-  doc.text(title, textStartX, 18);
+  if (containsArabic(title)) {
+    drawMixedLine(doc, title, { xMm: textStartX, yMm: 18, sizeMm: 5.6, color: "#1b2430" });
+  } else {
+    doc.text(title, textStartX, 18);
+  }
   doc.setFontSize(10);
   doc.setTextColor(75, 87, 104);
-  doc.text(subtitle, textStartX, 25);
+  if (containsArabic(subtitle)) {
+    drawMixedLine(doc, subtitle, { xMm: textStartX, yMm: 25, sizeMm: 3.5, color: "#4b5768" });
+  } else {
+    doc.text(subtitle, textStartX, 25);
+  }
+
+  // Same Arabic-column-width pre-measurement admin.js uses, so a column
+  // holding Arabic names (which autoTable's own font can't measure) still
+  // ends up wide enough to fit them instead of clipping.
+  const fontSize = 9;
+  const arabicSizeMm = fontSize * 0.34;
+  const measureArabicWidthMm = (text, sizeMm) => {
+    const scale = 3;
+    const pxPerMm = 3.7795 * scale;
+    const fontSizePx = Math.round(sizeMm * pxPerMm);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.font = `${fontSizePx}px Tahoma, Arial, sans-serif`;
+    return ctx.measureText(text || "").width / pxPerMm;
+  };
+  const columnStyles = {};
+  columns.forEach((_, colIndex) => {
+    let maxWidthMm = 0;
+    for (const row of rows) {
+      const raw = String(row[colIndex] ?? "");
+      if (!containsArabic(raw)) continue;
+      const w = measureArabicWidthMm(raw, arabicSizeMm) + 4;
+      if (w > maxWidthMm) maxWidthMm = w;
+    }
+    if (maxWidthMm > 0) columnStyles[colIndex] = { minCellWidth: Math.min(maxWidthMm, 70) };
+  });
+
   doc.autoTable({
     head: [columns],
     body: rows,
     startY: 32,
     theme: "striped",
     headStyles: { fillColor: [47, 111, 94] },
-    styles: { fontSize: 9, cellPadding: 4 },
+    styles: { fontSize, cellPadding: 4, overflow: "linebreak" },
+    columnStyles,
     margin: { left: 14, right: 14 },
+    didParseCell: (data) => {
+      // jsPDF's built-in fonts have no Arabic glyphs — blank the cell's
+      // own text here; didDrawCell below redraws it as a canvas image
+      // instead, which correctly shapes Arabic.
+      if (data.section === "body" && typeof data.cell.text === "object" && containsArabic(String(data.cell.raw ?? ""))) {
+        data.cell.text = [""];
+      }
+    },
+    didDrawCell: (data) => {
+      if (data.section !== "body") return;
+      const raw = String(data.cell.raw ?? "");
+      if (!containsArabic(raw)) return;
+      drawMixedLine(doc, raw, {
+        xMm: data.cell.x + 2,
+        yMm: data.cell.y + data.cell.height / 2 + 1.1,
+        sizeMm: arabicSizeMm,
+        color: "#1b2430",
+      });
+    },
   });
   doc.save(filename);
 }

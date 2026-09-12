@@ -2651,10 +2651,18 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
 
   doc.setFontSize(16);
   doc.setTextColor(27, 36, 48);
-  doc.text(title, textStartX, 18);
+  if (containsArabic(title)) {
+    drawMixedLine(doc, title, { xMm: textStartX, yMm: 18, sizeMm: 5.6, color: "#1b2430" });
+  } else {
+    doc.text(title, textStartX, 18);
+  }
   doc.setFontSize(10);
   doc.setTextColor(75, 87, 104);
-  doc.text(subtitle, textStartX, 25);
+  if (containsArabic(subtitle)) {
+    drawMixedLine(doc, subtitle, { xMm: textStartX, yMm: 25, sizeMm: 3.5, color: "#4b5768" });
+  } else {
+    doc.text(subtitle, textStartX, 25);
+  }
 
   // Font size and margins scale with how many columns there are, so a
   // wide report (15 columns) gets small enough text and tight enough
