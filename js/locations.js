@@ -3,6 +3,26 @@ let MAP = null;
 let MARKERS = {};
 let ACCURACY_CIRCLES = {};
 const REFRESH_INTERVAL_MS = 35000;
+const PAGE_SIZE = 10;
+let LOCATIONS_PAGE = 0;
+
+function updatePaginationControls(prefix, page, totalCount) {
+  const wrap = document.getElementById(`${prefix}Pagination`);
+  const info = document.getElementById(`${prefix}PageInfo`);
+  const prevBtn = document.getElementById(`${prefix}PrevBtn`);
+  const nextBtn = document.getElementById(`${prefix}NextBtn`);
+
+  if (totalCount <= PAGE_SIZE) {
+    wrap.style.display = "none";
+    return;
+  }
+  wrap.style.display = "flex";
+  const start = page * PAGE_SIZE + 1;
+  const end = Math.min((page + 1) * PAGE_SIZE, totalCount);
+  info.textContent = tv("showingRangeLabel", { start, end, total: totalCount });
+  prevBtn.disabled = page === 0;
+  nextBtn.disabled = end >= totalCount;
+}
 
 function showToast(msg) {
   const el = document.getElementById("toast");
@@ -63,7 +83,7 @@ function ensureLocationsSearch() {
   `;
   table.parentNode.insertBefore(wrap, table);
   input = document.getElementById("locationsSearchInput");
-  input.addEventListener("input", () => renderLocationsTable());
+  input.addEventListener("input", () => { LOCATIONS_PAGE = 0; renderLocationsTable(); });
   return input;
 }
 
@@ -176,7 +196,9 @@ function renderLocationsTable() {
   notifyIfNoSearchResults(document.getElementById("locationsSearchInput"), query, filteredRows.length);
   empty.style.display = filteredRows.length ? "none" : "block";
 
-  for (const loc of filteredRows) {
+  const start = LOCATIONS_PAGE * PAGE_SIZE;
+  const pageItems = filteredRows.slice(start, start + PAGE_SIZE);
+  for (const loc of pageItems) {
     const emp = LOCATIONS_TEAM_BY_ID[loc.employee_id];
     if (!emp) continue;
     const tr = document.createElement("tr");
@@ -190,6 +212,7 @@ function renderLocationsTable() {
     `;
     body.appendChild(tr);
   }
+  updatePaginationControls("locations", LOCATIONS_PAGE, filteredRows.length);
 
   body.querySelectorAll("[data-center]").forEach(el => {
     el.addEventListener("click", () => {
@@ -201,6 +224,13 @@ function renderLocationsTable() {
     });
   });
 }
+
+document.getElementById("locationsPrevBtn").addEventListener("click", () => {
+  if (LOCATIONS_PAGE > 0) { LOCATIONS_PAGE--; renderLocationsTable(); }
+});
+document.getElementById("locationsNextBtn").addEventListener("click", () => {
+  if ((LOCATIONS_PAGE + 1) * PAGE_SIZE < LOCATIONS_ROWS.length) { LOCATIONS_PAGE++; renderLocationsTable(); }
+});
 
 (async () => {
   ME = await requireSession("supervisor");
