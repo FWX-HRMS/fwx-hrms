@@ -287,11 +287,22 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Contract not-renewing / renewed notice — shown once, on page load,
+     for whichever of these is unread. -->
+<div id="contractStatusPopupOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:440px; text-align:center">
+    <div style="font-size:34px; margin-bottom:6px" id="contractStatusPopupIcon">📄</div>
+    <h2 id="contractStatusPopupTitle" style="margin:0 0 10px"></h2>
+    <p class="help-text" id="contractStatusPopupMsg" style="margin-bottom:18px; text-align:left"></p>
+    <button type="button" class="btn btn-primary" id="contractStatusPopupCloseBtn" style="width:100%">Close</button>
+  </div>
+</div>
+
 <script src="js/supabaseClient.js"></script>
 <script src="js/auth-guard.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/staff.js?v=fix7"></script>
+<script src="js/staff.js?v=fix8"></script>
 </body>
 </html>
