@@ -1105,11 +1105,19 @@ document.getElementById("renewSameTermsForm").addEventListener("submit", async (
   const errBox = document.getElementById("renewSameTermsError");
   errBox.classList.remove("show");
 
+  const submitBtn = document.getElementById("renewSameTermsSubmitBtn");
+  const spinner = document.getElementById("renewSameTermsSpinner");
+  submitBtn.disabled = true;
+  spinner.style.display = "inline-block";
+
   showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "renew_same_terms", target_id, contract_id, start_date, contract_period_months }
   });
   hideGlobalSpinner();
+
+  submitBtn.disabled = false;
+  spinner.style.display = "none";
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : "Something went wrong.";
@@ -1117,7 +1125,8 @@ document.getElementById("renewSameTermsForm").addEventListener("submit", async (
     return;
   }
   overlay.style.display = "none";
-  showToast("Renewed contract created and shared with the employee.");
+  const emp = TEAM_BY_ID[target_id];
+  showContractSharedModal(emp ? emp.full_name : "the employee", emp ? emp.file_number : "—", data && data.contract ? data.contract.id : null);
   await loadContractRenewalTable();
 });
 
@@ -1156,6 +1165,11 @@ document.getElementById("renewContractForm").addEventListener("submit", async (e
   errBox.classList.remove("show");
   const target_id = document.getElementById("renewContractOverlay").dataset.employeeId;
 
+  const submitBtn = document.getElementById("renewContractSubmitBtn");
+  const spinner = document.getElementById("renewContractSpinner");
+  submitBtn.disabled = true;
+  spinner.style.display = "inline-block";
+
   showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
     body: {
@@ -1171,6 +1185,9 @@ document.getElementById("renewContractForm").addEventListener("submit", async (e
     }
   });
   hideGlobalSpinner();
+
+  submitBtn.disabled = false;
+  spinner.style.display = "none";
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : "Something went wrong.";
@@ -1205,8 +1222,31 @@ document.getElementById("renewContractForm").addEventListener("submit", async (e
   } catch (_e) { /* best-effort */ }
 
   document.getElementById("renewContractOverlay").style.display = "none";
-  showToast("Renewed contract created and shared with the employee.");
+  const emp = TEAM_BY_ID[target_id];
+  showContractSharedModal(emp ? emp.full_name : "the employee", emp ? emp.file_number : "—", data && data.contract ? data.contract.id : null);
   await loadContractRenewalTable();
+});
+
+function showContractSharedModal(empName, fileNumber, contractId) {
+  document.getElementById("contractSharedText").textContent =
+    `A new contract has been shared with ${empName} (#${fileNumber}).`;
+  const viewBtn = document.getElementById("contractSharedViewBtn");
+  if (contractId) {
+    viewBtn.style.display = "";
+    viewBtn.onclick = () => {
+      // admin.js reads ?contractId= on load and opens the same contract
+      // view/edit modal used everywhere else for contracts — same
+      // pattern already used elsewhere in this file (e.g. viewAdminContract).
+      window.location.href = `admin.html?tab=contracts&contractId=${encodeURIComponent(contractId)}`;
+    };
+  } else {
+    viewBtn.style.display = "none";
+  }
+  document.getElementById("contractSharedOverlay").style.display = "flex";
+}
+
+document.getElementById("contractSharedOkBtn").addEventListener("click", () => {
+  document.getElementById("contractSharedOverlay").style.display = "none";
 });
 
 async function refreshAll() {
