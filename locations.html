@@ -46,6 +46,13 @@
         <tbody id="locationsBody"></tbody>
       </table>
       <div class="empty-state" id="noLocations" style="display:none" data-i18n="noLocationsShared">No location data shared yet.</div>
+      <div id="locationsPagination" style="display:none; justify-content:space-between; align-items:center; margin-top:12px; font-size:13px; color:var(--ink-soft)">
+        <span id="locationsPageInfo"></span>
+        <div style="display:flex; gap:8px">
+          <button type="button" class="btn btn-blue btn-sm" id="locationsPrevBtn" data-i18n="prevBtn">‹ Prev</button>
+          <button type="button" class="btn btn-blue btn-sm" id="locationsNextBtn" data-i18n="nextBtn">Next ›</button>
+        </div>
+      </div>
     </div>
   </main>
 </div>
