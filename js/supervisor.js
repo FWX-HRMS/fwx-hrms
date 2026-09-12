@@ -1037,6 +1037,7 @@ async function loadContractRenewalTable() {
     btn.addEventListener("click", async () => {
       const target_id = btn.dataset.donotrenewEmployee;
       const contract_id = btn.dataset.donotrenewContract;
+      const row = btn.closest("tr");
       const ok = await showConfirm(
         "Do Not Renew",
         "This schedules the employee to be frozen automatically once their current contract ends, and sends them a notification that their contract won't be renewed. This can't be undone.",
@@ -1053,8 +1054,16 @@ async function loadContractRenewalTable() {
         showToast((result && result.error) ? result.error : "Something went wrong.");
         return;
       }
-      showToast("Scheduled — employee will be frozen and notified when their contract ends.");
-      await loadContractRenewalTable();
+
+      const emp = TEAM_BY_ID[target_id];
+      const empLabel = emp ? `${emp.full_name} (#${emp.file_number})` : "The employee";
+      document.getElementById("doNotRenewConfirmText").textContent =
+        `This contract will not be renewed. ${empLabel} will be notified.`;
+      document.getElementById("doNotRenewConfirmOverlay").style.display = "flex";
+      document.getElementById("doNotRenewConfirmOkBtn").onclick = () => {
+        document.getElementById("doNotRenewConfirmOverlay").style.display = "none";
+        if (row) row.remove();
+      };
     });
   });
 }
