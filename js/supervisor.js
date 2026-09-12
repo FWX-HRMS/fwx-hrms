@@ -587,7 +587,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   if (!range) return;
 
   let source = range.employeeId
-    ? TEAM_BALANCE_ROWS.filter(r => r.file_number === range.employeeId)
+    ? TEAM_BALANCE_ROWS.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.file_number === range.employeeId; })
     : TEAM_BALANCE_ROWS;
   // General report shows employee info only — supervisors aren't
   // included here (matches admin.js's default/"All Team" report; the
@@ -605,13 +605,19 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     return;
   }
 
-  const rows = source.map(r => [r.full_name, r.file_number, "W".repeat(Math.min(countActiveWarnings(r.employee_id), 3)) || "—", String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)]);
+  // Name and file number live on the employee record (TEAM_BY_ID), not
+  // on these balance-only rows — pulling them straight from `r` left
+  // those two columns blank in the generated report.
+  const rows = source.map(r => {
+    const emp = TEAM_BY_ID[r.employee_id] || {};
+    return [emp.full_name || "—", emp.file_number || "—", "W".repeat(Math.min(countActiveWarnings(r.employee_id), 3)) || "—", String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)];
+  });
   const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
   const columns = ["Employee Name", "ID #", "Active Warning", "Annual", "Taken", "Available Balance", "Pending", "Sick", "Sick Taken", "Sick Remaining"];
   const scope = range.company ? `${range.company} — ` : "";
 
-  const selectedEmployee = range.employeeId ? source[0] : null;
-  const reportName = selectedEmployee ? selectedEmployee.full_name : "All Team Report";
+  const selectedEmployee = range.employeeId && source[0] ? TEAM_BY_ID[source[0].employee_id] : null;
+  const reportName = selectedEmployee ? (selectedEmployee.full_name || "Employee") : "All Team Report";
   const safeReportName = reportName.replace(/[^a-zA-Z0-9]+/g, "_").toLowerCase();
   const filenamePrefix = range.company ? `${range.company.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_` : "";
   const reportTitle = selectedEmployee ? `${scope}${reportName} — Leave Report` : `${scope}All Team Report`;
