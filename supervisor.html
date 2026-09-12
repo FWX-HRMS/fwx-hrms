@@ -250,6 +250,18 @@
   </div>
 </div>
 
+<!-- Shown after "Do Not Renew" is scheduled — single OK button; pressing
+     it dismisses the box and removes the row from the Contract Renewal
+     table (the employee is notified server-side already). -->
+<div id="doNotRenewConfirmOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:420px; text-align:center">
+    <div style="font-size:34px; margin-bottom:6px">🚫</div>
+    <h2 style="margin:0 0 10px">Contract Will Not Be Renewed</h2>
+    <p class="help-text" id="doNotRenewConfirmText" style="margin-bottom:18px"></p>
+    <button type="button" class="btn btn-primary" id="doNotRenewConfirmOkBtn" style="width:100%">OK</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Renew contract from the Contract Renewal table — pre-filled from the
