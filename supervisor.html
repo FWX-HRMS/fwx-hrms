@@ -10,6 +10,14 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+@keyframes contractSpin { to { transform: rotate(360deg); } }
+.inline-spinner {
+  display: inline-block; width: 18px; height: 18px;
+  border: 3px solid #cbd5e1; border-top-color: #2563eb; border-radius: 50%;
+  animation: contractSpin 0.8s linear infinite; vertical-align: middle;
+}
+</style>
 </head>
 <body>
 <div class="app">
@@ -272,9 +280,10 @@
       <input type="date" id="renewSameTermsStartDate" required>
       <label for="renewSameTermsPeriodMonths" style="margin-top:12px">Contract period (months)</label>
       <select id="renewSameTermsPeriodMonths" required></select>
-      <div style="display:flex; gap:10px; margin-top:16px">
+      <div style="display:flex; gap:10px; margin-top:16px; align-items:center">
         <button type="submit" class="btn btn-primary" id="renewSameTermsSubmitBtn" style="width:220px">Renew &amp; Share</button>
         <button type="button" class="btn btn-danger" id="renewSameTermsCancelBtn" data-confirm-close="1" style="width:220px">Cancel</button>
+        <span id="renewSameTermsSpinner" class="inline-spinner" style="display:none"></span>
       </div>
       <div class="error-msg" id="renewSameTermsError"></div>
     </form>
@@ -318,12 +327,28 @@
           <input type="number" id="renewContractPeriodMonths" min="1" max="60" step="1" required>
         </div>
       </div>
-      <div style="display:flex; gap:10px; margin-top:6px">
+      <div style="display:flex; gap:10px; margin-top:6px; align-items:center">
         <button type="submit" class="btn btn-primary" id="renewContractSubmitBtn" style="width:220px">Prepare Renewed Contract</button>
         <button type="button" class="btn btn-danger" id="renewContractCancelBtn" data-confirm-close="1" style="width:220px">Cancel</button>
+        <span id="renewContractSpinner" class="inline-spinner" style="display:none"></span>
       </div>
       <div class="error-msg" id="renewContractError"></div>
     </form>
+  </div>
+</div>
+
+<!-- Shown after a renewal is created and shared, in place of the old
+     toast — confirms who it was shared with and offers a direct way to
+     view it. -->
+<div id="contractSharedOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:420px; text-align:center">
+    <div style="font-size:34px; margin-bottom:6px">✅</div>
+    <h2 style="margin:0 0 10px">New Contract Shared</h2>
+    <p class="help-text" id="contractSharedText" style="margin-bottom:18px"></p>
+    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
+      <button type="button" class="btn btn-blue" id="contractSharedViewBtn">View Contract</button>
+      <button type="button" class="btn btn-primary" id="contractSharedOkBtn">OK</button>
+    </div>
   </div>
 </div>
 
