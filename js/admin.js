@@ -137,6 +137,7 @@ function applyTab(tab) {
   document.getElementById("tableTitle").textContent = tab === "supervisors" ? t("tabSupervisors") : t("tabEmployees");
   document.getElementById("showAddFormBtn").style.display = tab === "supervisors" ? "none" : "";
   document.getElementById("showAddSupervisorAdminBtn").style.display = tab === "supervisors" ? "" : "none";
+  document.getElementById("downloadReportBtn").style.display = tab === "supervisors" ? "none" : "";
   DIRECTORY_PAGE = 0;
   renderDirectory();
 }
