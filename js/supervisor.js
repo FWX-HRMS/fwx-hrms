@@ -1152,6 +1152,7 @@ async function openRenewContractForm(employeeId) {
   if (!emp) return;
 
   document.getElementById("renewContractOverlay").dataset.employeeId = employeeId;
+  document.getElementById("renewContractOverlay").dataset.contractId = contract ? contract.id : "";
   document.getElementById("renewContractEmployeeInfo").textContent = `${emp.full_name} · #${emp.file_number}`;
   document.getElementById("renewContractDob").value = contract?.dob || emp.dob || "";
   document.getElementById("renewContractEducation").value = contract?.education || emp.education || "";
@@ -1173,6 +1174,7 @@ document.getElementById("renewContractForm").addEventListener("submit", async (e
   const errBox = document.getElementById("renewContractError");
   errBox.classList.remove("show");
   const target_id = document.getElementById("renewContractOverlay").dataset.employeeId;
+  const renewal_contract_id = document.getElementById("renewContractOverlay").dataset.contractId || undefined;
 
   const submitBtn = document.getElementById("renewContractSubmitBtn");
   const spinner = document.getElementById("renewContractSpinner");
@@ -1191,6 +1193,7 @@ document.getElementById("renewContractForm").addEventListener("submit", async (e
       job_title: document.getElementById("renewContractJobTitle").value,
       start_date: document.getElementById("renewContractStartDate").value,
       contract_period_months: Number(document.getElementById("renewContractPeriodMonths").value),
+      renewal_contract_id,
     }
   });
   hideGlobalSpinner();
