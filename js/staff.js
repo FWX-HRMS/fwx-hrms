@@ -918,6 +918,37 @@ document.getElementById("closeLimitExceededBtn").addEventListener("click", () =>
   });
 })();
 
+// Surfaces a "contract not renewing" / "contract renewed" notification
+// as an actual pop-up, one at a time, rather than only living quietly in
+// the Notifications tab — these are significant enough news that the
+// employee shouldn't have to go looking for them.
+async function checkContractStatusPopup() {
+  try {
+    const { data, error } = await db
+      .from("notifications")
+      .select("id, type, title, message")
+      .eq("employee_id", ME.id)
+      .in("type", ["contract_not_renewing", "contract_renewed"])
+      .eq("read", false)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return;
+
+    document.getElementById("contractStatusPopupIcon").textContent = data.type === "contract_not_renewing" ? "⚠️" : "📄";
+    document.getElementById("contractStatusPopupTitle").textContent = data.title;
+    document.getElementById("contractStatusPopupMsg").textContent = data.message;
+    document.getElementById("contractStatusPopupOverlay").style.display = "flex";
+
+    document.getElementById("contractStatusPopupCloseBtn").onclick = () => {
+      document.getElementById("contractStatusPopupOverlay").style.display = "none";
+      db.from("notifications").update({ read: true }).eq("id", data.id).then(() => {});
+    };
+  } catch (err) {
+    console.error("checkContractStatusPopup: unexpected error", err);
+  }
+}
+
 (async () => {
   ME = await requireSession("staff");
   if (!ME) return;
@@ -938,4 +969,5 @@ document.getElementById("closeLimitExceededBtn").addEventListener("click", () =>
   document.getElementById("statHiringDate").textContent = fmtDate(ME.hiring_date);
   startLocationSharing();
   await Promise.all([loadBalance(), loadHourlyStats(), loadUnpaidStats(), loadRequests(), checkNewDocsNotification(), loadDashboardWarnings()]);
+  checkContractStatusPopup();
 })();
