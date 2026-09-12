@@ -589,6 +589,10 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   let source = range.employeeId
     ? TEAM_BALANCE_ROWS.filter(r => r.file_number === range.employeeId)
     : TEAM_BALANCE_ROWS;
+  // General report shows employee info only — supervisors aren't
+  // included here (matches admin.js's default/"All Team" report; the
+  // dedicated Supervisors tab report is unaffected by this).
+  source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.role === "staff"; });
   if (!range.employeeId && range.company) {
     source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.client_company === range.company; });
   }

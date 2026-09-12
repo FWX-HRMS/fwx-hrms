@@ -2769,7 +2769,10 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     ? DIRECTORY.filter(e => e.file_number === range.employeeId)
     : (ACTIVE_TAB === "supervisors"
         ? DIRECTORY.filter(e => e.role === "supervisor")
-        : DIRECTORY.filter(e => e.role !== "admin"));
+        // General/default report shows employee info only — supervisors
+        // are excluded here (the dedicated "Supervisors" tab above is
+        // the only place that still reports on supervisor rows).
+        : DIRECTORY.filter(e => e.role === "staff"));
   const companyToApply = range.company || COMPANY_FILTER;
   if (!range.employeeId && companyToApply) source = source.filter(e => e.client_company === companyToApply);
   if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
