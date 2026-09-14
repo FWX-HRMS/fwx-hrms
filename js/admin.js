@@ -71,6 +71,12 @@ wireSearchClear("directorySearchInput", "directorySearchClearBtn");
 wireSearchClear("leaveRequestsSearchInput", "leaveRequestsSearchClearBtn");
 wireSearchClear("contractsSearchInput", "contractsSearchClearBtn");
 wireSearchClear("warningsSearchInput", "warningsSearchClearBtn");
+// The Employee ID field inside the report dialog isn't a live-filtered
+// table search like the four above, but it dispatches the same "input"
+// event its own applyEmployeeIdFilter listener (added when the dialog
+// is opened) already relies on, so clearing it re-narrows the Company/
+// Department pickers back to "all" exactly as typing it out by hand would.
+wireSearchClear("rangeEmployeeIdInput", "rangeEmployeeIdClearBtn");
 
 function showToast(msg) {
   const t = document.getElementById("toast");
@@ -2586,6 +2592,10 @@ function showDateRangePrompt(title, optionalColumns, prefillEmployeeId, dateLabe
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
     document.getElementById("rangeEmployeeIdInput").value = prefillEmployeeId || "";
+    // Setting .value directly doesn't fire "input", so the clear-button
+    // visibility (wired once at page load via wireSearchClear) needs a
+    // manual nudge here to match a prefilled value on open.
+    document.getElementById("rangeEmployeeIdInput").dispatchEvent(new Event("input"));
     document.getElementById("rangeIncludeFrozen").checked = false;
     document.getElementById("rangeFormatPdf").checked = true;
     document.getElementById("rangeFormatExcel").checked = false;

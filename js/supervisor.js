@@ -646,6 +646,24 @@ document.getElementById("rangeFormatExcel").addEventListener("change", (e) => {
   if (e.target.checked) document.getElementById("rangeFormatPdf").checked = false;
 });
 
+// Small "×" clear button inside the Employee ID field — shows whenever
+// it has text, and clicking it empties the field and re-fires "input"
+// so applyEmployeeIdFilter (wired inside showDateRangePrompt while the
+// dialog is open) re-narrows the Company/Department pickers back to
+// "all" exactly as deleting the text by hand would.
+(() => {
+  const input = document.getElementById("rangeEmployeeIdInput");
+  const clearBtn = document.getElementById("rangeEmployeeIdClearBtn");
+  const toggle = () => { clearBtn.style.display = input.value ? "flex" : "none"; };
+  input.addEventListener("input", toggle);
+  clearBtn.addEventListener("click", () => {
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+    input.focus();
+  });
+  toggle();
+})();
+
 function loadLogoDataURL() {
   return new Promise((resolve) => {
     const img = new Image();
