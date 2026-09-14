@@ -51,6 +51,27 @@ document.getElementById("leaveRequestsSearchInput").addEventListener("input", ()
 document.getElementById("contractsSearchInput").addEventListener("input", () => { CONTRACTS_PAGE = 0; renderContracts(); });
 document.getElementById("warningsSearchInput").addEventListener("input", () => { WARNINGS_PAGE = 0; renderWarnings(); });
 
+// Shows a small "×" clear button inside a search box whenever it has
+// text, and clicking it empties the box and re-fires the existing
+// "input" listener (above) so the table re-filters exactly as if the
+// person had deleted the text themselves.
+function wireSearchClear(inputId, clearBtnId) {
+  const input = document.getElementById(inputId);
+  const clearBtn = document.getElementById(clearBtnId);
+  const toggle = () => { clearBtn.style.display = input.value ? "flex" : "none"; };
+  input.addEventListener("input", toggle);
+  clearBtn.addEventListener("click", () => {
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+    input.focus();
+  });
+  toggle();
+}
+wireSearchClear("directorySearchInput", "directorySearchClearBtn");
+wireSearchClear("leaveRequestsSearchInput", "leaveRequestsSearchClearBtn");
+wireSearchClear("contractsSearchInput", "contractsSearchClearBtn");
+wireSearchClear("warningsSearchInput", "warningsSearchClearBtn");
+
 function showToast(msg) {
   const t = document.getElementById("toast");
   t.textContent = msg;
@@ -2545,12 +2566,12 @@ document.getElementById("rangeFormatExcel").addEventListener("change", (e) => {
   if (e.target.checked) document.getElementById("rangeFormatPdf").checked = false;
 });
 
-function showDateRangePrompt(title, optionalColumns) {
+function showDateRangePrompt(title, optionalColumns, prefillEmployeeId) {
   return new Promise(async (resolve) => {
     document.getElementById("dateRangeTitle").textContent = title;
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
-    document.getElementById("rangeEmployeeIdInput").value = "";
+    document.getElementById("rangeEmployeeIdInput").value = prefillEmployeeId || "";
     document.getElementById("rangeIncludeFrozen").checked = false;
     document.getElementById("rangeFormatPdf").checked = true;
     document.getElementById("rangeFormatExcel").checked = false;
@@ -2606,7 +2627,7 @@ function showDateRangePrompt(title, optionalColumns) {
       const list = lockedDepartment ? [lockedDepartment] : (DEPARTMENTS_BY_COMPANY[companySelect.value] || DEFAULT_DEPARTMENTS);
       departmentContainer.innerHTML = list.map(d => `
         <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:400">
-          <input type="checkbox" class="range-department-checkbox" value="${d}" ${lockedDepartment ? "checked disabled" : ""} style="width:auto">
+          <input type="checkbox" class="range-department-checkbox" value="${d}" checked ${lockedDepartment ? "disabled" : ""} style="width:auto">
           <span>${d}</span>
         </label>
       `).join("");
@@ -2661,10 +2682,17 @@ function showDateRangePrompt(title, optionalColumns) {
       const to = document.getElementById("rangeToInput").value || null;
       const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
       const company = document.getElementById("rangeCompanySelect").value || null;
-      // Empty array = no department filter (all departments), matching
-      // the old "All departments" default — only restricts when at
-      // least one is explicitly checked.
-      const departments = Array.from(document.querySelectorAll(".range-department-checkbox:checked")).map(el => el.value);
+      // Department checkboxes now default to all-checked (see
+      // renderDepartmentCheckboxes) so nothing is filtered out unless the
+      // admin actually unchecks something — that only works if "every
+      // box checked" is treated the same as "no department filter" here,
+      // otherwise anyone whose department string isn't in the predefined
+      // list would silently disappear from every default report.
+      const allDeptBoxes = document.querySelectorAll(".range-department-checkbox");
+      const checkedDeptBoxes = document.querySelectorAll(".range-department-checkbox:checked");
+      const departments = (checkedDeptBoxes.length === allDeptBoxes.length)
+        ? []
+        : Array.from(checkedDeptBoxes).map(el => el.value);
       const includeFrozen = document.getElementById("rangeIncludeFrozen").checked;
       const selectedColumnKeys = Array.from(document.querySelectorAll(".range-column-checkbox:checked")).map(el => el.value);
       cleanup();
@@ -2827,7 +2855,16 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     { key: "sick_taken", label: "Sick Taken" },
     { key: "sick_left", label: "Sick Left" },
   ];
-  const range = await showDateRangePrompt(t("selectReportPeriodTitle"), allColumns.filter(c => !c.always));
+  // If the admin already has the table filtered down to a specific
+  // person's file number (e.g. searched "2018" and only their rows show
+  // on screen), default the report to that same person — otherwise the
+  // downloaded report silently includes everyone, not just what's
+  // visible, which is confusing.
+  const directorySearchValue = document.getElementById("directorySearchInput").value.trim();
+  const directoryPrefillId = (directorySearchValue && DIRECTORY.some(e => e.file_number === directorySearchValue && e.role === "staff"))
+    ? directorySearchValue
+    : null;
+  const range = await showDateRangePrompt(t("selectReportPeriodTitle"), allColumns.filter(c => !c.always), directoryPrefillId);
   if (!range) return;
 
   let source = range.employeeId
@@ -2899,7 +2936,14 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
     { key: "type", label: "Type" },
     { key: "status", label: "Status" },
   ];
-  const range = await showDateRangePrompt(t("selectReportPeriodTitle"), leaveAllColumns.filter(c => !c.always));
+  // Same idea as the Employees report above: if the table is already
+  // filtered to one person's file number, default the report to them
+  // instead of silently generating a report for everyone.
+  const leaveSearchValue = document.getElementById("leaveRequestsSearchInput").value.trim();
+  const leavePrefillId = (leaveSearchValue && DIRECTORY.some(e => e.file_number === leaveSearchValue && e.role === "staff"))
+    ? leaveSearchValue
+    : null;
+  const range = await showDateRangePrompt(t("selectReportPeriodTitle"), leaveAllColumns.filter(c => !c.always), leavePrefillId);
   if (!range) return;
 
   const { data, error } = await db.from("leave_requests").select("*").order("requested_at", { ascending: false });
