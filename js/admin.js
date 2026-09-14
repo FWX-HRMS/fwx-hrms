@@ -2574,10 +2574,16 @@ function showDateRangePrompt(title, optionalColumns) {
     }
 
     const companySelect = document.getElementById("rangeCompanySelect");
+    const departmentSelect = document.getElementById("rangeDepartmentSelect");
     const { data: companies } = await db.from("client_companies").select("name").order("name");
     companySelect.innerHTML = `<option value="">All companies</option>` +
       (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
     companySelect.value = COMPANY_FILTER || "";
+    populateDepartmentOptions(departmentSelect, companySelect.value, null);
+    departmentSelect.querySelector('option[value=""]').textContent = "All departments";
+
+    const onCompanyChange = () => populateDepartmentOptions(departmentSelect, companySelect.value, null);
+    companySelect.addEventListener("change", onCompanyChange);
 
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
@@ -2588,6 +2594,7 @@ function showDateRangePrompt(title, optionalColumns) {
       document.getElementById("dateRangeOverlay").style.display = "none";
       generateBtn.removeEventListener("click", onGenerate);
       cancelBtn.removeEventListener("click", onCancel);
+      companySelect.removeEventListener("change", onCompanyChange);
     };
     const onGenerate = () => {
       const wantPdf = document.getElementById("rangeFormatPdf").checked;
@@ -2601,10 +2608,11 @@ function showDateRangePrompt(title, optionalColumns) {
       const to = document.getElementById("rangeToInput").value || null;
       const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
       const company = document.getElementById("rangeCompanySelect").value || null;
+      const department = document.getElementById("rangeDepartmentSelect").value || null;
       const includeFrozen = document.getElementById("rangeIncludeFrozen").checked;
       const selectedColumnKeys = Array.from(document.querySelectorAll(".range-column-checkbox:checked")).map(el => el.value);
       cleanup();
-      resolve({ from, to, employeeId, company, includeFrozen, wantPdf, wantExcel, selectedColumnKeys });
+      resolve({ from, to, employeeId, company, department, includeFrozen, wantPdf, wantExcel, selectedColumnKeys });
     };
     const onCancel = () => {
       cleanup();
@@ -2772,6 +2780,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
         : DIRECTORY.filter(e => e.role !== "admin"));
   const companyToApply = range.company || COMPANY_FILTER;
   if (!range.employeeId && companyToApply) source = source.filter(e => e.client_company === companyToApply);
+  if (!range.employeeId && range.department) source = source.filter(e => e.department === range.department);
   if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
   if (range.to) source = source.filter(e => e.hiring_date && e.hiring_date <= range.to);
   if (!range.includeFrozen) source = source.filter(e => !e.frozen);
@@ -2800,7 +2809,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
 
   const scope = companyToApply ? `${companyToApply} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
-  const filenamePrefix = `${companyToApply ? companyToApply.toLowerCase() + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}`;
+  const filenamePrefix = `${companyToApply ? companyToApply.toLowerCase() + "_" : ""}${range.department ? range.department.toLowerCase().replace(/\s+/g, "-") + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}`;
   const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
   const baseFilename = `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report`;
 
@@ -2844,9 +2853,10 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   let rows = data;
   if (range.employeeId) {
     rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].file_number === range.employeeId);
-  } else if (range.company || COMPANY_FILTER) {
+  } else {
     const companyToApply = range.company || COMPANY_FILTER;
-    rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].client_company === companyToApply);
+    if (companyToApply) rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].client_company === companyToApply);
+    if (range.department) rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].department === range.department);
   }
   if (range.from) rows = rows.filter(r => r.end_date >= range.from);
   if (range.to) rows = rows.filter(r => r.start_date <= range.to);
@@ -2887,7 +2897,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   const companyScope = range.company || COMPANY_FILTER;
   const scope = companyScope ? `${companyScope} — ` : "";
   const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
-  const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}leave_requests_report`;
+  const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}${range.department ? range.department.toLowerCase().replace(/\s+/g, "-") + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}leave_requests_report`;
 
   if (range.wantPdf) {
     await downloadPDF(
