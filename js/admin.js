@@ -2752,7 +2752,7 @@ function loadLogoDataURL() {
   });
 }
 
-async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndices) {
+async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndices, dateBlock) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape" });
 
@@ -2771,6 +2771,25 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
   doc.setFontSize(10);
   doc.setTextColor(75, 87, 104);
   doc.text(subtitle, textStartX, 25);
+
+  // dateBlock renders "Date From" / "Date To" as two small bold headers
+  // with the actual date sitting underneath each, side by side — used
+  // by the leave reports instead of folding the range into the subtitle
+  // line as plain "Date From: x — Date To: y" text.
+  let tableStartY = 32;
+  if (dateBlock) {
+    const colGap = 70;
+    doc.setFontSize(9);
+    doc.setTextColor(27, 36, 48);
+    doc.setFont(undefined, "bold");
+    doc.text("Date From", textStartX, 34);
+    doc.text("Date To", textStartX + colGap, 34);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(75, 87, 104);
+    doc.text(String(dateBlock.from), textStartX, 40);
+    doc.text(String(dateBlock.to), textStartX + colGap, 40);
+    tableStartY = 47;
+  }
 
   // Font size and margins scale with how many columns there are, so a
   // wide report (15 columns) gets small enough text and tight enough
@@ -2813,7 +2832,7 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
   doc.autoTable({
     head: [columns],
     body: rows,
-    startY: 32,
+    startY: tableStartY,
     theme: "striped",
     headStyles: { fillColor: [47, 111, 94], fontSize, halign: "left", cellPadding: colCount > 9 ? 2 : 3 },
     // overflow "linebreak" (the default) wraps rather than truncates or
@@ -3054,18 +3073,18 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
 
   const companyScope = range.company || COMPANY_FILTER;
   const scope = companyScope ? `${companyScope} — ` : "";
-  const rangeNote = ` — Date From: ${range.from || "the beginning"} — Date To: ${range.to || "today"}`;
   const departmentTag2 = (range.departments && range.departments.length > 0) ? range.departments.map(d => d.toLowerCase().replace(/\s+/g, "-")).join("-") + "_" : "";
   const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}${departmentTag2}${range.employeeId ? range.employeeId + "_" : ""}leave_requests_report`;
 
   if (range.wantPdf) {
     await downloadPDF(
       `${scope}Leave Requests`,
-      `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
+      `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}`,
       columns,
       pdfRows,
       `${baseFilename}.pdf`,
-      redRowIndices
+      redRowIndices,
+      { from: range.from || "the beginning", to: range.to || "today" }
     );
   }
   if (range.wantExcel) {

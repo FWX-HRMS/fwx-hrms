@@ -743,7 +743,7 @@ function drawMixedLine(doc, text, { xMm, yMm, bold = false, sizeMm = 3.8, color 
   doc.addImage(canvas.toDataURL("image/png"), "PNG", xMm, topMm, widthMm, heightMm);
 }
 
-async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndices) {
+async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndices, dateBlock) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape" });
 
@@ -762,6 +762,25 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
   doc.setFontSize(10);
   doc.setTextColor(75, 87, 104);
   doc.text(subtitle, textStartX, 25);
+
+  // dateBlock renders "Date From" / "Date To" as two small bold headers
+  // with the actual date sitting underneath each, side by side — used
+  // by the Leave Detail report instead of folding the range into the
+  // subtitle line as plain "Date From: x — Date To: y" text.
+  let tableStartY = 32;
+  if (dateBlock) {
+    const colGap = 70;
+    doc.setFontSize(9);
+    doc.setTextColor(27, 36, 48);
+    doc.setFont(undefined, "bold");
+    doc.text("Date From", textStartX, 34);
+    doc.text("Date To", textStartX + colGap, 34);
+    doc.setFont(undefined, "normal");
+    doc.setTextColor(75, 87, 104);
+    doc.text(String(dateBlock.from), textStartX, 40);
+    doc.text(String(dateBlock.to), textStartX + colGap, 40);
+    tableStartY = 47;
+  }
 
   // Font size and margins scale with how many columns there are, so a
   // wide report gets small enough text and tight enough margins to fit
@@ -801,7 +820,7 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
   doc.autoTable({
     head: [columns],
     body: rows,
-    startY: 32,
+    startY: tableStartY,
     theme: "striped",
     headStyles: { fillColor: [47, 111, 94], fontSize, halign: "left", cellPadding: colCount > 9 ? 2 : 3 },
     styles: { fontSize, cellPadding: colCount > 9 ? 2 : 3, overflow: "linebreak" },
@@ -946,12 +965,19 @@ document.getElementById("downloadDetailReportBtn").addEventListener("click", asy
 
   const scopeLabel = ME.role === "admin" ? (range.company || "") : `${ME.full_name}'s Team`;
   const title = (scopeLabel ? `${scopeLabel} — ` : "") + "Leave Detail Report";
-  const rangeNote = ` — Date From: ${range.from || "the beginning"} — Date To: ${range.to || "today"}`;
   const filenamePrefix = `${range.company ? range.company.toLowerCase().replace(/\s+/g, "-") + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}`;
   const baseFilename = `${filenamePrefix}leave_detail_report`;
 
   if (range.wantPdf) {
-    await downloadPDF(title, `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`, columns, pdfRows, `${baseFilename}.pdf`);
+    await downloadPDF(
+      title,
+      `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}`,
+      columns,
+      pdfRows,
+      `${baseFilename}.pdf`,
+      null,
+      { from: range.from || "the beginning", to: range.to || "today" }
+    );
   }
   if (range.wantExcel) {
     downloadExcel(title, columns, pdfRows, `${baseFilename}.xlsx`);
