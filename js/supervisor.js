@@ -435,6 +435,13 @@ document.getElementById("usersNextBtn").addEventListener("click", () => { if ((U
 document.getElementById("teamWarningsPrevBtn").addEventListener("click", () => { if (TEAM_WARNINGS_PAGE > 0) { TEAM_WARNINGS_PAGE--; renderTeamWarnings(); } });
 document.getElementById("teamWarningsNextBtn").addEventListener("click", () => { if ((TEAM_WARNINGS_PAGE + 1) * PAGE_SIZE < TEAM_WARNINGS_LIST.length) { TEAM_WARNINGS_PAGE++; renderTeamWarnings(); } });
 
+const DEPARTMENTS_BY_COMPANY = {
+  "Umniah": ["Battery Rescue Power Planning", "Transmission & OMC", "Network Maintenance", "Network- Power & Energy Planning", "RA Network", "Transport Planning", "Transmission", "Rent Site", "Civil", "TDD Visit", "Wherhouse", "Tele Sales", "Direct Sales", "Preventive Maintenance", "N.W Rollout Acceptance", "Network Planning & Maintenance", "Drive Test", "MDS", "Selection", "Quality", "Data Centre", "Office"],
+  "Zain": ["Fiber acceptance", "Fiber Support", "FiberTech", "Power", "Bunker", "Tele Sales", "Direct Sales", "Shop Maintenance", "IBS", "TXM", "Network Maintenance", "Preventive Maintenance", "Data Centre", "Office"],
+  "Fiber-Tech": ["Field", "Rollout and Acceptance", "Fiber"],
+};
+const DEFAULT_DEPARTMENTS = ["Technical", "Sales", "Marketing", "HR", "Finance", "IT", "Administration"];
+
 function ensureRangeCompanySelect() {
   let select = document.getElementById("rangeCompanySelect");
   if (select) return select;
@@ -447,6 +454,26 @@ function ensureRangeCompanySelect() {
   `;
   employeeIdInput.parentNode.insertBefore(wrap, employeeIdInput.nextSibling);
   return document.getElementById("rangeCompanySelect");
+}
+
+// Department checkboxes are injected the same lazy, one-time way as the
+// company <select> above — right after whichever of the Company select
+// (admin) or the Employee ID field (regular supervisor, who has no
+// company picker since their team is already one company) is present.
+function ensureRangeDepartmentCheckboxes() {
+  let container = document.getElementById("rangeDepartmentCheckboxes");
+  if (container) return container;
+  const employeeIdInput = document.getElementById("rangeEmployeeIdInput");
+  if (!employeeIdInput) return null;
+  const wrap = document.createElement("div");
+  const companySelect = document.getElementById("rangeCompanySelect");
+  const anchor = companySelect ? companySelect.closest("div") : employeeIdInput;
+  wrap.innerHTML = `
+    <label>Department</label>
+    <div id="rangeDepartmentCheckboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; margin-bottom:14px; padding:2px"></div>
+  `;
+  anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
+  return document.getElementById("rangeDepartmentCheckboxes");
 }
 
 function employeeIdPlaceholderFor() {
@@ -501,6 +528,67 @@ function showDateRangePrompt(title, dateLabels) {
       existingCompanySelect.closest("div").style.display = "none";
     }
 
+    const employeeIdInput = document.getElementById("rangeEmployeeIdInput");
+    const companySelectEl = document.getElementById("rangeCompanySelect");
+
+    // lockedCompany: when set, the dropdown shows only that one company
+    // (used once an Employee ID narrows things down to a single person)
+    // instead of the full list. Only relevant for admins — a regular
+    // supervisor never has this select in the first place.
+    const renderCompanyOptions = async (lockedCompany) => {
+      if (!companySelectEl) return;
+      if (lockedCompany) {
+        companySelectEl.innerHTML = `<option value="${lockedCompany}">${lockedCompany}</option>`;
+        companySelectEl.value = lockedCompany;
+        companySelectEl.disabled = true;
+      } else {
+        companySelectEl.disabled = false;
+        const { data: companies } = await db.from("client_companies").select("name").order("name");
+        companySelectEl.innerHTML = `<option value="">All companies</option>` +
+          (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
+      }
+    };
+
+    // Checkbox grid rather than a native multi-select, matching the same
+    // pattern used on the Users (admin) report dialog. lockedDepartment
+    // narrows this to a single, pre-checked, non-interactive entry the
+    // same way renderCompanyOptions does for the company dropdown.
+    const renderDepartmentCheckboxes = (lockedDepartment) => {
+      const departmentContainer = ensureRangeDepartmentCheckboxes();
+      if (!departmentContainer) return;
+      const companyForList = ME.role === "admin" ? (companySelectEl ? companySelectEl.value : "") : ME.client_company;
+      const list = lockedDepartment ? [lockedDepartment] : (DEPARTMENTS_BY_COMPANY[companyForList] || DEFAULT_DEPARTMENTS);
+      departmentContainer.innerHTML = list.map(d => `
+        <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:400">
+          <input type="checkbox" class="range-department-checkbox" value="${d}" checked ${lockedDepartment ? "disabled" : ""} style="width:auto">
+          <span>${d}</span>
+        </label>
+      `).join("");
+    };
+
+    // Once a typed Employee ID matches exactly one person on the team in
+    // scope (their own team for a supervisor, everyone for an admin),
+    // narrow the Company/Department pickers down to just that person's
+    // own company and department, the same way the admin Users page
+    // report dialog does.
+    const applyEmployeeIdFilter = async () => {
+      const idValue = employeeIdInput.value.trim();
+      const matches = idValue ? TEAM_LIST.filter(e => e.file_number === idValue && e.role === "staff") : [];
+      if (matches.length === 1) {
+        await renderCompanyOptions(matches[0].client_company || null);
+        renderDepartmentCheckboxes(matches[0].department || null);
+      } else {
+        await renderCompanyOptions(null);
+        renderDepartmentCheckboxes(null);
+      }
+    };
+
+    const onCompanyChange = () => renderDepartmentCheckboxes(null);
+
+    await applyEmployeeIdFilter();
+    if (companySelectEl) companySelectEl.addEventListener("change", onCompanyChange);
+    employeeIdInput.addEventListener("input", applyEmployeeIdFilter);
+
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
     const generateBtn = document.getElementById("rangeGenerateBtn");
@@ -512,6 +600,8 @@ function showDateRangePrompt(title, dateLabels) {
       generateBtn.removeEventListener("click", onGenerate);
       cancelBtn.removeEventListener("click", onCancel);
       closeBtn.removeEventListener("click", onCancel);
+      if (companySelectEl) companySelectEl.removeEventListener("change", onCompanyChange);
+      employeeIdInput.removeEventListener("input", applyEmployeeIdFilter);
     };
     const onGenerate = () => {
       const wantPdf = document.getElementById("rangeFormatPdf").checked;
@@ -525,8 +615,17 @@ function showDateRangePrompt(title, dateLabels) {
       const to = document.getElementById("rangeToInput").value || null;
       const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
       const company = ME.role === "admin" ? ((document.getElementById("rangeCompanySelect") || {}).value || null) : null;
+      // All-checked (the default) means "no department filter" — same
+      // convention as the admin Users page report — so nobody is
+      // silently dropped just because their department string isn't in
+      // the predefined list for their company.
+      const allDeptBoxes = document.querySelectorAll(".range-department-checkbox");
+      const checkedDeptBoxes = document.querySelectorAll(".range-department-checkbox:checked");
+      const departments = (checkedDeptBoxes.length === allDeptBoxes.length)
+        ? []
+        : Array.from(checkedDeptBoxes).map(el => el.value);
       cleanup();
-      resolve({ from, to, employeeId, company, wantPdf, wantExcel });
+      resolve({ from, to, employeeId, company, departments, wantPdf, wantExcel });
     };
     const onCancel = () => {
       cleanup();
@@ -537,6 +636,15 @@ function showDateRangePrompt(title, dateLabels) {
     closeBtn.addEventListener("click", onCancel);
   });
 }
+
+// PDF and Excel are mutually exclusive — checking one unchecks the
+// other, matching the same behavior as the admin Users page report.
+document.getElementById("rangeFormatPdf").addEventListener("change", (e) => {
+  if (e.target.checked) document.getElementById("rangeFormatExcel").checked = false;
+});
+document.getElementById("rangeFormatExcel").addEventListener("change", (e) => {
+  if (e.target.checked) document.getElementById("rangeFormatPdf").checked = false;
+});
 
 function loadLogoDataURL() {
   return new Promise((resolve) => {
@@ -619,8 +727,9 @@ document.getElementById("downloadBalanceReportBtn").addEventListener("click", as
     // — see showDateRangePrompt, which hides the company picker for
     // regular supervisors entirely since their team is one company).
     source = source.filter(e => e.file_number === range.employeeId && (!range.company || e.client_company === range.company));
-  } else if (range.company) {
-    source = source.filter(e => e.client_company === range.company);
+  } else {
+    if (range.company) source = source.filter(e => e.client_company === range.company);
+    if (range.departments && range.departments.length > 0) source = source.filter(e => range.departments.includes(e.department));
   }
   if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
   if (range.to) source = source.filter(e => e.hiring_date && e.hiring_date <= range.to);
@@ -669,8 +778,9 @@ document.getElementById("downloadDetailReportBtn").addEventListener("click", asy
   let rows = data.filter(r => TEAM_BY_ID[r.employee_id] && TEAM_BY_ID[r.employee_id].role === "staff");
   if (range.employeeId) {
     rows = rows.filter(r => TEAM_BY_ID[r.employee_id].file_number === range.employeeId && (!range.company || TEAM_BY_ID[r.employee_id].client_company === range.company));
-  } else if (range.company) {
-    rows = rows.filter(r => TEAM_BY_ID[r.employee_id].client_company === range.company);
+  } else {
+    if (range.company) rows = rows.filter(r => TEAM_BY_ID[r.employee_id].client_company === range.company);
+    if (range.departments && range.departments.length > 0) rows = rows.filter(r => range.departments.includes(TEAM_BY_ID[r.employee_id].department));
   }
   if (range.from) rows = rows.filter(r => r.end_date >= range.from);
   if (range.to) rows = rows.filter(r => r.start_date <= range.to);
