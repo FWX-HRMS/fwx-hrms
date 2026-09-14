@@ -2619,7 +2619,7 @@ function showDateRangePrompt(title, optionalColumns) {
     // person's own company and department instead.
     const applyEmployeeIdFilter = () => {
       const idValue = employeeIdInput.value.trim();
-      const matches = idValue ? DIRECTORY.filter(e => e.file_number === idValue) : [];
+      const matches = idValue ? DIRECTORY.filter(e => e.file_number === idValue && e.role === "staff") : [];
       if (matches.length === 1) {
         renderCompanyOptions(matches[0].client_company || null);
         renderDepartmentCheckboxes(matches[0].department || null);
@@ -2831,10 +2831,8 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   if (!range) return;
 
   let source = range.employeeId
-    ? DIRECTORY.filter(e => e.file_number === range.employeeId)
-    : (ACTIVE_TAB === "supervisors"
-        ? DIRECTORY.filter(e => e.role === "supervisor")
-        : DIRECTORY.filter(e => e.role !== "admin"));
+    ? DIRECTORY.filter(e => e.file_number === range.employeeId && e.role === "staff")
+    : DIRECTORY.filter(e => e.role === "staff");
   const companyToApply = range.company || COMPANY_FILTER;
   if (!range.employeeId && companyToApply) source = source.filter(e => e.client_company === companyToApply);
   if (!range.employeeId && range.departments && range.departments.length > 0) source = source.filter(e => range.departments.includes(e.department));
@@ -2865,11 +2863,11 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const rows = fullRows.map(row => keepIndices.map(i => row[i]));
 
   const scope = companyToApply ? `${companyToApply} — ` : "";
-  const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
+  const title = scope + "Employees — Leave Report";
   const departmentTag = (range.departments && range.departments.length > 0) ? range.departments.map(d => d.toLowerCase().replace(/\s+/g, "-")).join("-") + "_" : "";
   const filenamePrefix = `${companyToApply ? companyToApply.toLowerCase() + "_" : ""}${departmentTag}${range.employeeId ? range.employeeId + "_" : ""}`;
   const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
-  const baseFilename = `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report`;
+  const baseFilename = `${filenamePrefix}all_employees_leave_report`;
 
   // downloadPDF is async (it awaits the logo image and does canvas work
   // for every Arabic name) — awaiting it here, not just calling it, is
@@ -2908,7 +2906,11 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   if (error || !data) { showToast(t("couldNotLoadLeaveRequests")); return; }
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
-  let rows = data;
+  // Reports never include supervisors, regardless of how they're
+  // filtered afterward (Employee ID, company, department) — this base
+  // filter runs first so a supervisor's file number or company can't
+  // pull them back in.
+  let rows = data.filter(r => byId[r.employee_id] && byId[r.employee_id].role === "staff");
   if (range.employeeId) {
     rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].file_number === range.employeeId);
   } else {
