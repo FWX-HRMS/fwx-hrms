@@ -475,7 +475,14 @@ function ensureRangeCompanySelect() {
     <label for="rangeCompanySelect">Company</label>
     <select id="rangeCompanySelect" style="margin-bottom:14px; width:100%"></select>
   `;
-  employeeIdInput.parentNode.insertBefore(wrap, employeeIdInput.nextSibling);
+  // Anchor on the *wrapper* div (position:relative, holding the Employee
+  // ID input plus its clear button), not the bare input — inserting
+  // relative to the input itself would land this new block inside that
+  // wrapper instead of after it, which drags the clear button's
+  // absolute-positioning context down with it (it ends up floating next
+  // to whatever got nested in with it instead of next to the input).
+  const anchor = employeeIdInput.closest("div");
+  anchor.parentNode.insertBefore(wrap, anchor.nextSibling);
   return document.getElementById("rangeCompanySelect");
 }
 
@@ -490,7 +497,9 @@ function ensureRangeDepartmentCheckboxes() {
   if (!employeeIdInput) return null;
   const wrap = document.createElement("div");
   const companySelect = document.getElementById("rangeCompanySelect");
-  const anchor = companySelect ? companySelect.closest("div") : employeeIdInput;
+  // Same reasoning as ensureRangeCompanySelect above: anchor on the
+  // wrapper div, never the bare input.
+  const anchor = companySelect ? companySelect.closest("div") : employeeIdInput.closest("div");
   wrap.innerHTML = `
     <label>Department</label>
     <div id="rangeDepartmentCheckboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; margin-bottom:14px; padding:2px"></div>
