@@ -2772,23 +2772,30 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
   doc.setTextColor(75, 87, 104);
   doc.text(subtitle, textStartX, 25);
 
-  // dateBlock renders "Date From" / "Date To" as two small bold headers
-  // with the actual date sitting underneath each, side by side — used
-  // by the leave reports instead of folding the range into the subtitle
-  // line as plain "Date From: x — Date To: y" text.
+  // dateBlock renders "Date From" / "Date To" as two small green header
+  // pills (same fill color as the table's own header row below) with
+  // white bold labels, and the actual date sitting underneath each in
+  // normal text — used by the leave reports instead of folding the
+  // range into the subtitle line as plain "Date From: x — Date To: y".
   let tableStartY = 32;
   if (dateBlock) {
     const colGap = 70;
+    const boxWidth = 55;
+    const boxHeight = 7;
+    const boxY = 30;
+    doc.setFillColor(47, 111, 94);
+    doc.rect(textStartX, boxY, boxWidth, boxHeight, "F");
+    doc.rect(textStartX + colGap, boxY, boxWidth, boxHeight, "F");
     doc.setFontSize(9);
-    doc.setTextColor(27, 36, 48);
+    doc.setTextColor(255, 255, 255);
     doc.setFont(undefined, "bold");
-    doc.text("Date From", textStartX, 34);
-    doc.text("Date To", textStartX + colGap, 34);
+    doc.text("Date From", textStartX + 3, boxY + boxHeight / 2 + 1.3);
+    doc.text("Date To", textStartX + colGap + 3, boxY + boxHeight / 2 + 1.3);
     doc.setFont(undefined, "normal");
     doc.setTextColor(75, 87, 104);
-    doc.text(String(dateBlock.from), textStartX, 40);
-    doc.text(String(dateBlock.to), textStartX + colGap, 40);
-    tableStartY = 47;
+    doc.text(String(dateBlock.from), textStartX, boxY + boxHeight + 6);
+    doc.text(String(dateBlock.to), textStartX + colGap, boxY + boxHeight + 6);
+    tableStartY = boxY + boxHeight + 10;
   }
 
   // Font size and margins scale with how many columns there are, so a
