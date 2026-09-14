@@ -2576,37 +2576,78 @@ function showDateRangePrompt(title, optionalColumns) {
 
     const companySelect = document.getElementById("rangeCompanySelect");
     const departmentContainer = document.getElementById("rangeDepartmentCheckboxes");
+    const employeeIdInput = document.getElementById("rangeEmployeeIdInput");
     const { data: companies } = await db.from("client_companies").select("name").order("name");
-    companySelect.innerHTML = `<option value="">All companies</option>` +
-      (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
-    companySelect.value = COMPANY_FILTER || "";
+    const allCompanyNames = (companies || []).map(c => c.name);
+
+    // lockedCompany: when set, the dropdown shows only that one company
+    // (used once an Employee ID narrows things down to a single person)
+    // instead of the full list.
+    const renderCompanyOptions = (lockedCompany) => {
+      if (lockedCompany) {
+        companySelect.innerHTML = `<option value="${lockedCompany}">${lockedCompany}</option>`;
+        companySelect.value = lockedCompany;
+        companySelect.disabled = true;
+      } else {
+        companySelect.disabled = false;
+        companySelect.innerHTML = `<option value="">All companies</option>` +
+          allCompanyNames.map(c => `<option value="${c}">${c}</option>`).join("");
+        companySelect.value = COMPANY_FILTER || "";
+      }
+    };
 
     // Checkbox grid rather than a native multi-select — matches the same
     // pattern already used for "Fields to include" in this same modal,
     // and is far more discoverable than a <select multiple> (which
-    // requires knowing to Ctrl/Cmd+click).
-    const renderDepartmentCheckboxes = () => {
-      const list = DEPARTMENTS_BY_COMPANY[companySelect.value] || DEFAULT_DEPARTMENTS;
+    // requires knowing to Ctrl/Cmd+click). lockedDepartment narrows this
+    // down to a single, pre-checked, non-interactive entry the same way
+    // renderCompanyOptions does for the company dropdown.
+    const renderDepartmentCheckboxes = (lockedDepartment) => {
+      const list = lockedDepartment ? [lockedDepartment] : (DEPARTMENTS_BY_COMPANY[companySelect.value] || DEFAULT_DEPARTMENTS);
       departmentContainer.innerHTML = list.map(d => `
         <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:400">
-          <input type="checkbox" class="range-department-checkbox" value="${d}" style="width:auto">
+          <input type="checkbox" class="range-department-checkbox" value="${d}" ${lockedDepartment ? "checked disabled" : ""} style="width:auto">
           <span>${d}</span>
         </label>
       `).join("");
     };
-    renderDepartmentCheckboxes();
-    companySelect.addEventListener("change", renderDepartmentCheckboxes);
+
+    // Once a typed Employee ID matches exactly one person, showing the
+    // full company/department lists would be misleading — an Employee ID
+    // always overrides those filters when the report actually runs (see
+    // onGenerate below), so narrow the pickers down to just that one
+    // person's own company and department instead.
+    const applyEmployeeIdFilter = () => {
+      const idValue = employeeIdInput.value.trim();
+      const matches = idValue ? DIRECTORY.filter(e => e.file_number === idValue) : [];
+      if (matches.length === 1) {
+        renderCompanyOptions(matches[0].client_company || null);
+        renderDepartmentCheckboxes(matches[0].department || null);
+      } else {
+        renderCompanyOptions(null);
+        renderDepartmentCheckboxes(null);
+      }
+    };
+
+    const onCompanyChange = () => renderDepartmentCheckboxes(null);
+
+    applyEmployeeIdFilter();
+    companySelect.addEventListener("change", onCompanyChange);
+    employeeIdInput.addEventListener("input", applyEmployeeIdFilter);
 
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
     const generateBtn = document.getElementById("rangeGenerateBtn");
     const cancelBtn = document.getElementById("rangeCancelBtn");
+    const closeBtn = document.getElementById("rangeCloseBtn");
 
     const cleanup = () => {
       document.getElementById("dateRangeOverlay").style.display = "none";
       generateBtn.removeEventListener("click", onGenerate);
       cancelBtn.removeEventListener("click", onCancel);
-      companySelect.removeEventListener("change", renderDepartmentCheckboxes);
+      closeBtn.removeEventListener("click", onCancel);
+      companySelect.removeEventListener("change", onCompanyChange);
+      employeeIdInput.removeEventListener("input", applyEmployeeIdFilter);
     };
     const onGenerate = () => {
       const wantPdf = document.getElementById("rangeFormatPdf").checked;
@@ -2635,6 +2676,7 @@ function showDateRangePrompt(title, optionalColumns) {
     };
     generateBtn.addEventListener("click", onGenerate);
     cancelBtn.addEventListener("click", onCancel);
+    closeBtn.addEventListener("click", onCancel);
   });
 }
 
