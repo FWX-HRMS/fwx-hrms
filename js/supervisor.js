@@ -907,7 +907,7 @@ document.getElementById("downloadBalanceReportBtn").addEventListener("click", as
 document.getElementById("downloadDetailReportBtn").addEventListener("click", async () => {
   const range = await showDateRangePrompt(
     ME.role === "admin" ? "Employees — Leave Detail Report" : "My Team — Leave Detail Report",
-    { from: "Leave Date From", to: "Leave Date To" }
+    { from: "Date From", to: "Date To" }
   );
   if (!range) return;
 

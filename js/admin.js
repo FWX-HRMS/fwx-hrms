@@ -2987,7 +2987,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
     t("selectReportPeriodTitle"),
     leaveAllColumns.filter(c => !c.always),
     leavePrefillId,
-    { from: "Leave Date From", to: "Leave Date To" }
+    { from: "Date From", to: "Date To" }
   );
   if (!range) return;
 
