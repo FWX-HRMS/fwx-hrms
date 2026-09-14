@@ -654,7 +654,10 @@
     <h2 id="dateRangeTitle" style="margin:0 0 6px"></h2>
     <p style="margin:0 0 16px; color:var(--ink-soft); font-size:14.5px" data-i18n="optionalLeaveBlank">Leave the dates blank to include the entire period.</p>
     <label for="rangeEmployeeIdInput" data-i18n="employeeIdOptionalLabel">Employee ID (optional — leave blank for all)</label>
-    <input type="text" id="rangeEmployeeIdInput" placeholder="e.g. 6002 (F.W.X), 1003 (Zain)" style="margin-bottom:14px">
+    <div style="position:relative; margin-bottom:14px">
+      <input type="text" id="rangeEmployeeIdInput" placeholder="e.g. 6002 (F.W.X), 1003 (Zain)" style="width:100%; padding-inline-end:32px">
+      <button type="button" id="rangeEmployeeIdClearBtn" aria-label="Clear" style="display:none; position:absolute; inset-inline-end:10px; top:50%; transform:translateY(-50%); width:22px; height:22px; border:none; background:transparent; font-size:17px; line-height:1; color:var(--ink-soft, #6b7684); cursor:pointer; padding:0">&times;</button>
+    </div>
     <label for="rangeCompanySelect">Company</label>
     <select id="rangeCompanySelect" style="margin-bottom:14px"></select>
     <label>Department</label>
@@ -789,6 +792,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/admin.js?v=clearfromto1"></script>
+<script src="js/admin.js?v=empidclear1"></script>
 </body>
 </html>

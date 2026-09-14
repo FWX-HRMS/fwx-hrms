@@ -201,7 +201,10 @@
     <h2 id="dateRangeTitle" style="margin:0 0 6px"></h2>
     <p style="margin:0 0 16px; color:var(--ink-soft); font-size:14.5px" data-i18n="optionalLeaveBlank">Optional — leave blank to include everyone.</p>
     <label for="rangeEmployeeIdInput" data-i18n="employeeIdOptionalLabel">Employee ID (optional — leave blank for all)</label>
-    <input type="text" id="rangeEmployeeIdInput" placeholder="e.g. 1003" style="margin-bottom:14px">
+    <div style="position:relative; margin-bottom:14px">
+      <input type="text" id="rangeEmployeeIdInput" placeholder="e.g. 1003" style="width:100%; padding-inline-end:32px">
+      <button type="button" id="rangeEmployeeIdClearBtn" aria-label="Clear" style="display:none; position:absolute; inset-inline-end:10px; top:50%; transform:translateY(-50%); width:22px; height:22px; border:none; background:transparent; font-size:17px; line-height:1; color:var(--ink-soft, #6b7684); cursor:pointer; padding:0">&times;</button>
+    </div>
     <div class="field-row">
       <div>
         <label for="rangeFromInput" id="rangeFromLabel" data-i18n="fromLabel">From</label>
@@ -336,6 +339,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/supervisor.js?v=arabicpdf1"></script>
+<script src="js/supervisor.js?v=empidclear1"></script>
 </body>
 </html>
