@@ -666,7 +666,48 @@ function loadLogoDataURL() {
   });
 }
 
-async function downloadPDF(title, subtitle, columns, rows, filename) {
+function containsArabic(text) {
+  return /[\u0600-\u06FF]/.test(text || "");
+}
+
+// An "English" document (or a mostly-English cell) can still contain an
+// employee's name written in Arabic. jsPDF's plain doc.text()/autoTable
+// have no Arabic glyphs at all, so those names come out as corrupted
+// characters (see the mojibake in a report's Employee Name column)
+// even though the surrounding table is plain LTR text. This draws such
+// text onto a canvas — the browser's own text engine correctly shapes
+// the Arabic run — and places it as an image, left-anchored at
+// (xMm, yMm) where yMm matches jsPDF's usual text-baseline convention.
+function drawMixedLine(doc, text, { xMm, yMm, bold = false, sizeMm = 3.8, color = "#1b2430" } = {}) {
+  const scale = 3;
+  const pxPerMm = 3.7795 * scale;
+  const fontSizePx = Math.round(sizeMm * pxPerMm);
+  const font = `${bold ? "bold " : ""}${fontSizePx}px Tahoma, Arial, sans-serif`;
+
+  const measureCanvas = document.createElement("canvas");
+  const mctx = measureCanvas.getContext("2d");
+  mctx.font = font;
+  const textWidthPx = Math.max(1, Math.ceil(mctx.measureText(text || "").width) + 6);
+  const ascentPx = Math.round(fontSizePx * 0.82);
+  const heightPx = Math.round(fontSizePx * 1.3);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = textWidthPx;
+  canvas.height = heightPx;
+  const ctx = canvas.getContext("2d");
+  ctx.font = font;
+  ctx.fillStyle = color;
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.fillText(text || "", 2, ascentPx);
+
+  const widthMm = textWidthPx / pxPerMm;
+  const heightMm = heightPx / pxPerMm;
+  const topMm = yMm - ascentPx / pxPerMm;
+  doc.addImage(canvas.toDataURL("image/png"), "PNG", xMm, topMm, widthMm, heightMm);
+}
+
+async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndices) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape" });
 
@@ -685,14 +726,76 @@ async function downloadPDF(title, subtitle, columns, rows, filename) {
   doc.setFontSize(10);
   doc.setTextColor(75, 87, 104);
   doc.text(subtitle, textStartX, 25);
+
+  // Font size and margins scale with how many columns there are, so a
+  // wide report gets small enough text and tight enough margins to fit
+  // every column without truncating, while a narrow report still gets a
+  // comfortably larger, more readable size.
+  const colCount = columns.length;
+  const fontSize = colCount <= 6 ? 9 : colCount <= 9 ? 8 : colCount <= 12 ? 7 : colCount <= 16 ? 6 : 5;
+  const marginSide = colCount <= 9 ? 14 : 8;
+
+  // Pre-measure every Arabic cell's actual rendered width (same font/size
+  // math drawMixedLine uses internally) so autoTable can be told the real
+  // minimum width each column needs — otherwise a column with Arabic
+  // content, which autoTable can't measure itself, could end up narrower
+  // than the name actually needs, clipping it.
+  const measureArabicWidthMm = (text, sizeMm) => {
+    const scale = 3;
+    const pxPerMm = 3.7795 * scale;
+    const fontSizePx = Math.round(sizeMm * pxPerMm);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    ctx.font = `${fontSizePx}px Tahoma, Arial, sans-serif`;
+    return ctx.measureText(text || "").width / pxPerMm;
+  };
+  const columnStyles = {};
+  const arabicSizeMm = fontSize * 0.34;
+  columns.forEach((_, colIndex) => {
+    let maxWidthMm = 0;
+    for (const row of rows) {
+      const raw = String(row[colIndex] ?? "");
+      if (!containsArabic(raw)) continue;
+      const w = measureArabicWidthMm(raw, arabicSizeMm) + 4; // 4mm padding
+      if (w > maxWidthMm) maxWidthMm = w;
+    }
+    if (maxWidthMm > 0) columnStyles[colIndex] = { minCellWidth: Math.min(maxWidthMm, 70) };
+  });
+
   doc.autoTable({
     head: [columns],
     body: rows,
     startY: 32,
     theme: "striped",
-    headStyles: { fillColor: [47, 111, 94] },
-    styles: { fontSize: 9, cellPadding: 4 },
-    margin: { left: 14, right: 14 },
+    headStyles: { fillColor: [47, 111, 94], fontSize, halign: "left", cellPadding: colCount > 9 ? 2 : 3 },
+    styles: { fontSize, cellPadding: colCount > 9 ? 2 : 3, overflow: "linebreak" },
+    columnStyles,
+    margin: { left: marginSide, right: marginSide },
+    didParseCell: (data) => {
+      if (redRowIndices && data.section === "body" && redRowIndices.has(data.row.index)) {
+        data.cell.styles.textColor = [165, 64, 43];
+      }
+      // jsPDF's built-in fonts have no Arabic glyphs at all — left as
+      // plain text, Arabic cell content (employee names) renders as
+      // corrupted characters. Blank the cell's own text out here; the
+      // actual text gets drawn as a canvas-rendered image in
+      // didDrawCell instead, which correctly shapes Arabic.
+      if (data.section === "body" && typeof data.cell.text === "object" && containsArabic(String(data.cell.raw ?? ""))) {
+        data.cell.text = [""];
+      }
+    },
+    didDrawCell: (data) => {
+      if (data.section !== "body") return;
+      const raw = String(data.cell.raw ?? "");
+      if (!containsArabic(raw)) return;
+      const redColor = redRowIndices && redRowIndices.has(data.row.index) ? "#A5402B" : "#1b2430";
+      drawMixedLine(doc, raw, {
+        xMm: data.cell.x + 2,
+        yMm: data.cell.y + data.cell.height / 2 + 1.1,
+        sizeMm: arabicSizeMm,
+        color: redColor,
+      });
+    },
   });
   doc.save(filename);
 }
