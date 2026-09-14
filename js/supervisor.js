@@ -460,9 +460,21 @@ function employeeIdPlaceholderFor() {
   return `e.g. ${example}`;
 }
 
-function showDateRangePrompt(title) {
+// Captured lazily the first time the report dialog opens, so a report
+// that doesn't ask for custom From/To wording still shows the right
+// default text instead of a leftover override from a previous report.
+let DEFAULT_RANGE_FROM_LABEL = null;
+let DEFAULT_RANGE_TO_LABEL = null;
+
+function showDateRangePrompt(title, dateLabels) {
   return new Promise(async (resolve) => {
     document.getElementById("dateRangeTitle").textContent = title;
+    if (DEFAULT_RANGE_FROM_LABEL === null) {
+      DEFAULT_RANGE_FROM_LABEL = document.getElementById("rangeFromLabel").textContent;
+      DEFAULT_RANGE_TO_LABEL = document.getElementById("rangeToLabel").textContent;
+    }
+    document.getElementById("rangeFromLabel").textContent = (dateLabels && dateLabels.from) || DEFAULT_RANGE_FROM_LABEL;
+    document.getElementById("rangeToLabel").textContent = (dateLabels && dateLabels.to) || DEFAULT_RANGE_TO_LABEL;
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
     document.getElementById("rangeEmployeeIdInput").value = "";
@@ -493,11 +505,13 @@ function showDateRangePrompt(title) {
 
     const generateBtn = document.getElementById("rangeGenerateBtn");
     const cancelBtn = document.getElementById("rangeCancelBtn");
+    const closeBtn = document.getElementById("rangeCloseBtn");
 
     const cleanup = () => {
       document.getElementById("dateRangeOverlay").style.display = "none";
       generateBtn.removeEventListener("click", onGenerate);
       cancelBtn.removeEventListener("click", onCancel);
+      closeBtn.removeEventListener("click", onCancel);
     };
     const onGenerate = () => {
       const wantPdf = document.getElementById("rangeFormatPdf").checked;
@@ -520,6 +534,7 @@ function showDateRangePrompt(title) {
     };
     generateBtn.addEventListener("click", onGenerate);
     cancelBtn.addEventListener("click", onCancel);
+    closeBtn.addEventListener("click", onCancel);
   });
 }
 
@@ -581,6 +596,118 @@ function downloadExcel(sheetName, columns, rows, filename) {
   XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
   XLSX.writeFile(wb, filename);
 }
+
+// Both report buttons below share the same scoping: TEAM_LIST (and
+// TEAM_BY_ID) already come out of loadTeam() restricted to "my direct
+// reports" for a regular supervisor, or "everyone but other admins" for
+// an admin — so filtering against them, rather than querying the whole
+// employees table fresh, is what keeps a supervisor's report limited to
+// their own team automatically. Both also drop non-staff (supervisor)
+// rows, matching the same "reports never include supervisors" rule the
+// admin Users page follows.
+document.getElementById("downloadBalanceReportBtn").addEventListener("click", async () => {
+  const range = await showDateRangePrompt(
+    ME.role === "admin" ? "Employees — Leave Balance Report" : "My Team — Leave Balance Report",
+    { from: "Hiring Date From", to: "Hiring Date To" }
+  );
+  if (!range) return;
+
+  let source = TEAM_LIST.filter(e => e.role === "staff");
+  if (range.employeeId) {
+    // A file number isn't guaranteed unique across companies, so pair it
+    // with the selected company whenever one is available (admins only
+    // — see showDateRangePrompt, which hides the company picker for
+    // regular supervisors entirely since their team is one company).
+    source = source.filter(e => e.file_number === range.employeeId && (!range.company || e.client_company === range.company));
+  } else if (range.company) {
+    source = source.filter(e => e.client_company === range.company);
+  }
+  if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
+  if (range.to) source = source.filter(e => e.hiring_date && e.hiring_date <= range.to);
+
+  if (source.length === 0) {
+    await showInfo(t("noResultsTitle"), t("noMatchingEmployeeToast"));
+    return;
+  }
+
+  const balByEmployeeId = Object.fromEntries(TEAM_BALANCE_ROWS.map(r => [r.employee_id, r]));
+  const columns = ["Employee Name", "ID #", "Company", "Department", "Available Balance", "Annual Entitlement", "Taken", "Prev. Year Balance", "Sick", "Sick Taken", "Sick Remaining"];
+  const rows = source.map(e => {
+    const bal = balByEmployeeId[e.id];
+    return [
+      e.full_name, e.file_number, e.client_company || "—", e.department || "—",
+      bal ? bal.remaining : "—", bal ? bal.annual_entitlement : "—", bal ? bal.taken : "—",
+      String(e.carryover_balance ?? 0),
+      bal ? bal.sick_entitlement : "—", bal ? bal.sick_taken : "—", bal ? bal.sick_remaining : "—"
+    ];
+  });
+
+  const scopeLabel = ME.role === "admin" ? (range.company || "") : `${ME.full_name}'s Team`;
+  const title = (scopeLabel ? `${scopeLabel} — ` : "") + "Leave Balance Report";
+  const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
+  const filenamePrefix = `${range.company ? range.company.toLowerCase().replace(/\s+/g, "-") + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}`;
+  const baseFilename = `${filenamePrefix}leave_balance_report`;
+
+  if (range.wantPdf) {
+    await downloadPDF(title, `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`, columns, rows, `${baseFilename}.pdf`);
+  }
+  if (range.wantExcel) {
+    downloadExcel(title, columns, rows, `${baseFilename}.xlsx`);
+  }
+});
+
+document.getElementById("downloadDetailReportBtn").addEventListener("click", async () => {
+  const range = await showDateRangePrompt(
+    ME.role === "admin" ? "Employees — Leave Detail Report" : "My Team — Leave Detail Report",
+    { from: "Leave Date From", to: "Leave Date To" }
+  );
+  if (!range) return;
+
+  const { data, error } = await db.from("leave_requests").select("*").order("requested_at", { ascending: false });
+  if (error || !data) { showToast(t("couldNotLoadLeaveRequests")); return; }
+
+  let rows = data.filter(r => TEAM_BY_ID[r.employee_id] && TEAM_BY_ID[r.employee_id].role === "staff");
+  if (range.employeeId) {
+    rows = rows.filter(r => TEAM_BY_ID[r.employee_id].file_number === range.employeeId && (!range.company || TEAM_BY_ID[r.employee_id].client_company === range.company));
+  } else if (range.company) {
+    rows = rows.filter(r => TEAM_BY_ID[r.employee_id].client_company === range.company);
+  }
+  if (range.from) rows = rows.filter(r => r.end_date >= range.from);
+  if (range.to) rows = rows.filter(r => r.start_date <= range.to);
+
+  if (rows.length === 0) {
+    await showInfo(t("noResultsTitle"), t("noMatchingRequestsToast"));
+    return;
+  }
+
+  const columns = ["Employee Name", "ID #", "Company", "Dates", "Days", "Type", "Status"];
+  const pdfRows = rows.map(r => {
+    const emp = TEAM_BY_ID[r.employee_id];
+    const isHourly = r.leave_type === "hourly";
+    return [
+      emp.full_name, emp.file_number, emp.client_company || "—",
+      isHourly
+        ? `${fmtDate(r.start_date)} (${r.time_from ? r.time_from.slice(0,5) : "—"}-${r.time_to ? r.time_to.slice(0,5) : "—"})`
+        : `${fmtDate(r.start_date)} To ${fmtDate(r.end_date)}`,
+      isHourly ? `${r.hours_requested}h` : String(r.days_requested),
+      r.leave_type,
+      r.status
+    ];
+  });
+
+  const scopeLabel = ME.role === "admin" ? (range.company || "") : `${ME.full_name}'s Team`;
+  const title = (scopeLabel ? `${scopeLabel} — ` : "") + "Leave Detail Report";
+  const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
+  const filenamePrefix = `${range.company ? range.company.toLowerCase().replace(/\s+/g, "-") + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}`;
+  const baseFilename = `${filenamePrefix}leave_detail_report`;
+
+  if (range.wantPdf) {
+    await downloadPDF(title, `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`, columns, pdfRows, `${baseFilename}.pdf`);
+  }
+  if (range.wantExcel) {
+    downloadExcel(title, columns, pdfRows, `${baseFilename}.xlsx`);
+  }
+});
 
 let TEAM_WARNINGS_LIST = [];
 let TEAM_WARNINGS_PAGE = 0;
