@@ -3054,7 +3054,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
 
   const companyScope = range.company || COMPANY_FILTER;
   const scope = companyScope ? `${companyScope} — ` : "";
-  const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
+  const rangeNote = ` — Date From: ${range.from || "the beginning"} — Date To: ${range.to || "today"}`;
   const departmentTag2 = (range.departments && range.departments.length > 0) ? range.departments.map(d => d.toLowerCase().replace(/\s+/g, "-")).join("-") + "_" : "";
   const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}${departmentTag2}${range.employeeId ? range.employeeId + "_" : ""}leave_requests_report`;
 

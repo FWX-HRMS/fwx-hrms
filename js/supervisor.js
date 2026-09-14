@@ -928,7 +928,7 @@ document.getElementById("downloadDetailReportBtn").addEventListener("click", asy
 
   const scopeLabel = ME.role === "admin" ? (range.company || "") : `${ME.full_name}'s Team`;
   const title = (scopeLabel ? `${scopeLabel} — ` : "") + "Leave Detail Report";
-  const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
+  const rangeNote = ` — Date From: ${range.from || "the beginning"} — Date To: ${range.to || "today"}`;
   const filenamePrefix = `${range.company ? range.company.toLowerCase().replace(/\s+/g, "-") + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}`;
   const baseFilename = `${filenamePrefix}leave_detail_report`;
 
