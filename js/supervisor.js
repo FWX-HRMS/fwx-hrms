@@ -1,7 +1,8 @@
 let ME = null;
-// Reusable search bar injector — creates a 🔍 search input right above the
-// given table (if not already present) and wires it to re-render on input.
-// Works without needing the HTML file, so it can be dropped onto any table.
+// Reusable search bar injector — creates a 🔍 search input (with a small
+// "×" clear button that appears once there's text) right above the given
+// table, and wires both to re-render on input. Works without needing the
+// HTML file, so it can be dropped onto any table.
 function ensureTableSearch(tbodyId, inputId, onQuery) {
   let input = document.getElementById(inputId);
   if (input) return input;
@@ -9,16 +10,38 @@ function ensureTableSearch(tbodyId, inputId, onQuery) {
   if (!tbody) return null;
   const table = tbody.closest("table");
   if (!table) return null;
+  const clearBtnId = `${inputId}ClearBtn`;
   const wrap = document.createElement("div");
   wrap.style.cssText = "position:relative; max-width:480px; margin-bottom:14px";
   wrap.innerHTML = `
     <span style="position:absolute; inset-inline-start:12px; top:50%; transform:translateY(-50%); pointer-events:none; opacity:.55">🔍</span>
-    <input type="text" id="${inputId}" placeholder="Name, file #, company, role, or department" style="width:100%; padding-inline-start:36px">
+    <input type="text" id="${inputId}" placeholder="Name, file #, company, role, or department" style="width:100%; padding-inline-start:36px; padding-inline-end:32px">
+    <button type="button" id="${clearBtnId}" aria-label="Clear search" style="display:none; position:absolute; inset-inline-end:10px; top:50%; transform:translateY(-50%); width:22px; height:22px; border:none; background:transparent; font-size:17px; line-height:1; color:var(--ink-soft, #6b7684); cursor:pointer; padding:0">&times;</button>
   `;
   table.parentNode.insertBefore(wrap, table);
   input = document.getElementById(inputId);
   input.addEventListener("input", onQuery);
+  wireSearchClearBtn(inputId, clearBtnId);
   return input;
+}
+
+// Shared by every search box built above (and the Employee ID field in
+// the report dialog) — shows the "×" whenever the field has text, and
+// clicking it empties the field and re-fires "input" so whatever's
+// listening (a table re-filter, or the report dialog's Employee ID
+// narrowing) reacts exactly as if the text had been deleted by hand.
+function wireSearchClearBtn(inputId, clearBtnId) {
+  const input = document.getElementById(inputId);
+  const clearBtn = document.getElementById(clearBtnId);
+  if (!input || !clearBtn) return;
+  const toggle = () => { clearBtn.style.display = input.value ? "flex" : "none"; };
+  input.addEventListener("input", toggle);
+  clearBtn.addEventListener("click", () => {
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+    input.focus();
+  });
+  toggle();
 }
 
 function newBadge(dateStr) {
@@ -646,23 +669,9 @@ document.getElementById("rangeFormatExcel").addEventListener("change", (e) => {
   if (e.target.checked) document.getElementById("rangeFormatPdf").checked = false;
 });
 
-// Small "×" clear button inside the Employee ID field — shows whenever
-// it has text, and clicking it empties the field and re-fires "input"
-// so applyEmployeeIdFilter (wired inside showDateRangePrompt while the
-// dialog is open) re-narrows the Company/Department pickers back to
-// "all" exactly as deleting the text by hand would.
-(() => {
-  const input = document.getElementById("rangeEmployeeIdInput");
-  const clearBtn = document.getElementById("rangeEmployeeIdClearBtn");
-  const toggle = () => { clearBtn.style.display = input.value ? "flex" : "none"; };
-  input.addEventListener("input", toggle);
-  clearBtn.addEventListener("click", () => {
-    input.value = "";
-    input.dispatchEvent(new Event("input"));
-    input.focus();
-  });
-  toggle();
-})();
+// Employee ID field inside the report dialog gets the same clear "×"
+// as every table search box above — see wireSearchClearBtn.
+wireSearchClearBtn("rangeEmployeeIdInput", "rangeEmployeeIdClearBtn");
 
 function loadLogoDataURL() {
   return new Promise((resolve) => {

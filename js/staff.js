@@ -145,11 +145,23 @@ function ensureRequestsSearch() {
   wrap.style.cssText = "position:relative; max-width:480px; margin-bottom:14px";
   wrap.innerHTML = `
     <span style="position:absolute; inset-inline-start:12px; top:50%; transform:translateY(-50%); pointer-events:none; opacity:.55">🔍</span>
-    <input type="text" id="requestsSearchInput" placeholder="Type or status" style="width:100%; padding-inline-start:36px">
+    <input type="text" id="requestsSearchInput" placeholder="Type or status" style="width:100%; padding-inline-start:36px; padding-inline-end:32px">
+    <button type="button" id="requestsSearchClearBtn" aria-label="Clear search" style="display:none; position:absolute; inset-inline-end:10px; top:50%; transform:translateY(-50%); width:22px; height:22px; border:none; background:transparent; font-size:17px; line-height:1; color:var(--ink-soft, #6b7684); cursor:pointer; padding:0">&times;</button>
   `;
   table.parentNode.insertBefore(wrap, table);
   input = document.getElementById("requestsSearchInput");
   input.addEventListener("input", () => { MY_REQUESTS_PAGE = 0; renderRequests(); });
+  // "×" clear button — shows whenever there's text, clears and re-fires
+  // "input" (which the listener above already reacts to) on click.
+  const clearBtn = document.getElementById("requestsSearchClearBtn");
+  const toggleClear = () => { clearBtn.style.display = input.value ? "flex" : "none"; };
+  input.addEventListener("input", toggleClear);
+  clearBtn.addEventListener("click", () => {
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+    input.focus();
+  });
+  toggleClear();
   return input;
 }
 
