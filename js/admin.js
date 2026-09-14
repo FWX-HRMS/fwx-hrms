@@ -2566,9 +2566,23 @@ document.getElementById("rangeFormatExcel").addEventListener("change", (e) => {
   if (e.target.checked) document.getElementById("rangeFormatPdf").checked = false;
 });
 
-function showDateRangePrompt(title, optionalColumns, prefillEmployeeId) {
+// Captured lazily the first time the report dialog opens, from whatever
+// the labels already say at that point (translated or not) — used as
+// the fallback so reports that don't ask for custom From/To wording
+// (or reopen after one that did) still show the right default text
+// instead of a leftover override from a previous report.
+let DEFAULT_RANGE_FROM_LABEL = null;
+let DEFAULT_RANGE_TO_LABEL = null;
+
+function showDateRangePrompt(title, optionalColumns, prefillEmployeeId, dateLabels) {
   return new Promise(async (resolve) => {
     document.getElementById("dateRangeTitle").textContent = title;
+    if (DEFAULT_RANGE_FROM_LABEL === null) {
+      DEFAULT_RANGE_FROM_LABEL = document.getElementById("rangeFromLabel").textContent;
+      DEFAULT_RANGE_TO_LABEL = document.getElementById("rangeToLabel").textContent;
+    }
+    document.getElementById("rangeFromLabel").textContent = (dateLabels && dateLabels.from) || DEFAULT_RANGE_FROM_LABEL;
+    document.getElementById("rangeToLabel").textContent = (dateLabels && dateLabels.to) || DEFAULT_RANGE_TO_LABEL;
     document.getElementById("rangeFromInput").value = "";
     document.getElementById("rangeToInput").value = "";
     document.getElementById("rangeEmployeeIdInput").value = prefillEmployeeId || "";
@@ -2864,7 +2878,12 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const directoryPrefillId = (directorySearchValue && DIRECTORY.some(e => e.file_number === directorySearchValue && e.role === "staff"))
     ? directorySearchValue
     : null;
-  const range = await showDateRangePrompt(t("selectReportPeriodTitle"), allColumns.filter(c => !c.always), directoryPrefillId);
+  const range = await showDateRangePrompt(
+    t("selectReportPeriodTitle"),
+    allColumns.filter(c => !c.always),
+    directoryPrefillId,
+    { from: "Hiring Date From", to: "Hiring Date To" }
+  );
   if (!range) return;
 
   const companyToApply = range.company || COMPANY_FILTER;
@@ -2954,7 +2973,12 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   const leavePrefillId = (leaveSearchValue && DIRECTORY.some(e => e.file_number === leaveSearchValue && e.role === "staff"))
     ? leaveSearchValue
     : null;
-  const range = await showDateRangePrompt(t("selectReportPeriodTitle"), leaveAllColumns.filter(c => !c.always), leavePrefillId);
+  const range = await showDateRangePrompt(
+    t("selectReportPeriodTitle"),
+    leaveAllColumns.filter(c => !c.always),
+    leavePrefillId,
+    { from: "Leave Date From", to: "Leave Date To" }
+  );
   if (!range) return;
 
   const { data, error } = await db.from("leave_requests").select("*").order("requested_at", { ascending: false });
