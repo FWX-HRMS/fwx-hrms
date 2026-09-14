@@ -137,7 +137,6 @@ function applyTab(tab) {
   document.getElementById("tableTitle").textContent = tab === "supervisors" ? t("tabSupervisors") : t("tabEmployees");
   document.getElementById("showAddFormBtn").style.display = tab === "supervisors" ? "none" : "";
   document.getElementById("showAddSupervisorAdminBtn").style.display = tab === "supervisors" ? "" : "none";
-  document.getElementById("downloadReportBtn").style.display = tab === "supervisors" ? "none" : "";
   DIRECTORY_PAGE = 0;
   renderDirectory();
 }
@@ -2651,18 +2650,10 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
 
   doc.setFontSize(16);
   doc.setTextColor(27, 36, 48);
-  if (containsArabic(title)) {
-    drawMixedLine(doc, title, { xMm: textStartX, yMm: 18, sizeMm: 5.6, color: "#1b2430" });
-  } else {
-    doc.text(title, textStartX, 18);
-  }
+  doc.text(title, textStartX, 18);
   doc.setFontSize(10);
   doc.setTextColor(75, 87, 104);
-  if (containsArabic(subtitle)) {
-    drawMixedLine(doc, subtitle, { xMm: textStartX, yMm: 25, sizeMm: 3.5, color: "#4b5768" });
-  } else {
-    doc.text(subtitle, textStartX, 25);
-  }
+  doc.text(subtitle, textStartX, 25);
 
   // Font size and margins scale with how many columns there are, so a
   // wide report (15 columns) gets small enough text and tight enough
@@ -2778,10 +2769,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
     ? DIRECTORY.filter(e => e.file_number === range.employeeId)
     : (ACTIVE_TAB === "supervisors"
         ? DIRECTORY.filter(e => e.role === "supervisor")
-        // General/default report shows employee info only — supervisors
-        // are excluded here (the dedicated "Supervisors" tab above is
-        // the only place that still reports on supervisor rows).
-        : DIRECTORY.filter(e => e.role === "staff"));
+        : DIRECTORY.filter(e => e.role !== "admin"));
   const companyToApply = range.company || COMPANY_FILTER;
   if (!range.employeeId && companyToApply) source = source.filter(e => e.client_company === companyToApply);
   if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
@@ -2812,7 +2800,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
 
   const scope = companyToApply ? `${companyToApply} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
-  const filenamePrefix = companyToApply ? `${companyToApply.toLowerCase()}_` : "";
+  const filenamePrefix = `${companyToApply ? companyToApply.toLowerCase() + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}`;
   const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
   const baseFilename = `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report`;
 
@@ -2880,8 +2868,8 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
       emp ? emp.full_name : "—",
       emp ? (emp.client_company || "—") : "—",
       isHourly
-        ? `${fmtDate(r.start_date)} (${r.time_from ? r.time_from.slice(0,5) : "—"}–${r.time_to ? r.time_to.slice(0,5) : "—"})`
-        : `${fmtDate(r.start_date)} → ${fmtDate(r.end_date)}`,
+        ? `${fmtDate(r.start_date)} (${r.time_from ? r.time_from.slice(0,5) : "—"}-${r.time_to ? r.time_to.slice(0,5) : "—"})`
+        : `${fmtDate(r.start_date)} To ${fmtDate(r.end_date)}`,
       isHourly ? `${r.hours_requested}h` : String(r.days_requested),
       r.leave_type,
       r.status
@@ -2899,7 +2887,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   const companyScope = range.company || COMPANY_FILTER;
   const scope = companyScope ? `${companyScope} — ` : "";
   const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
-  const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}leave_requests_report`;
+  const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}leave_requests_report`;
 
   if (range.wantPdf) {
     await downloadPDF(
