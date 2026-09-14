@@ -10,14 +10,6 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<style>
-@keyframes contractSpin { to { transform: rotate(360deg); } }
-.inline-spinner {
-  display: inline-block; width: 18px; height: 18px;
-  border: 3px solid #cbd5e1; border-top-color: #2563eb; border-radius: 50%;
-  animation: contractSpin 0.8s linear infinite; vertical-align: middle;
-}
-</style>
 </head>
 <body>
 <div class="app">
@@ -44,7 +36,6 @@
         <h1 class="page-title" style="margin-bottom:4px" data-i18n="teamOverviewTitle">Team overview</h1>
         <p class="page-sub" id="teamCount" style="margin-bottom:0"></p>
       </div>
-      <button type="button" class="btn btn-blue" id="downloadReportBtn" style="width:200px; height:44px" data-i18n="downloadReportBtn">Download Report</button>
     </div>
 
     <div class="panel">
@@ -218,10 +209,10 @@
     </div>
     <label style="display:flex; align-items:center; gap:16px; margin-top:16px">
       <span style="display:flex; align-items:center; gap:8px; font-weight:500; color:var(--ink)">
-        <input type="radio" name="rangeFormat" id="rangeFormatPdf" checked style="width:auto"><span data-i18n="formatPdfLabel">PDF</span>
+        <input type="checkbox" id="rangeFormatPdf" checked style="width:auto"><span data-i18n="formatPdfLabel">PDF</span>
       </span>
       <span style="display:flex; align-items:center; gap:8px; font-weight:500; color:var(--ink)">
-        <input type="radio" name="rangeFormat" id="rangeFormatExcel" style="width:auto"><span data-i18n="formatExcelLabel">Excel</span>
+        <input type="checkbox" id="rangeFormatExcel" style="width:auto"><span data-i18n="formatExcelLabel">Excel</span>
       </span>
     </label>
     <div class="error-msg" id="rangeFormatError"></div>
@@ -247,18 +238,6 @@
     <h2 id="actionTitle" style="margin:0 0 10px"></h2>
     <p id="actionMessage" style="margin:0 0 20px; color:var(--ink-soft); font-size:14.5px"></p>
     <div id="actionButtons" style="display:flex; gap:10px; justify-content:flex-end"></div>
-  </div>
-</div>
-
-<!-- Shown after "Do Not Renew" is scheduled — single OK button; pressing
-     it dismisses the box and removes the row from the Contract Renewal
-     table (the employee is notified server-side already). -->
-<div id="doNotRenewConfirmOverlay" class="modal-overlay" style="display:none">
-  <div class="modal-box" style="max-width:420px; text-align:center">
-    <div style="font-size:34px; margin-bottom:6px">🚫</div>
-    <h2 style="margin:0 0 10px">Contract Will Not Be Renewed</h2>
-    <p class="help-text" id="doNotRenewConfirmText" style="margin-bottom:18px"></p>
-    <button type="button" class="btn btn-primary" id="doNotRenewConfirmOkBtn" style="width:100%">OK</button>
   </div>
 </div>
 
@@ -292,10 +271,9 @@
       <input type="date" id="renewSameTermsStartDate" required>
       <label for="renewSameTermsPeriodMonths" style="margin-top:12px">Contract period (months)</label>
       <select id="renewSameTermsPeriodMonths" required></select>
-      <div style="display:flex; gap:10px; margin-top:16px; align-items:center">
+      <div style="display:flex; gap:10px; margin-top:16px">
         <button type="submit" class="btn btn-primary" id="renewSameTermsSubmitBtn" style="width:220px">Renew &amp; Share</button>
         <button type="button" class="btn btn-danger" id="renewSameTermsCancelBtn" data-confirm-close="1" style="width:220px">Cancel</button>
-        <span id="renewSameTermsSpinner" class="inline-spinner" style="display:none"></span>
       </div>
       <div class="error-msg" id="renewSameTermsError"></div>
     </form>
@@ -339,28 +317,12 @@
           <input type="number" id="renewContractPeriodMonths" min="1" max="60" step="1" required>
         </div>
       </div>
-      <div style="display:flex; gap:10px; margin-top:6px; align-items:center">
+      <div style="display:flex; gap:10px; margin-top:6px">
         <button type="submit" class="btn btn-primary" id="renewContractSubmitBtn" style="width:220px">Prepare Renewed Contract</button>
         <button type="button" class="btn btn-danger" id="renewContractCancelBtn" data-confirm-close="1" style="width:220px">Cancel</button>
-        <span id="renewContractSpinner" class="inline-spinner" style="display:none"></span>
       </div>
       <div class="error-msg" id="renewContractError"></div>
     </form>
-  </div>
-</div>
-
-<!-- Shown after a renewal is created and shared, in place of the old
-     toast — confirms who it was shared with and offers a direct way to
-     view it. -->
-<div id="contractSharedOverlay" class="modal-overlay" style="display:none">
-  <div class="modal-box" style="max-width:420px; text-align:center">
-    <div style="font-size:34px; margin-bottom:6px">✅</div>
-    <h2 style="margin:0 0 10px">New Contract Shared</h2>
-    <p class="help-text" id="contractSharedText" style="margin-bottom:18px"></p>
-    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap">
-      <button type="button" class="btn btn-blue" id="contractSharedViewBtn">View Contract</button>
-      <button type="button" class="btn btn-primary" id="contractSharedOkBtn">OK</button>
-    </div>
   </div>
 </div>
 
@@ -369,6 +331,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/supervisor.js?v=arabicfix1"></script>
+<script src="js/supervisor.js?v=norepbtn1"></script>
 </body>
 </html>
