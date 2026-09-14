@@ -71,7 +71,13 @@
     </div>
 
     <div class="panel">
-      <h2 data-i18n="usersListTitle">Users</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px">
+        <h2 style="margin:0" data-i18n="usersListTitle">Users</h2>
+        <div style="display:flex; gap:8px; flex-wrap:wrap">
+          <button type="button" class="btn btn-blue" id="downloadBalanceReportBtn" style="height:44px">Download Leave Balance Report</button>
+          <button type="button" class="btn btn-blue" id="downloadDetailReportBtn" style="height:44px">Download Leave Detail Report</button>
+        </div>
+      </div>
       <table>
         <thead>
           <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colIdNum">ID #</th><th data-i18n="colRole">Role</th><th data-i18n="colCompany">Company</th><th data-i18n="colDepartment">Department</th><th><span data-i18n="colRemaining">Available Balance</span><br><span data-i18n="availableBalanceTodayNote" style="display:block; font-weight:400; text-transform:none; letter-spacing:normal; font-size:10.5px; color:#2563eb; white-space:nowrap;">Today</span></th><th><span data-i18n="colAnnual">Full Year Annual Entitlement</span><br><span data-i18n="annualEntitlementNote" style="display:block; font-weight:400; text-transform:none; letter-spacing:normal; font-size:10.5px; color:#2563eb; white-space:nowrap;">As long as on active contract</span></th><th data-i18n="colTaken">Taken</th><th data-i18n="colPrevYearBalance">Prev. Year Balance</th><th><span data-i18n="colSick">Sick</span><br><span data-i18n="sickEntitlementAnnualNote" style="display:block; font-weight:400; text-transform:none; letter-spacing:normal; font-size:10.5px; color:#2563eb; white-space:nowrap;">Entitled Annual</span></th><th data-i18n="colSickTaken">Sick Taken</th><th data-i18n="colSickRemaining">Sick Remaining</th></tr>
@@ -192,18 +198,19 @@
 
 <!-- Date range prompt (used before generating the PDF report) -->
 <div id="dateRangeOverlay" class="modal-overlay" style="display:none">
-  <div class="modal-box" style="max-width:460px">
+  <div class="modal-box" style="max-width:460px; position:relative">
+    <button type="button" id="rangeCloseBtn" aria-label="Close" style="position:absolute; top:10px; inset-inline-end:10px; width:28px; height:28px; border:none; background:transparent; font-size:20px; line-height:1; color:var(--ink-soft, #6b7684); cursor:pointer; padding:0">&times;</button>
     <h2 id="dateRangeTitle" style="margin:0 0 6px"></h2>
     <p style="margin:0 0 16px; color:var(--ink-soft); font-size:14.5px" data-i18n="optionalLeaveBlank">Optional — leave blank to include everyone.</p>
     <label for="rangeEmployeeIdInput" data-i18n="employeeIdOptionalLabel">Employee ID (optional — leave blank for all)</label>
     <input type="text" id="rangeEmployeeIdInput" placeholder="e.g. 1003" style="margin-bottom:14px">
     <div class="field-row">
       <div>
-        <label for="rangeFromInput" data-i18n="fromLabel">From</label>
+        <label for="rangeFromInput" id="rangeFromLabel" data-i18n="fromLabel">From</label>
         <input type="date" id="rangeFromInput">
       </div>
       <div>
-        <label for="rangeToInput" data-i18n="toLabel">To</label>
+        <label for="rangeToInput" id="rangeToLabel" data-i18n="toLabel">To</label>
         <input type="date" id="rangeToInput">
       </div>
     </div>
@@ -331,6 +338,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/supervisor.js?v=norepbtn1"></script>
+<script src="js/supervisor.js?v=teamreport1"></script>
 </body>
 </html>
