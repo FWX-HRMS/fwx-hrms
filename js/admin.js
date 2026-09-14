@@ -2867,15 +2867,26 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   const range = await showDateRangePrompt(t("selectReportPeriodTitle"), allColumns.filter(c => !c.always), directoryPrefillId);
   if (!range) return;
 
-  let source = range.employeeId
-    ? DIRECTORY.filter(e => e.file_number === range.employeeId && e.role === "staff")
-    : DIRECTORY.filter(e => e.role === "staff");
   const companyToApply = range.company || COMPANY_FILTER;
+  // An Employee ID isn't guaranteed unique across companies (same file
+  // number can exist at more than one client company — see the "e.g.
+  // 6002 (F.W.X), 1003 (Zain)" hint on the field) — so when a company is
+  // also selected (or the admin's own view is scoped to one), it must be
+  // applied together with the ID, not skipped, otherwise a same-numbered
+  // employee at a different company could silently end up in the report
+  // instead of, or alongside, the right one.
+  let source = range.employeeId
+    ? DIRECTORY.filter(e => e.file_number === range.employeeId && e.role === "staff" && (!companyToApply || e.client_company === companyToApply))
+    : DIRECTORY.filter(e => e.role === "staff");
   if (!range.employeeId && companyToApply) source = source.filter(e => e.client_company === companyToApply);
   if (!range.employeeId && range.departments && range.departments.length > 0) source = source.filter(e => range.departments.includes(e.department));
   if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
   if (range.to) source = source.filter(e => e.hiring_date && e.hiring_date <= range.to);
-  if (!range.includeFrozen) source = source.filter(e => !e.frozen);
+  // An explicitly-identified employee should still appear even if
+  // they're frozen — "Include frozen staff" is meant to widen a broad,
+  // company-wide report, not hide the one specific person the admin
+  // already searched for by ID.
+  if (!range.employeeId && !range.includeFrozen) source = source.filter(e => !e.frozen);
 
   if (source.length === 0) {
     showInfoPopup(t("noResultsTitle"), t("noMatchingEmployeeToast"));
@@ -2950,21 +2961,30 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   if (error || !data) { showToast(t("couldNotLoadLeaveRequests")); return; }
 
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
+  const companyToApply = range.company || COMPANY_FILTER;
   // Reports never include supervisors, regardless of how they're
   // filtered afterward (Employee ID, company, department) — this base
   // filter runs first so a supervisor's file number or company can't
   // pull them back in.
   let rows = data.filter(r => byId[r.employee_id] && byId[r.employee_id].role === "staff");
   if (range.employeeId) {
-    rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].file_number === range.employeeId);
+    // Same disambiguation as the Employees report above: a file number
+    // isn't guaranteed unique across companies, so it must be paired
+    // with the selected company (or the admin's own company-scoped
+    // view) whenever one is available, otherwise a same-numbered
+    // employee at a different company can end up in the report too.
+    rows = rows.filter(r => byId[r.employee_id].file_number === range.employeeId && (!companyToApply || byId[r.employee_id].client_company === companyToApply));
   } else {
-    const companyToApply = range.company || COMPANY_FILTER;
-    if (companyToApply) rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].client_company === companyToApply);
-    if (range.departments && range.departments.length > 0) rows = rows.filter(r => byId[r.employee_id] && range.departments.includes(byId[r.employee_id].department));
+    if (companyToApply) rows = rows.filter(r => byId[r.employee_id].client_company === companyToApply);
+    if (range.departments && range.departments.length > 0) rows = rows.filter(r => range.departments.includes(byId[r.employee_id].department));
   }
   if (range.from) rows = rows.filter(r => r.end_date >= range.from);
   if (range.to) rows = rows.filter(r => r.start_date <= range.to);
-  if (!range.includeFrozen) rows = rows.filter(r => !(byId[r.employee_id] && byId[r.employee_id].frozen));
+  // An explicitly-identified employee's requests should still appear
+  // even if they're now frozen — "Include frozen staff" is meant to
+  // widen a broad, company-wide report, not hide the one specific
+  // person the admin already searched for by ID.
+  if (!range.employeeId && !range.includeFrozen) rows = rows.filter(r => !byId[r.employee_id].frozen);
 
   if (rows.length === 0) {
     showInfoPopup(t("noResultsTitle"), t("noMatchingRequestsToast"));
