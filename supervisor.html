@@ -31,10 +31,14 @@
   </aside>
 
   <main>
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; flex-wrap:wrap; gap:10px">
       <div>
         <h1 class="page-title" style="margin-bottom:4px" data-i18n="teamOverviewTitle">Team overview</h1>
         <p class="page-sub" id="teamCount" style="margin-bottom:0"></p>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        <button type="button" class="btn btn-blue" id="downloadBalanceReportBtn" style="height:44px">Download Leave Balance Report</button>
+        <button type="button" class="btn btn-blue" id="downloadDetailReportBtn" style="height:44px">Download Leave Detail Report</button>
       </div>
     </div>
 
@@ -71,13 +75,7 @@
     </div>
 
     <div class="panel">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px">
-        <h2 style="margin:0" data-i18n="usersListTitle">Users</h2>
-        <div style="display:flex; gap:8px; flex-wrap:wrap">
-          <button type="button" class="btn btn-blue" id="downloadBalanceReportBtn" style="height:44px">Download Leave Balance Report</button>
-          <button type="button" class="btn btn-blue" id="downloadDetailReportBtn" style="height:44px">Download Leave Detail Report</button>
-        </div>
-      </div>
+      <h2 style="margin:0 0 16px" data-i18n="usersListTitle">Users</h2>
       <table>
         <thead>
           <tr><th data-i18n="colEmployeeName">Employee Name</th><th data-i18n="colIdNum">ID #</th><th data-i18n="colRole">Role</th><th data-i18n="colCompany">Company</th><th data-i18n="colDepartment">Department</th><th><span data-i18n="colRemaining">Available Balance</span><br><span data-i18n="availableBalanceTodayNote" style="display:block; font-weight:400; text-transform:none; letter-spacing:normal; font-size:10.5px; color:#2563eb; white-space:nowrap;">Today</span></th><th><span data-i18n="colAnnual">Full Year Annual Entitlement</span><br><span data-i18n="annualEntitlementNote" style="display:block; font-weight:400; text-transform:none; letter-spacing:normal; font-size:10.5px; color:#2563eb; white-space:nowrap;">As long as on active contract</span></th><th data-i18n="colTaken">Taken</th><th data-i18n="colPrevYearBalance">Prev. Year Balance</th><th><span data-i18n="colSick">Sick</span><br><span data-i18n="sickEntitlementAnnualNote" style="display:block; font-weight:400; text-transform:none; letter-spacing:normal; font-size:10.5px; color:#2563eb; white-space:nowrap;">Entitled Annual</span></th><th data-i18n="colSickTaken">Sick Taken</th><th data-i18n="colSickRemaining">Sick Remaining</th></tr>
