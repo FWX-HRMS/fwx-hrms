@@ -523,46 +523,6 @@ function showDateRangePrompt(title) {
   });
 }
 
-function containsArabic(text) {
-  return /[\u0600-\u06FF]/.test(text || "");
-}
-
-// jsPDF's built-in fonts have no Arabic glyphs at all, so passing Arabic
-// text straight to doc.text()/autoTable renders it as corrupted
-// characters. This draws the line onto a canvas instead — the browser's
-// own text engine correctly shapes Arabic (and any mixed Latin/Arabic
-// run) — and places the result into the PDF as an image. Ported directly
-// from admin.js's existing, already-working solution to this same
-// problem, so both reports render Arabic identically.
-function drawMixedLine(doc, text, { xMm, yMm, bold = false, sizeMm = 3.8, color = "#1b2430" } = {}) {
-  const scale = 3;
-  const pxPerMm = 3.7795 * scale;
-  const fontSizePx = Math.round(sizeMm * pxPerMm);
-  const font = `${bold ? "bold " : ""}${fontSizePx}px Tahoma, Arial, sans-serif`;
-
-  const measureCanvas = document.createElement("canvas");
-  const mctx = measureCanvas.getContext("2d");
-  mctx.font = font;
-  const textWidthPx = Math.max(1, Math.ceil(mctx.measureText(text || "").width) + 6);
-  const ascentPx = Math.round(fontSizePx * 0.82);
-  const heightPx = Math.round(fontSizePx * 1.3);
-
-  const canvas = document.createElement("canvas");
-  canvas.width = textWidthPx;
-  canvas.height = heightPx;
-  const ctx = canvas.getContext("2d");
-  ctx.font = font;
-  ctx.fillStyle = color;
-  ctx.textBaseline = "alphabetic";
-  ctx.textAlign = "left";
-  ctx.fillText(text || "", 2, ascentPx);
-
-  const widthMm = textWidthPx / pxPerMm;
-  const heightMm = heightPx / pxPerMm;
-  const topMm = yMm - ascentPx / pxPerMm;
-  doc.addImage(canvas.toDataURL("image/png"), "PNG", xMm, topMm, widthMm, heightMm);
-}
-
 function loadLogoDataURL() {
   return new Promise((resolve) => {
     const img = new Image();
@@ -598,73 +558,18 @@ async function downloadPDF(title, subtitle, columns, rows, filename) {
 
   doc.setFontSize(16);
   doc.setTextColor(27, 36, 48);
-  if (containsArabic(title)) {
-    drawMixedLine(doc, title, { xMm: textStartX, yMm: 18, sizeMm: 5.6, color: "#1b2430" });
-  } else {
-    doc.text(title, textStartX, 18);
-  }
+  doc.text(title, textStartX, 18);
   doc.setFontSize(10);
   doc.setTextColor(75, 87, 104);
-  if (containsArabic(subtitle)) {
-    drawMixedLine(doc, subtitle, { xMm: textStartX, yMm: 25, sizeMm: 3.5, color: "#4b5768" });
-  } else {
-    doc.text(subtitle, textStartX, 25);
-  }
-
-  // Same Arabic-column-width pre-measurement admin.js uses, so a column
-  // holding Arabic names (which autoTable's own font can't measure) still
-  // ends up wide enough to fit them instead of clipping.
-  const fontSize = 9;
-  const arabicSizeMm = fontSize * 0.34;
-  const measureArabicWidthMm = (text, sizeMm) => {
-    const scale = 3;
-    const pxPerMm = 3.7795 * scale;
-    const fontSizePx = Math.round(sizeMm * pxPerMm);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    ctx.font = `${fontSizePx}px Tahoma, Arial, sans-serif`;
-    return ctx.measureText(text || "").width / pxPerMm;
-  };
-  const columnStyles = {};
-  columns.forEach((_, colIndex) => {
-    let maxWidthMm = 0;
-    for (const row of rows) {
-      const raw = String(row[colIndex] ?? "");
-      if (!containsArabic(raw)) continue;
-      const w = measureArabicWidthMm(raw, arabicSizeMm) + 4;
-      if (w > maxWidthMm) maxWidthMm = w;
-    }
-    if (maxWidthMm > 0) columnStyles[colIndex] = { minCellWidth: Math.min(maxWidthMm, 70) };
-  });
-
+  doc.text(subtitle, textStartX, 25);
   doc.autoTable({
     head: [columns],
     body: rows,
     startY: 32,
     theme: "striped",
     headStyles: { fillColor: [47, 111, 94] },
-    styles: { fontSize, cellPadding: 4, overflow: "linebreak" },
-    columnStyles,
+    styles: { fontSize: 9, cellPadding: 4 },
     margin: { left: 14, right: 14 },
-    didParseCell: (data) => {
-      // jsPDF's built-in fonts have no Arabic glyphs — blank the cell's
-      // own text here; didDrawCell below redraws it as a canvas image
-      // instead, which correctly shapes Arabic.
-      if (data.section === "body" && typeof data.cell.text === "object" && containsArabic(String(data.cell.raw ?? ""))) {
-        data.cell.text = [""];
-      }
-    },
-    didDrawCell: (data) => {
-      if (data.section !== "body") return;
-      const raw = String(data.cell.raw ?? "");
-      if (!containsArabic(raw)) return;
-      drawMixedLine(doc, raw, {
-        xMm: data.cell.x + 2,
-        yMm: data.cell.y + data.cell.height / 2 + 1.1,
-        sizeMm: arabicSizeMm,
-        color: "#1b2430",
-      });
-    },
   });
   doc.save(filename);
 }
@@ -676,60 +581,6 @@ function downloadExcel(sheetName, columns, rows, filename) {
   XLSX.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
   XLSX.writeFile(wb, filename);
 }
-
-document.getElementById("downloadReportBtn").addEventListener("click", async () => {
-  const range = await showDateRangePrompt(t("selectReportPeriodTitle"));
-  if (!range) return;
-
-  let source = range.employeeId
-    ? TEAM_BALANCE_ROWS.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.file_number === range.employeeId; })
-    : TEAM_BALANCE_ROWS;
-  // General report shows employee info only — supervisors aren't
-  // included here (matches admin.js's default/"All Team" report; the
-  // dedicated Supervisors tab report is unaffected by this).
-  source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.role === "staff"; });
-  if (!range.employeeId && range.company) {
-    source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.client_company === range.company; });
-  }
-  if (range.from) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date >= range.from; });
-  if (range.to) source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return emp && emp.hiring_date && emp.hiring_date <= range.to; });
-  source = source.filter(r => { const emp = TEAM_BY_ID[r.employee_id]; return !(emp && emp.frozen); });
-
-  if (source.length === 0) {
-    showInfoPopup(t("noResultsTitle"), t("noMatchingEmployeeToast"));
-    return;
-  }
-
-  // Name and file number live on the employee record (TEAM_BY_ID), not
-  // on these balance-only rows — pulling them straight from `r` left
-  // those two columns blank in the generated report.
-  const rows = source.map(r => {
-    const emp = TEAM_BY_ID[r.employee_id] || {};
-    return [emp.full_name || "—", emp.file_number || "—", "W".repeat(Math.min(countActiveWarnings(r.employee_id), 3)) || "—", String(r.annual_entitlement), String(r.taken), String(r.remaining), String(r.pending), String(r.sick_entitlement), String(r.sick_taken), String(r.sick_remaining)];
-  });
-  const rangeNote = (range.from || range.to) ? ` — Period: ${range.from || "…"} to ${range.to || "…"}` : "";
-  const columns = ["Employee Name", "ID #", "Active Warning", "Annual", "Taken", "Available Balance", "Pending", "Sick", "Sick Taken", "Sick Remaining"];
-  const scope = range.company ? `${range.company} — ` : "";
-
-  const selectedEmployee = range.employeeId && source[0] ? TEAM_BY_ID[source[0].employee_id] : null;
-  const reportName = selectedEmployee ? (selectedEmployee.full_name || "Employee") : "All Team Report";
-  const safeReportName = reportName.replace(/[^a-zA-Z0-9]+/g, "_").toLowerCase();
-  const filenamePrefix = range.company ? `${range.company.toLowerCase().replace(/[^a-z0-9]+/g, "_")}_` : "";
-  const reportTitle = selectedEmployee ? `${scope}${reportName} — Leave Report` : `${scope}All Team Report`;
-
-  if (range.wantPdf) {
-    downloadPDF(
-      reportTitle,
-      `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}${rangeNote}`,
-      columns,
-      rows,
-      `${filenamePrefix}${safeReportName}.pdf`
-    );
-  }
-  if (range.wantExcel) {
-    downloadExcel(reportTitle, columns, rows, `${filenamePrefix}${safeReportName}.xlsx`);
-  }
-});
 
 let TEAM_WARNINGS_LIST = [];
 let TEAM_WARNINGS_PAGE = 0;
@@ -1142,7 +993,6 @@ async function loadContractRenewalTable() {
     btn.addEventListener("click", async () => {
       const target_id = btn.dataset.donotrenewEmployee;
       const contract_id = btn.dataset.donotrenewContract;
-      const row = btn.closest("tr");
       const ok = await showConfirm(
         "Do Not Renew",
         "This schedules the employee to be frozen automatically once their current contract ends, and sends them a notification that their contract won't be renewed. This can't be undone.",
@@ -1159,16 +1009,8 @@ async function loadContractRenewalTable() {
         showToast((result && result.error) ? result.error : "Something went wrong.");
         return;
       }
-
-      const emp = TEAM_BY_ID[target_id];
-      const empLabel = emp ? `${emp.full_name} (#${emp.file_number})` : "The employee";
-      document.getElementById("doNotRenewConfirmText").textContent =
-        `This contract will not be renewed. ${empLabel} will be notified.`;
-      document.getElementById("doNotRenewConfirmOverlay").style.display = "flex";
-      document.getElementById("doNotRenewConfirmOkBtn").onclick = () => {
-        document.getElementById("doNotRenewConfirmOverlay").style.display = "none";
-        if (row) row.remove();
-      };
+      showToast("Scheduled — employee will be frozen and notified when their contract ends.");
+      await loadContractRenewalTable();
     });
   });
 }
@@ -1219,19 +1061,11 @@ document.getElementById("renewSameTermsForm").addEventListener("submit", async (
   const errBox = document.getElementById("renewSameTermsError");
   errBox.classList.remove("show");
 
-  const submitBtn = document.getElementById("renewSameTermsSubmitBtn");
-  const spinner = document.getElementById("renewSameTermsSpinner");
-  submitBtn.disabled = true;
-  spinner.style.display = "inline-block";
-
   showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
     body: { action: "renew_same_terms", target_id, contract_id, start_date, contract_period_months }
   });
   hideGlobalSpinner();
-
-  submitBtn.disabled = false;
-  spinner.style.display = "none";
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : "Something went wrong.";
@@ -1239,8 +1073,7 @@ document.getElementById("renewSameTermsForm").addEventListener("submit", async (
     return;
   }
   overlay.style.display = "none";
-  const emp = TEAM_BY_ID[target_id];
-  showContractSharedModal(emp ? emp.full_name : "the employee", emp ? emp.file_number : "—", data && data.contract ? data.contract.id : null);
+  showToast("Renewed contract created and shared with the employee.");
   await loadContractRenewalTable();
 });
 
@@ -1257,7 +1090,6 @@ async function openRenewContractForm(employeeId) {
   if (!emp) return;
 
   document.getElementById("renewContractOverlay").dataset.employeeId = employeeId;
-  document.getElementById("renewContractOverlay").dataset.contractId = contract ? contract.id : "";
   document.getElementById("renewContractEmployeeInfo").textContent = `${emp.full_name} · #${emp.file_number}`;
   document.getElementById("renewContractDob").value = contract?.dob || emp.dob || "";
   document.getElementById("renewContractEducation").value = contract?.education || emp.education || "";
@@ -1279,12 +1111,6 @@ document.getElementById("renewContractForm").addEventListener("submit", async (e
   const errBox = document.getElementById("renewContractError");
   errBox.classList.remove("show");
   const target_id = document.getElementById("renewContractOverlay").dataset.employeeId;
-  const renewal_contract_id = document.getElementById("renewContractOverlay").dataset.contractId || undefined;
-
-  const submitBtn = document.getElementById("renewContractSubmitBtn");
-  const spinner = document.getElementById("renewContractSpinner");
-  submitBtn.disabled = true;
-  spinner.style.display = "inline-block";
 
   showGlobalSpinner();
   const { data, error } = await db.functions.invoke("clever-action", {
@@ -1298,13 +1124,9 @@ document.getElementById("renewContractForm").addEventListener("submit", async (e
       job_title: document.getElementById("renewContractJobTitle").value,
       start_date: document.getElementById("renewContractStartDate").value,
       contract_period_months: Number(document.getElementById("renewContractPeriodMonths").value),
-      renewal_contract_id,
     }
   });
   hideGlobalSpinner();
-
-  submitBtn.disabled = false;
-  spinner.style.display = "none";
 
   if (error || (data && data.error)) {
     errBox.textContent = (data && data.error) ? data.error : "Something went wrong.";
@@ -1339,31 +1161,8 @@ document.getElementById("renewContractForm").addEventListener("submit", async (e
   } catch (_e) { /* best-effort */ }
 
   document.getElementById("renewContractOverlay").style.display = "none";
-  const emp = TEAM_BY_ID[target_id];
-  showContractSharedModal(emp ? emp.full_name : "the employee", emp ? emp.file_number : "—", data && data.contract ? data.contract.id : null);
+  showToast("Renewed contract created and shared with the employee.");
   await loadContractRenewalTable();
-});
-
-function showContractSharedModal(empName, fileNumber, contractId) {
-  document.getElementById("contractSharedText").textContent =
-    `A new contract has been shared with ${empName} (#${fileNumber}).`;
-  const viewBtn = document.getElementById("contractSharedViewBtn");
-  if (contractId) {
-    viewBtn.style.display = "";
-    viewBtn.onclick = () => {
-      // admin.js reads ?contractId= on load and opens the same contract
-      // view/edit modal used everywhere else for contracts — same
-      // pattern already used elsewhere in this file (e.g. viewAdminContract).
-      window.location.href = `admin.html?tab=contracts&contractId=${encodeURIComponent(contractId)}`;
-    };
-  } else {
-    viewBtn.style.display = "none";
-  }
-  document.getElementById("contractSharedOverlay").style.display = "flex";
-}
-
-document.getElementById("contractSharedOkBtn").addEventListener("click", () => {
-  document.getElementById("contractSharedOverlay").style.display = "none";
 });
 
 async function refreshAll() {
@@ -1382,8 +1181,6 @@ async function refreshAll() {
   if (ME.role === "admin") document.getElementById("clientsLink").style.display = "";
   if (ME.role === "admin") document.getElementById("sourcingCandidatesLink").style.display = "";
   document.getElementById("pendingActionsHeader").textContent = ME.role === "admin" ? t("colStatus") : "";
-  const downloadReportBtn = document.getElementById("downloadReportBtn");
-  if (downloadReportBtn) downloadReportBtn.textContent = "Download Leave Report";
   await refreshAll();
   if (ME.role === "admin") {
     // Applies any scheduled freezes whose date has arrived (from "Do Not
