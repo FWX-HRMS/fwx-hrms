@@ -2574,16 +2574,27 @@ function showDateRangePrompt(title, optionalColumns) {
     }
 
     const companySelect = document.getElementById("rangeCompanySelect");
-    const departmentSelect = document.getElementById("rangeDepartmentSelect");
+    const departmentContainer = document.getElementById("rangeDepartmentCheckboxes");
     const { data: companies } = await db.from("client_companies").select("name").order("name");
     companySelect.innerHTML = `<option value="">All companies</option>` +
       (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
     companySelect.value = COMPANY_FILTER || "";
-    populateDepartmentOptions(departmentSelect, companySelect.value, null);
-    departmentSelect.querySelector('option[value=""]').textContent = "All departments";
 
-    const onCompanyChange = () => populateDepartmentOptions(departmentSelect, companySelect.value, null);
-    companySelect.addEventListener("change", onCompanyChange);
+    // Checkbox grid rather than a native multi-select — matches the same
+    // pattern already used for "Fields to include" in this same modal,
+    // and is far more discoverable than a <select multiple> (which
+    // requires knowing to Ctrl/Cmd+click).
+    const renderDepartmentCheckboxes = () => {
+      const list = DEPARTMENTS_BY_COMPANY[companySelect.value] || DEFAULT_DEPARTMENTS;
+      departmentContainer.innerHTML = list.map(d => `
+        <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:400">
+          <input type="checkbox" class="range-department-checkbox" value="${d}" style="width:auto">
+          <span>${d}</span>
+        </label>
+      `).join("");
+    };
+    renderDepartmentCheckboxes();
+    companySelect.addEventListener("change", renderDepartmentCheckboxes);
 
     document.getElementById("dateRangeOverlay").style.display = "flex";
 
@@ -2594,7 +2605,7 @@ function showDateRangePrompt(title, optionalColumns) {
       document.getElementById("dateRangeOverlay").style.display = "none";
       generateBtn.removeEventListener("click", onGenerate);
       cancelBtn.removeEventListener("click", onCancel);
-      companySelect.removeEventListener("change", onCompanyChange);
+      companySelect.removeEventListener("change", renderDepartmentCheckboxes);
     };
     const onGenerate = () => {
       const wantPdf = document.getElementById("rangeFormatPdf").checked;
@@ -2608,11 +2619,14 @@ function showDateRangePrompt(title, optionalColumns) {
       const to = document.getElementById("rangeToInput").value || null;
       const employeeId = document.getElementById("rangeEmployeeIdInput").value.trim() || null;
       const company = document.getElementById("rangeCompanySelect").value || null;
-      const department = document.getElementById("rangeDepartmentSelect").value || null;
+      // Empty array = no department filter (all departments), matching
+      // the old "All departments" default — only restricts when at
+      // least one is explicitly checked.
+      const departments = Array.from(document.querySelectorAll(".range-department-checkbox:checked")).map(el => el.value);
       const includeFrozen = document.getElementById("rangeIncludeFrozen").checked;
       const selectedColumnKeys = Array.from(document.querySelectorAll(".range-column-checkbox:checked")).map(el => el.value);
       cleanup();
-      resolve({ from, to, employeeId, company, department, includeFrozen, wantPdf, wantExcel, selectedColumnKeys });
+      resolve({ from, to, employeeId, company, departments, includeFrozen, wantPdf, wantExcel, selectedColumnKeys });
     };
     const onCancel = () => {
       cleanup();
@@ -2780,7 +2794,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
         : DIRECTORY.filter(e => e.role !== "admin"));
   const companyToApply = range.company || COMPANY_FILTER;
   if (!range.employeeId && companyToApply) source = source.filter(e => e.client_company === companyToApply);
-  if (!range.employeeId && range.department) source = source.filter(e => e.department === range.department);
+  if (!range.employeeId && range.departments && range.departments.length > 0) source = source.filter(e => range.departments.includes(e.department));
   if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
   if (range.to) source = source.filter(e => e.hiring_date && e.hiring_date <= range.to);
   if (!range.includeFrozen) source = source.filter(e => !e.frozen);
@@ -2809,7 +2823,8 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
 
   const scope = companyToApply ? `${companyToApply} — ` : "";
   const title = scope + (ACTIVE_TAB === "supervisors" ? "Supervisors — Leave Report" : "Employees — Leave Report");
-  const filenamePrefix = `${companyToApply ? companyToApply.toLowerCase() + "_" : ""}${range.department ? range.department.toLowerCase().replace(/\s+/g, "-") + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}`;
+  const departmentTag = (range.departments && range.departments.length > 0) ? range.departments.map(d => d.toLowerCase().replace(/\s+/g, "-")).join("-") + "_" : "";
+  const filenamePrefix = `${companyToApply ? companyToApply.toLowerCase() + "_" : ""}${departmentTag}${range.employeeId ? range.employeeId + "_" : ""}`;
   const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
   const baseFilename = `${filenamePrefix}${ACTIVE_TAB === "supervisors" ? "supervisors" : "all_employees"}_leave_report`;
 
@@ -2856,7 +2871,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   } else {
     const companyToApply = range.company || COMPANY_FILTER;
     if (companyToApply) rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].client_company === companyToApply);
-    if (range.department) rows = rows.filter(r => byId[r.employee_id] && byId[r.employee_id].department === range.department);
+    if (range.departments && range.departments.length > 0) rows = rows.filter(r => byId[r.employee_id] && range.departments.includes(byId[r.employee_id].department));
   }
   if (range.from) rows = rows.filter(r => r.end_date >= range.from);
   if (range.to) rows = rows.filter(r => r.start_date <= range.to);
@@ -2897,7 +2912,8 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   const companyScope = range.company || COMPANY_FILTER;
   const scope = companyScope ? `${companyScope} — ` : "";
   const rangeNote = ` — Period: ${range.from || "the beginning"} to ${range.to || "today"}`;
-  const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}${range.department ? range.department.toLowerCase().replace(/\s+/g, "-") + "_" : ""}${range.employeeId ? range.employeeId + "_" : ""}leave_requests_report`;
+  const departmentTag2 = (range.departments && range.departments.length > 0) ? range.departments.map(d => d.toLowerCase().replace(/\s+/g, "-")).join("-") + "_" : "";
+  const baseFilename = `${companyScope ? companyScope.toLowerCase() + "_" : ""}${departmentTag2}${range.employeeId ? range.employeeId + "_" : ""}leave_requests_report`;
 
   if (range.wantPdf) {
     await downloadPDF(
