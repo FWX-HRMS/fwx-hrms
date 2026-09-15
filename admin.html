@@ -861,6 +861,40 @@
   </div>
 </div>
 
+<!-- Narrow Edit box for Supervisors and Company Admins — just
+     name/email/company/departments, not the full Edit Employee form
+     (whose other fields — salary, contract period, supervisor
+     assignment, etc. — don't apply to either role). Every other field
+     already on the record is preserved untouched when saving; see
+     openEditSupCompanyAdminModal / its submit handler in admin.js. -->
+<div id="editSupCompanyAdminOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:460px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+      <h2 style="margin:0" id="editSupCompanyAdminTitle">Edit</h2>
+      <button type="button" class="btn btn-blue btn-sm" id="closeEditSupCompanyAdminBtn">Close</button>
+    </div>
+    <form id="editSupCompanyAdminForm">
+      <label for="editSupCompanyAdminFullName">Full name</label>
+      <input type="text" id="editSupCompanyAdminFullName" required>
+
+      <label for="editSupCompanyAdminEmail" style="margin-top:12px">Email</label>
+      <input type="text" id="editSupCompanyAdminEmail" required>
+
+      <label for="editSupCompanyAdminCompany" style="margin-top:12px">Company client</label>
+      <select id="editSupCompanyAdminCompany" required></select>
+
+      <label style="margin-top:12px; display:block">Departments</label>
+      <div id="editSupCompanyAdminDepartmentCheckboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; padding:2px; margin-bottom:8px"></div>
+
+      <div style="display:flex; gap:10px; margin-top:10px">
+        <button type="button" class="btn btn-danger" id="cancelEditSupCompanyAdminBtn" style="width:220px" data-i18n="cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="saveEditSupCompanyAdminBtn" style="width:220px">Save</button>
+      </div>
+      <div class="error-msg" id="editSupCompanyAdminError"></div>
+    </form>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Add Employee wizard -->
@@ -888,6 +922,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/admin.js?v=hidecols1"></script>
+<script src="js/admin.js?v=editsupcompadmin1"></script>
 </body>
 </html>
