@@ -223,6 +223,7 @@ function renderLocationsTable() {
       <td>${emp.file_number || "—"}</td>
       ${supervisorCell}
       <td>${emp.client_company || "—"}</td>
+      <td>${emp.department || "—"}</td>
       <td>${timeAgo(loc.updated_at)}</td>
     `;
     body.appendChild(tr);
