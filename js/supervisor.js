@@ -540,6 +540,7 @@ function showDateRangePrompt(title, dateLabels) {
     document.getElementById("rangeEmployeeIdInput").placeholder = ME.role === "admin"
       ? "e.g. 6002 (F.W.X), 1003 (Zain)"
       : employeeIdPlaceholderFor();
+    document.getElementById("rangeIncludeHourly").checked = true;
     document.getElementById("rangeFormatPdf").checked = true;
     document.getElementById("rangeFormatExcel").checked = false;
     document.getElementById("rangeFormatError").classList.remove("show");
@@ -656,8 +657,9 @@ function showDateRangePrompt(title, dateLabels) {
       const departments = (checkedDeptBoxes.length === allDeptBoxes.length)
         ? []
         : Array.from(checkedDeptBoxes).map(el => el.value);
+      const includeHourly = document.getElementById("rangeIncludeHourly").checked;
       cleanup();
-      resolve({ from, to, employeeId, company, departments, wantPdf, wantExcel });
+      resolve({ from, to, employeeId, company, departments, includeHourly, wantPdf, wantExcel });
     };
     const onCancel = () => {
       cleanup();
@@ -940,6 +942,11 @@ document.getElementById("downloadDetailReportBtn").addEventListener("click", asy
   }
   if (range.from) rows = rows.filter(r => r.end_date >= range.from);
   if (range.to) rows = rows.filter(r => r.start_date <= range.to);
+  // Applies even when an Employee ID is set — it's not an identity
+  // filter, it's asking "which of this person's requests do you want,"
+  // so it stays in effect no matter how narrowly the rest of the report
+  // is scoped.
+  if (!range.includeHourly) rows = rows.filter(r => r.leave_type !== "hourly");
 
   if (rows.length === 0) {
     await showInfo(t("noResultsTitle"), t("noMatchingRequestsToast"));

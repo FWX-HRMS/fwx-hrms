@@ -2597,6 +2597,7 @@ function showDateRangePrompt(title, optionalColumns, prefillEmployeeId, dateLabe
     // manual nudge here to match a prefilled value on open.
     document.getElementById("rangeEmployeeIdInput").dispatchEvent(new Event("input"));
     document.getElementById("rangeIncludeFrozen").checked = false;
+    document.getElementById("rangeIncludeHourly").checked = true;
     document.getElementById("rangeFormatPdf").checked = true;
     document.getElementById("rangeFormatExcel").checked = false;
     document.getElementById("rangeFormatError").classList.remove("show");
@@ -2718,9 +2719,10 @@ function showDateRangePrompt(title, optionalColumns, prefillEmployeeId, dateLabe
         ? []
         : Array.from(checkedDeptBoxes).map(el => el.value);
       const includeFrozen = document.getElementById("rangeIncludeFrozen").checked;
+      const includeHourly = document.getElementById("rangeIncludeHourly").checked;
       const selectedColumnKeys = Array.from(document.querySelectorAll(".range-column-checkbox:checked")).map(el => el.value);
       cleanup();
-      resolve({ from, to, employeeId, company, departments, includeFrozen, wantPdf, wantExcel, selectedColumnKeys });
+      resolve({ from, to, employeeId, company, departments, includeFrozen, includeHourly, wantPdf, wantExcel, selectedColumnKeys });
     };
     const onCancel = () => {
       cleanup();
@@ -3037,6 +3039,11 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   // widen a broad, company-wide report, not hide the one specific
   // person the admin already searched for by ID.
   if (!range.employeeId && !range.includeFrozen) rows = rows.filter(r => !byId[r.employee_id].frozen);
+  // Unlike company/department/frozen, this one always applies even when
+  // an Employee ID is set — it's not an identity filter, it's asking
+  // "which of this person's requests do you want," so it stays in
+  // effect no matter how narrowly the rest of the report is scoped.
+  if (!range.includeHourly) rows = rows.filter(r => r.leave_type !== "hourly");
 
   if (rows.length === 0) {
     showInfoPopup(t("noResultsTitle"), t("noMatchingRequestsToast"));
