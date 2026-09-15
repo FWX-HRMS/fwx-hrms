@@ -262,6 +262,20 @@ document.getElementById("notificationsSearchInput").addEventListener("input", ()
   NOTIFICATIONS_PAGE = 0;
   renderNotifications();
 });
+// "×" clear button — shows whenever there's text, clears and re-fires
+// "input" (which the listener above already reacts to) on click.
+(() => {
+  const input = document.getElementById("notificationsSearchInput");
+  const clearBtn = document.getElementById("notificationsSearchClearBtn");
+  const toggle = () => { clearBtn.style.display = input.value ? "flex" : "none"; };
+  input.addEventListener("input", toggle);
+  clearBtn.addEventListener("click", () => {
+    input.value = "";
+    input.dispatchEvent(new Event("input"));
+    input.focus();
+  });
+  toggle();
+})();
 document.getElementById("notificationsPrevBtn").addEventListener("click", () => {
   if (NOTIFICATIONS_PAGE > 0) { NOTIFICATIONS_PAGE--; renderNotifications(); }
 });
