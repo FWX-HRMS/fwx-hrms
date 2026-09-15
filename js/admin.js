@@ -2752,7 +2752,7 @@ function loadLogoDataURL() {
   });
 }
 
-async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndices, dateBlock) {
+async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndices) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape" });
 
@@ -2772,31 +2772,7 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
   doc.setTextColor(75, 87, 104);
   doc.text(subtitle, textStartX, 25);
 
-  // dateBlock renders "Date From" / "Date To" as two small green header
-  // pills (same fill color as the table's own header row below) with
-  // white bold labels, and the actual date sitting underneath each in
-  // normal text — used by the leave reports instead of folding the
-  // range into the subtitle line as plain "Date From: x — Date To: y".
-  let tableStartY = 32;
-  if (dateBlock) {
-    const colGap = 70;
-    const boxWidth = 55;
-    const boxHeight = 7;
-    const boxY = 30;
-    doc.setFillColor(47, 111, 94);
-    doc.rect(textStartX, boxY, boxWidth, boxHeight, "F");
-    doc.rect(textStartX + colGap, boxY, boxWidth, boxHeight, "F");
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255);
-    doc.setFont(undefined, "bold");
-    doc.text("Date From", textStartX + 3, boxY + boxHeight / 2 + 1.3);
-    doc.text("Date To", textStartX + colGap + 3, boxY + boxHeight / 2 + 1.3);
-    doc.setFont(undefined, "normal");
-    doc.setTextColor(75, 87, 104);
-    doc.text(String(dateBlock.from), textStartX, boxY + boxHeight + 6);
-    doc.text(String(dateBlock.to), textStartX + colGap, boxY + boxHeight + 6);
-    tableStartY = boxY + boxHeight + 10;
-  }
+  const tableStartY = 32;
 
   // Font size and margins scale with how many columns there are, so a
   // wide report (15 columns) gets small enough text and tight enough
@@ -2997,7 +2973,8 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   const leaveAllColumns = [
     { key: "name", label: "Employee Name", always: true },
     { key: "company", label: "Company" },
-    { key: "dates", label: "Dates" },
+    { key: "date_from", label: "Date From" },
+    { key: "date_to", label: "Date To" },
     { key: "days", label: "Days" },
     { key: "type", label: "Type" },
     { key: "status", label: "Status" },
@@ -3061,9 +3038,8 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
     return [
       emp ? emp.full_name : "—",
       emp ? (emp.client_company || "—") : "—",
-      isHourly
-        ? `${fmtDate(r.start_date)} (${r.time_from ? r.time_from.slice(0,5) : "—"}-${r.time_to ? r.time_to.slice(0,5) : "—"})`
-        : `${fmtDate(r.start_date)} To ${fmtDate(r.end_date)}`,
+      isHourly ? `${fmtDate(r.start_date)} ${r.time_from ? r.time_from.slice(0,5) : "—"}` : fmtDate(r.start_date),
+      isHourly ? `${fmtDate(r.start_date)} ${r.time_to ? r.time_to.slice(0,5) : "—"}` : fmtDate(r.end_date),
       isHourly ? `${r.hours_requested}h` : String(r.days_requested),
       r.leave_type,
       r.status
@@ -3090,8 +3066,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
       columns,
       pdfRows,
       `${baseFilename}.pdf`,
-      redRowIndices,
-      { from: range.from || "the beginning", to: range.to || "today" }
+      redRowIndices
     );
   }
   if (range.wantExcel) {

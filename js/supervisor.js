@@ -743,7 +743,7 @@ function drawMixedLine(doc, text, { xMm, yMm, bold = false, sizeMm = 3.8, color 
   doc.addImage(canvas.toDataURL("image/png"), "PNG", xMm, topMm, widthMm, heightMm);
 }
 
-async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndices, dateBlock) {
+async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndices) {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ orientation: "landscape" });
 
@@ -763,31 +763,7 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
   doc.setTextColor(75, 87, 104);
   doc.text(subtitle, textStartX, 25);
 
-  // dateBlock renders "Date From" / "Date To" as two small green header
-  // pills (same fill color as the table's own header row below) with
-  // white bold labels, and the actual date sitting underneath each in
-  // normal text — used by the Leave Detail report instead of folding
-  // the range into the subtitle line as plain "Date From: x — Date To: y".
-  let tableStartY = 32;
-  if (dateBlock) {
-    const colGap = 70;
-    const boxWidth = 55;
-    const boxHeight = 7;
-    const boxY = 30;
-    doc.setFillColor(47, 111, 94);
-    doc.rect(textStartX, boxY, boxWidth, boxHeight, "F");
-    doc.rect(textStartX + colGap, boxY, boxWidth, boxHeight, "F");
-    doc.setFontSize(9);
-    doc.setTextColor(255, 255, 255);
-    doc.setFont(undefined, "bold");
-    doc.text("Date From", textStartX + 3, boxY + boxHeight / 2 + 1.3);
-    doc.text("Date To", textStartX + colGap + 3, boxY + boxHeight / 2 + 1.3);
-    doc.setFont(undefined, "normal");
-    doc.setTextColor(75, 87, 104);
-    doc.text(String(dateBlock.from), textStartX, boxY + boxHeight + 6);
-    doc.text(String(dateBlock.to), textStartX + colGap, boxY + boxHeight + 6);
-    tableStartY = boxY + boxHeight + 10;
-  }
+  const tableStartY = 32;
 
   // Font size and margins scale with how many columns there are, so a
   // wide report gets small enough text and tight enough margins to fit
@@ -955,15 +931,14 @@ document.getElementById("downloadDetailReportBtn").addEventListener("click", asy
     return;
   }
 
-  const columns = ["Employee Name", "ID #", "Company", "Dates", "Days", "Type", "Status"];
+  const columns = ["Employee Name", "ID #", "Company", "Date From", "Date To", "Days", "Type", "Status"];
   const pdfRows = rows.map(r => {
     const emp = TEAM_BY_ID[r.employee_id];
     const isHourly = r.leave_type === "hourly";
     return [
       emp.full_name, emp.file_number, emp.client_company || "—",
-      isHourly
-        ? `${fmtDate(r.start_date)} (${r.time_from ? r.time_from.slice(0,5) : "—"}-${r.time_to ? r.time_to.slice(0,5) : "—"})`
-        : `${fmtDate(r.start_date)} To ${fmtDate(r.end_date)}`,
+      isHourly ? `${fmtDate(r.start_date)} ${r.time_from ? r.time_from.slice(0,5) : "—"}` : fmtDate(r.start_date),
+      isHourly ? `${fmtDate(r.start_date)} ${r.time_to ? r.time_to.slice(0,5) : "—"}` : fmtDate(r.end_date),
       isHourly ? `${r.hours_requested}h` : String(r.days_requested),
       r.leave_type,
       r.status
@@ -981,9 +956,7 @@ document.getElementById("downloadDetailReportBtn").addEventListener("click", asy
       `Generated ${new Date().toLocaleDateString()} by ${ME.full_name}`,
       columns,
       pdfRows,
-      `${baseFilename}.pdf`,
-      null,
-      { from: range.from || "the beginning", to: range.to || "today" }
+      `${baseFilename}.pdf`
     );
   }
   if (range.wantExcel) {
