@@ -1453,7 +1453,12 @@ document.getElementById("renewChoiceEditBtn").addEventListener("click", () => {
   document.getElementById("renewChoiceOverlay").style.display = "none";
   openRenewContractForm(employeeId);
 });
-document.getElementById("renewChoiceSameBtn").addEventListener("click", async () => {
+
+// Shared by "Renew with Same Terms" and "Renew and Reset Vacation
+// Balance" — identical form (start date + period), the only difference
+// is a flag on the overlay telling the submit handler whether to also
+// zero out the balance afterward.
+async function openRenewSameTermsModal(resetVacation) {
   const choiceOverlay = document.getElementById("renewChoiceOverlay");
   const target_id = choiceOverlay.dataset.employeeId;
   const contract_id = choiceOverlay.dataset.contractId;
@@ -1468,17 +1473,42 @@ document.getElementById("renewChoiceSameBtn").addEventListener("click", async ()
   const nextStart = contract && contract.end_date ? new Date(contract.end_date) : new Date();
   if (contract && contract.end_date) nextStart.setDate(nextStart.getDate() + 1);
 
-  document.getElementById("renewSameTermsOverlay").dataset.employeeId = target_id;
-  document.getElementById("renewSameTermsOverlay").dataset.contractId = contract_id;
+  const overlay = document.getElementById("renewSameTermsOverlay");
+  overlay.dataset.employeeId = target_id;
+  overlay.dataset.contractId = contract_id;
+  overlay.dataset.resetVacation = resetVacation ? "1" : "";
+  document.getElementById("renewSameTermsTitle").textContent = resetVacation ? "Renew and Reset Vacation Balance" : "Renew with Same Terms";
+  document.getElementById("renewSameTermsSubmitBtn").textContent = resetVacation ? "Renew, Reset Balance & Share" : "Renew & Share";
   document.getElementById("renewSameTermsEmployeeInfo").textContent = emp ? `${emp.full_name} · #${emp.file_number}` : "";
   document.getElementById("renewSameTermsStartDate").value = nextStart.toISOString().slice(0, 10);
   periodSelect.value = contract && contract.contract_period_months ? String(contract.contract_period_months) : "12";
   document.getElementById("renewSameTermsError").classList.remove("show");
-  document.getElementById("renewSameTermsOverlay").style.display = "flex";
-});
+  overlay.style.display = "flex";
+}
+document.getElementById("renewChoiceSameBtn").addEventListener("click", () => openRenewSameTermsModal(false));
+document.getElementById("renewChoiceResetBtn").addEventListener("click", () => openRenewSameTermsModal(true));
 
 document.getElementById("renewSameTermsCancelBtn").addEventListener("click", () => {
   document.getElementById("renewSameTermsOverlay").style.display = "none";
+});
+
+// Shows the "Contract Renewed" result step (View Contract / Close)
+// instead of just a toast, and reloads the Contract Renewal table
+// underneath either way.
+function showRenewResult(contractId, message) {
+  document.getElementById("renewResultMsg").textContent = message;
+  document.getElementById("renewResultOverlay").dataset.contractId = contractId || "";
+  document.getElementById("renewResultViewBtn").style.display = contractId ? "" : "none";
+  document.getElementById("renewResultOverlay").style.display = "flex";
+  loadContractRenewalTable();
+}
+document.getElementById("renewResultCloseBtn").addEventListener("click", () => {
+  document.getElementById("renewResultOverlay").style.display = "none";
+});
+document.getElementById("renewResultViewBtn").addEventListener("click", () => {
+  const contractId = document.getElementById("renewResultOverlay").dataset.contractId;
+  document.getElementById("renewResultOverlay").style.display = "none";
+  if (contractId) window.location.href = `admin.html?tab=contracts&contractId=${contractId}`;
 });
 
 document.getElementById("renewSameTermsForm").addEventListener("submit", async (e) => {
@@ -1486,25 +1516,62 @@ document.getElementById("renewSameTermsForm").addEventListener("submit", async (
   const overlay = document.getElementById("renewSameTermsOverlay");
   const target_id = overlay.dataset.employeeId;
   const contract_id = overlay.dataset.contractId;
+  const resetVacation = overlay.dataset.resetVacation === "1";
   const start_date = document.getElementById("renewSameTermsStartDate").value;
   const contract_period_months = Number(document.getElementById("renewSameTermsPeriodMonths").value);
   const errBox = document.getElementById("renewSameTermsError");
   errBox.classList.remove("show");
 
+  const submitBtn = document.getElementById("renewSameTermsSubmitBtn");
+  setBtnLoading(submitBtn, true);
   showGlobalSpinner();
-  const { data, error } = await db.functions.invoke("clever-action", {
-    body: { action: "renew_same_terms", target_id, contract_id, start_date, contract_period_months }
-  });
-  hideGlobalSpinner();
+  // Previously this whole sequence had no try/catch — if invoke() threw
+  // (network hiccup, unexpected response) instead of resolving with an
+  // {error} field, hideGlobalSpinner() never ran and the modal was
+  // already hidden by the choice screen before it, so the admin was
+  // left staring at a stuck spinner with zero feedback and no way
+  // forward. Wrapping this guarantees the spinner always comes down and
+  // a real error always shows.
+  try {
+    const { data, error } = await db.functions.invoke("clever-action", {
+      body: { action: "renew_same_terms", target_id, contract_id, start_date, contract_period_months }
+    });
 
-  if (error || (data && data.error)) {
-    errBox.textContent = (data && data.error) ? data.error : "Something went wrong.";
+    if (error || (data && data.error)) {
+      throw new Error((data && data.error) ? data.error : (error && error.message) ? error.message : "Something went wrong.");
+    }
+
+    if (resetVacation) {
+      const { data: resetData, error: resetErr } = await db.functions.invoke("clever-action", {
+        body: { action: "reset_vacation_balance", target_id, reset_date: start_date }
+      });
+      if (resetErr || (resetData && resetData.error)) {
+        // The renewal itself already succeeded — don't lose that, just
+        // tell the admin the balance reset specifically didn't go through.
+        overlay.style.display = "none";
+        showRenewResult(
+          data && data.contract ? data.contract.id : null,
+          "Contract renewed and shared, but resetting the vacation balance failed — you can reset it separately from the employee's profile."
+        );
+        return;
+      }
+    }
+
+    overlay.style.display = "none";
+    showRenewResult(
+      data && data.contract ? data.contract.id : null,
+      resetVacation
+        ? "Renewed contract created, vacation balance reset, and shared with the employee."
+        : "Renewed contract created and shared with the employee."
+    );
+  } catch (err) {
+    console.error("renewSameTermsForm submit failed:", err);
+    errBox.textContent = (err && err.message) ? err.message : "Something went wrong. Please try again.";
     errBox.classList.add("show");
-    return;
+  } finally {
+    hideGlobalSpinner();
+    setBtnLoading(submitBtn, false);
   }
-  overlay.style.display = "none";
-  showToast("Renewed contract created and shared with the employee.");
-  await loadContractRenewalTable();
 });
 
 async function openRenewContractForm(employeeId) {
@@ -1542,57 +1609,68 @@ document.getElementById("renewContractForm").addEventListener("submit", async (e
   errBox.classList.remove("show");
   const target_id = document.getElementById("renewContractOverlay").dataset.employeeId;
 
+  const submitBtn = document.getElementById("renewContractForm").querySelector("button[type=submit]");
+  if (submitBtn) setBtnLoading(submitBtn, true);
   showGlobalSpinner();
-  const { data, error } = await db.functions.invoke("clever-action", {
-    body: {
-      action: "create_contract",
-      target_id,
-      dob: document.getElementById("renewContractDob").value || null,
-      education: document.getElementById("renewContractEducation").value || null,
-      address: document.getElementById("renewContractAddress").value || null,
-      salary: Number(document.getElementById("renewContractSalary").value),
-      job_title: document.getElementById("renewContractJobTitle").value,
-      start_date: document.getElementById("renewContractStartDate").value,
-      contract_period_months: Number(document.getElementById("renewContractPeriodMonths").value),
-    }
-  });
-  hideGlobalSpinner();
-
-  if (error || (data && data.error)) {
-    errBox.textContent = (data && data.error) ? data.error : "Something went wrong.";
-    errBox.classList.add("show");
-    return;
-  }
-
-  // Renewals share immediately rather than sitting as a draft — the
-  // admin has already decided to renew by submitting this form, no
-  // separate review/share step needed afterward.
-  if (data && data.contract) {
-    await db.functions.invoke("clever-action", { body: { action: "share_contract", contract_id: data.contract.id } });
-  }
-
-  // Same immediate employee notification as "Renew — Same Terms",
-  // supervisor excluded — this form is reached from the Contract
-  // Renewal table's "Renew and Edit Profile" choice, so the same rule
-  // applies regardless of which of the two options was picked.
+  // Same fix as renewSameTermsForm above — everything from here on is
+  // wrapped so a thrown error (not just an {error} response) can never
+  // leave the spinner stuck up with the modal already closed and no
+  // feedback at all.
   try {
-    const emp = TEAM_BY_ID[target_id];
-    await db.from("notifications").insert({
-      type: "contract_renewed",
-      contract_id: (data && data.contract) ? data.contract.id : null,
-      employee_id: target_id,
-      target_role: "employee",
-      exclude_supervisor: true,
-      title: "Your job contract has been renewed",
-      message: `${emp ? emp.full_name : "Your"} job contract has been renewed and shared for review and signature.`,
-      status: "resolved",
-      read: false,
+    const { data, error } = await db.functions.invoke("clever-action", {
+      body: {
+        action: "create_contract",
+        target_id,
+        dob: document.getElementById("renewContractDob").value || null,
+        education: document.getElementById("renewContractEducation").value || null,
+        address: document.getElementById("renewContractAddress").value || null,
+        salary: Number(document.getElementById("renewContractSalary").value),
+        job_title: document.getElementById("renewContractJobTitle").value,
+        start_date: document.getElementById("renewContractStartDate").value,
+        contract_period_months: Number(document.getElementById("renewContractPeriodMonths").value),
+      }
     });
-  } catch (_e) { /* best-effort */ }
 
-  document.getElementById("renewContractOverlay").style.display = "none";
-  showToast("Renewed contract created and shared with the employee.");
-  await loadContractRenewalTable();
+    if (error || (data && data.error)) {
+      throw new Error((data && data.error) ? data.error : (error && error.message) ? error.message : "Something went wrong.");
+    }
+
+    // Renewals share immediately rather than sitting as a draft — the
+    // admin has already decided to renew by submitting this form, no
+    // separate review/share step needed afterward.
+    if (data && data.contract) {
+      await db.functions.invoke("clever-action", { body: { action: "share_contract", contract_id: data.contract.id } });
+    }
+
+    // Same immediate employee notification as "Renew — Same Terms",
+    // supervisor excluded — this form is reached from the Contract
+    // Renewal table's "Renew and Edit Profile" choice, so the same rule
+    // applies regardless of which of the two options was picked.
+    try {
+      const emp = TEAM_BY_ID[target_id];
+      await db.from("notifications").insert({
+        type: "contract_renewed",
+        contract_id: (data && data.contract) ? data.contract.id : null,
+        employee_id: target_id,
+        target_role: "employee",
+        exclude_supervisor: true,
+        title: "Your job contract has been renewed",
+        message: `${emp ? emp.full_name : "Your"} job contract has been renewed and shared for review and signature.`,
+        status: "resolved",
+        read: false,
+      });
+    } catch (_e) { /* best-effort */ }
+
+    document.getElementById("renewContractOverlay").style.display = "none";
+    showRenewResult(data && data.contract ? data.contract.id : null, "Renewed contract created and shared with the employee.");
+  } catch (err) {
+    console.error("renewContractForm submit failed:", err);
+    errBox.textContent = (err && err.message) ? err.message : "Something went wrong. Please try again.";
+    errBox.classList.add("show");
+  } finally {
+    hideGlobalSpinner();
+    if (submitBtn) setBtnLoading(submitBtn, false);
+  }
 });
 
 async function refreshAll() {
