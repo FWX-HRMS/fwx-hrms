@@ -1933,16 +1933,18 @@ async function downloadContractPDF(kind, fileNumber, employeeName, text, signatu
   if (signatureImage) {
     const marginMm = 14;
     const pageHeight = doc.internal.pageSize.getHeight();
-    let imgWidth = 60, imgHeight = 20;
-    let imageOk = true;
-    try {
-      const imgProps = doc.getImageProperties(signatureImage);
-      const maxWidth = 80;
-      imgWidth = Math.min(maxWidth, imgProps.width);
-      imgHeight = (imgProps.height / imgProps.width) * imgWidth;
-    } catch (e) {
-      imageOk = false;
-    }
+
+    const computeImgSize = (maxWidth) => {
+      let w = 60, h = 20, ok = true;
+      try {
+        const imgProps = doc.getImageProperties(signatureImage);
+        w = Math.min(maxWidth, imgProps.width);
+        h = (imgProps.height / imgProps.width) * w;
+      } catch (e) {
+        ok = false;
+      }
+      return { w, h, ok };
+    };
 
     // Arabic contracts already end with their own proper signature line
     // (rendered correctly via the canvas-based Arabic text flow) — adding
@@ -1954,8 +1956,22 @@ async function downloadContractPDF(kind, fileNumber, employeeName, text, signatu
     // no such line exists in their plain-text body.
     const labelHeight = isArabicDoc ? 0 : 8;
     const nameLineHeight = isArabicDoc ? 0 : 8;
-    const gapBeforeBlock = 10;
-    const blockHeight = nameLineHeight + labelHeight + imgHeight + 5;
+
+    // Try to land the signature on the same page the contract text ends
+    // on rather than jumping straight to a fresh page the moment the
+    // "ideal" full-size block doesn't fit — a compact pass (tighter gap,
+    // smaller image) gets a second chance at the same page before we
+    // give up and add a new one, which is now reserved for the genuinely
+    // tight case where the text already runs to the bottom margin.
+    let { w: imgWidth, h: imgHeight, ok: imageOk } = computeImgSize(80);
+    let gapBeforeBlock = 10;
+    let blockHeight = nameLineHeight + labelHeight + imgHeight + 5;
+
+    if (lastY + gapBeforeBlock + blockHeight > pageHeight - marginMm) {
+      ({ w: imgWidth, h: imgHeight, ok: imageOk } = computeImgSize(55));
+      gapBeforeBlock = 5;
+      blockHeight = nameLineHeight + labelHeight + imgHeight + 3;
+    }
 
     let sigY = lastY + gapBeforeBlock;
     if (sigY + blockHeight > pageHeight - marginMm) {
