@@ -3375,7 +3375,7 @@ function populateCompanyAdminDepartmentCheckboxes(companyName) {
   const container = document.getElementById("compAdminDepartmentCheckboxes");
   container.innerHTML = list.map(d => `
     <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:400">
-      <input type="checkbox" class="comp-admin-department-checkbox" value="${d}" style="width:auto">
+      <input type="checkbox" class="comp-admin-department-checkbox" value="${d}" checked style="width:auto">
       <span>${d}</span>
     </label>
   `).join("");
