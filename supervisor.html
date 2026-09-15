@@ -215,6 +215,10 @@
         <input type="date" id="rangeToInput">
       </div>
     </div>
+    <label style="display:flex; align-items:center; gap:8px; margin-top:16px; font-weight:500; color:var(--ink)">
+      <input type="checkbox" id="rangeIncludeHourly" checked style="width:auto">
+      <span data-i18n="includeHourlyLabel">Include hourly leaves</span>
+    </label>
     <label style="display:flex; align-items:center; gap:16px; margin-top:16px">
       <span style="display:flex; align-items:center; gap:8px; font-weight:500; color:var(--ink)">
         <input type="checkbox" id="rangeFormatPdf" checked style="width:auto"><span data-i18n="formatPdfLabel">PDF</span>
@@ -339,6 +343,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/supervisor.js?v=aligncols1"></script>
+<script src="js/supervisor.js?v=hourlychk1"></script>
 </body>
 </html>
