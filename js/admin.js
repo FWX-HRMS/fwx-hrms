@@ -3502,6 +3502,11 @@ async function openEditSupCompanyAdminModal(id) {
   const companySelect = document.getElementById("editSupCompanyAdminCompany");
   companySelect.innerHTML = (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
   companySelect.value = emp.client_company || "";
+  // Company is shown but locked — moving a supervisor or company admin
+  // to a different company isn't something this narrow box supports
+  // (their departments, and any staff assigned under them, are all tied
+  // to their current company).
+  companySelect.disabled = true;
 
   // A supervisor's department has always just been a single value; a
   // company admin's is a comma-separated list (see Add Company Admin) —
