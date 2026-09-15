@@ -157,9 +157,13 @@ async function loadTeam() {
     // company's departments — stored as a comma-separated list in their
     // own `department` field (reusing the existing column rather than
     // needing a new one; see admin.js's Add Company Admin modal) — and
-    // never sees other admin-tier accounts.
-    const allowedDepartments = (ME.department || "").split(",").map(s => s.trim()).filter(Boolean);
-    data = data.filter(e => allowedDepartments.includes(e.department) && e.role !== "admin" && e.role !== "company_admin");
+    // never sees other admin-tier accounts. Matching is case- and
+    // whitespace-tolerant so a minor difference in how a department was
+    // typed elsewhere (extra space, different casing) doesn't silently
+    // drop someone who should actually be visible.
+    const normalize = (s) => (s || "").trim().toLowerCase();
+    const allowedDepartments = (ME.department || "").split(",").map(normalize).filter(Boolean);
+    data = data.filter(e => allowedDepartments.includes(normalize(e.department)) && e.role !== "admin" && e.role !== "company_admin");
   }
 
   TEAM_BY_ID = Object.fromEntries(data.map(e => [e.id, e]));
