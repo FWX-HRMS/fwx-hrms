@@ -320,6 +320,11 @@ function renderPending() {
               ${newBadge(r.requested_at)}
             </td>`
           : `<td>${badgeFor(r.status)}${newBadge(r.requested_at)}</td>`)
+      : ME.role === "company_admin"
+      // View-only: a company admin can see pending requests but has no
+      // approve/reject authority — just the status badge, same as the
+      // admin's own "already decided" case above.
+      ? `<td>${badgeFor(r.status)}${newBadge(r.requested_at)}</td>`
       : `<td class="row-actions">
           <button class="btn btn-primary btn-sm" data-action="approved" data-id="${r.id}">${t("approveBtn")}</button>
           <button class="btn btn-danger btn-sm" data-action="rejected" data-id="${r.id}">${t("rejectBtn")}</button>
@@ -1723,7 +1728,7 @@ async function refreshAll() {
   if (ME.role === "admin") document.getElementById("adminLink").style.display = "";
   if (ME.role === "admin") document.getElementById("clientsLink").style.display = "";
   if (ME.role === "admin") document.getElementById("sourcingCandidatesLink").style.display = "";
-  document.getElementById("pendingActionsHeader").textContent = ME.role === "admin" ? t("colStatus") : "";
+  document.getElementById("pendingActionsHeader").textContent = (ME.role === "admin" || ME.role === "company_admin") ? t("colStatus") : "";
   await refreshAll();
   if (ME.role === "admin") {
     // Applies any scheduled freezes whose date has arrived (from "Do Not
