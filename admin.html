@@ -41,6 +41,7 @@
     <div class="tab-row">
       <button type="button" class="tab-btn active" id="tabAllBtn" data-i18n="tabEmployees">Employees</button>
       <button type="button" class="tab-btn" id="tabSupervisorsBtn" data-i18n="tabSupervisors">Supervisors</button>
+      <button type="button" class="tab-btn" id="tabCompanyAdminsBtn">Company Admins</button>
       <button type="button" class="tab-btn" id="tabLeaveBtn" data-i18n="tabLeaveRequests">Leave Requests</button>
       <button type="button" class="tab-btn" id="tabContractsBtn" data-i18n="tabContracts">Contracts</button>
       <button type="button" class="tab-btn" id="tabWarningsBtn" data-i18n="tabWarnings">Warnings</button>
@@ -53,6 +54,7 @@
           <button type="button" class="btn btn-blue" id="downloadReportBtn" style="width:250px; height:44px">Download Leave Balance Report</button>
           <button type="button" class="btn btn-primary" id="showAddFormBtn" style="width:220px; height:44px" data-i18n="addNewEmployeeBtn">+ Add new employee</button>
           <button type="button" class="btn btn-primary" id="showAddSupervisorAdminBtn" style="width:220px; height:44px; display:none" data-i18n="addNewSupervisorBtn">+ Add Supervisor</button>
+          <button type="button" class="btn btn-primary" id="showAddCompanyAdminBtn" style="width:220px; height:44px; display:none">+ Add Company Admin</button>
         </div>
       </div>
 <div style="position:relative; max-width:480px; margin-bottom:14px">
@@ -804,6 +806,53 @@
   </div>
 </div>
 
+<!-- Add Company Admin — a company- and department-scoped admin. They
+     can only ever see one company (their own), and only the departments
+     checked here within it: the Users list, and the Leave Balance /
+     Leave Detail reports on the Team overview page, are all scoped down
+     to exactly this. Reuses the same create_employee action as Add
+     Supervisor with role "company_admin"; the selected departments are
+     stored as a comma-separated list in the existing department column
+     rather than needing a new one. -->
+<div id="addCompanyAdminOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:460px">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px">
+      <h2 style="margin:0">Add Company Admin</h2>
+      <button type="button" class="btn btn-blue btn-sm" id="closeAddCompanyAdminBtn" data-confirm-close="1">Close</button>
+    </div>
+    <form id="addCompanyAdminForm">
+      <label for="compAdminFullName">Full name</label>
+      <input type="text" id="compAdminFullName" required>
+
+      <label for="compAdminEmail" style="margin-top:12px">Email</label>
+      <input type="text" id="compAdminEmail" required>
+
+      <label for="compAdminCompany" style="margin-top:12px">Company client</label>
+      <select id="compAdminCompany" required>
+        <option value="" data-i18n="selectCompanyPlaceholder">Select a company…</option>
+      </select>
+
+      <label style="margin-top:12px; display:block">Departments this admin can see</label>
+      <p class="help-text" style="margin:0 0 8px">They'll only see employees, leave reports, and leave balance reports for the departments checked here.</p>
+      <div id="compAdminDepartmentCheckboxes" style="display:grid; grid-template-columns:1fr 1fr; gap:6px 12px; padding:2px; margin-bottom:8px"></div>
+      <div class="error-msg" id="compAdminDepartmentError" style="margin-bottom:8px"></div>
+
+      <div style="display:flex; gap:10px; margin-top:10px">
+        <button type="button" class="btn btn-danger" id="cancelAddCompanyAdminBtn" data-skip-confirm="1" style="width:220px" data-i18n="cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary" id="addCompanyAdminBtn" style="width:220px" data-i18n="createBtn">Create</button>
+      </div>
+      <div class="error-msg" id="addCompanyAdminError"></div>
+    </form>
+
+    <div class="success-msg" id="companyAdminCredentialsBox" style="margin-top:20px">
+      <p style="margin:0 0 8px"><strong>Company Admin created. Share these with them — they can change the password after logging in.</strong></p>
+      <p style="margin:0"><span data-i18n="fileNumColonLabel">File number:</span> <strong id="compAdminCredFileNumber"></strong></p>
+      <p style="margin:0"><span data-i18n="initialPasswordColonLabel">Initial password:</span> <strong id="compAdminCredPassword"></strong></p>
+      <p style="margin:8px 0 0"><button type="button" class="btn btn-blue btn-sm" id="copyCompAdminCredsBtn" data-i18n="copyDetailsBtn">Copy details</button></p>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <!-- Add Employee wizard -->
@@ -831,6 +880,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/admin.js?v=sigfit1"></script>
+<script src="js/admin.js?v=companyadmin1"></script>
 </body>
 </html>
