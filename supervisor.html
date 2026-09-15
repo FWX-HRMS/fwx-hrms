@@ -266,6 +266,7 @@
     <h2 style="margin:0 0 16px">Renew Contract</h2>
     <div style="display:flex; flex-direction:column; gap:10px">
       <button type="button" class="btn btn-primary" id="renewChoiceSameBtn">Renew with Same Terms and Conditions</button>
+      <button type="button" class="btn btn-blue" id="renewChoiceResetBtn">Renew and Reset Vacation Balance</button>
       <button type="button" class="btn btn-blue" id="renewChoiceEditBtn">Renew and Edit Profile</button>
       <button type="button" class="btn btn-blue" id="renewChoiceCancelBtn">Cancel</button>
     </div>
@@ -273,10 +274,13 @@
 </div>
 
 <!-- "Same Terms" still needs a start date and period from the admin —
-     everything else (salary, job title, etc.) carries over unchanged. -->
+     everything else (salary, job title, etc.) carries over unchanged.
+     Also used for "Renew and Reset Vacation Balance" (same form; the
+     overlay's data-reset-vacation flag tells the submit handler whether
+     to also zero out the balance afterward). -->
 <div id="renewSameTermsOverlay" class="modal-overlay" style="display:none">
   <div class="modal-box" style="max-width:420px">
-    <h2 style="margin:0 0 4px">Renew with Same Terms</h2>
+    <h2 style="margin:0 0 4px" id="renewSameTermsTitle">Renew with Same Terms</h2>
     <p class="help-text" id="renewSameTermsEmployeeInfo" style="margin:0 0 16px"></p>
     <form id="renewSameTermsForm">
       <label for="renewSameTermsStartDate">Contract start date</label>
@@ -289,6 +293,20 @@
       </div>
       <div class="error-msg" id="renewSameTermsError"></div>
     </form>
+  </div>
+</div>
+
+<!-- Shown after a renewal succeeds (any of the three ways), instead of
+     just a toast — lets the admin jump straight to the new contract or
+     dismiss and carry on. -->
+<div id="renewResultOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:380px; text-align:center">
+    <h2 style="margin:0 0 10px">Contract Renewed</h2>
+    <p class="help-text" id="renewResultMsg" style="margin-bottom:18px">Renewed contract created and shared with the employee.</p>
+    <div style="display:flex; gap:10px; justify-content:center">
+      <button type="button" class="btn btn-primary" id="renewResultViewBtn">View Contract</button>
+      <button type="button" class="btn btn-blue" id="renewResultCloseBtn">Close</button>
+    </div>
   </div>
 </div>
 
@@ -343,6 +361,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/supervisor.js?v=capwords1"></script>
+<script src="js/supervisor.js?v=renewfix1"></script>
 </body>
 </html>
