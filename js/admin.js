@@ -666,7 +666,20 @@ function renderDirectory() {
     btn.addEventListener("click", () => { closeActionMenus(); showDetails(btn.dataset.view); });
   });
   body.querySelectorAll("button[data-edit]").forEach(btn => {
-    btn.addEventListener("click", () => { closeActionMenus(); editOpenedFromUnfreezeMenu = null; openEditModal(btn.dataset.edit); });
+    btn.addEventListener("click", () => {
+      closeActionMenus();
+      const emp = byId[btn.dataset.edit];
+      // Supervisors and company admins get a narrower, purpose-built edit
+      // box (name/email/company/departments only) instead of the full
+      // Edit Employee form — none of that form's other fields (salary,
+      // contract period, supervisor assignment, etc.) apply to either role.
+      if (emp && (emp.role === "supervisor" || emp.role === "company_admin")) {
+        openEditSupCompanyAdminModal(btn.dataset.edit);
+        return;
+      }
+      editOpenedFromUnfreezeMenu = null;
+      openEditModal(btn.dataset.edit);
+    });
   });
   body.querySelectorAll("button[data-contract]").forEach(btn => {
     btn.addEventListener("click", async () => { closeActionMenus(); await openContractCreateModal(btn.dataset.contract); });
@@ -3471,6 +3484,136 @@ document.getElementById("addCompanyAdminForm").addEventListener("submit", async 
   };
 
   await loadDirectory();
+});
+
+// ================= Edit Supervisor / Company Admin (narrow box) =================
+async function openEditSupCompanyAdminModal(id) {
+  const emp = DIRECTORY.find(x => x.id === id);
+  if (!emp) return;
+
+  const overlay = document.getElementById("editSupCompanyAdminOverlay");
+  overlay.dataset.employeeId = id;
+  document.getElementById("editSupCompanyAdminTitle").textContent = emp.role === "company_admin" ? "Edit Company Admin" : "Edit Supervisor";
+  document.getElementById("editSupCompanyAdminError").classList.remove("show");
+  document.getElementById("editSupCompanyAdminFullName").value = emp.full_name || "";
+  document.getElementById("editSupCompanyAdminEmail").value = emp.email || "";
+
+  const { data: companies } = await db.from("client_companies").select("name").order("name");
+  const companySelect = document.getElementById("editSupCompanyAdminCompany");
+  companySelect.innerHTML = (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
+  companySelect.value = emp.client_company || "";
+
+  // A supervisor's department has always just been a single value; a
+  // company admin's is a comma-separated list (see Add Company Admin) —
+  // splitting on "," handles both the same way, since a single value
+  // with no comma just becomes a one-item array.
+  const currentDepartments = (emp.department || "").split(",").map(s => s.trim()).filter(Boolean);
+  populateEditSupCompanyAdminDepartments(companySelect.value, currentDepartments);
+
+  overlay.style.display = "flex";
+}
+
+function populateEditSupCompanyAdminDepartments(companyName, checkedList) {
+  const list = DEPARTMENTS_BY_COMPANY[companyName] || DEFAULT_DEPARTMENTS;
+  const container = document.getElementById("editSupCompanyAdminDepartmentCheckboxes");
+  container.innerHTML = list.map(d => `
+    <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:400">
+      <input type="checkbox" class="edit-supcompanyadmin-department-checkbox" value="${d}" ${checkedList.includes(d) ? "checked" : ""} style="width:auto">
+      <span>${d}</span>
+    </label>
+  `).join("");
+}
+
+document.getElementById("editSupCompanyAdminCompany").addEventListener("change", () => {
+  // Changing company resets the department choices — the old company's
+  // departments don't carry over as checked options for a new company.
+  populateEditSupCompanyAdminDepartments(document.getElementById("editSupCompanyAdminCompany").value, []);
+});
+document.getElementById("closeEditSupCompanyAdminBtn").addEventListener("click", () => {
+  document.getElementById("editSupCompanyAdminOverlay").style.display = "none";
+});
+document.getElementById("cancelEditSupCompanyAdminBtn").addEventListener("click", () => {
+  document.getElementById("editSupCompanyAdminOverlay").style.display = "none";
+});
+
+document.getElementById("editSupCompanyAdminForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById("editSupCompanyAdminError");
+  errBox.classList.remove("show");
+
+  const id = document.getElementById("editSupCompanyAdminOverlay").dataset.employeeId;
+  const emp = DIRECTORY.find(x => x.id === id);
+  if (!emp) return;
+
+  const full_name = document.getElementById("editSupCompanyAdminFullName").value.trim();
+  const email = document.getElementById("editSupCompanyAdminEmail").value.trim();
+  const client_company = document.getElementById("editSupCompanyAdminCompany").value;
+  const departments = Array.from(document.querySelectorAll(".edit-supcompanyadmin-department-checkbox:checked")).map(el => el.value);
+
+  if (!client_company) {
+    errBox.textContent = t("pleaseSelectCompany");
+    errBox.classList.add("show");
+    return;
+  }
+  if (departments.length === 0) {
+    errBox.textContent = "Select at least one department.";
+    errBox.classList.add("show");
+    return;
+  }
+
+  const btn = document.getElementById("saveEditSupCompanyAdminBtn");
+  setBtnLoading(btn, true, t("saving"));
+
+  // update_employee replaces the whole row, not just the fields this
+  // narrow box shows — so every other field already on the record
+  // (salary, hiring date, DOB, etc.) is sent back through unchanged
+  // here, rather than left to fall back to null/default.
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: {
+      action: "update_employee",
+      target_id: id,
+      full_name,
+      email,
+      role: emp.role,
+      department: departments.join(","),
+      client_company,
+      phone_number: emp.phone_number,
+      hiring_date: emp.hiring_date,
+      contract_period_months: emp.contract_period_months,
+      supervisor_file_number: null,
+      annual_entitlement_override: emp.annual_entitlement,
+      carryover_balance: emp.carryover_balance,
+      dob: emp.dob,
+      nationality: emp.nationality,
+      address: emp.address,
+      education: emp.education,
+      salary: emp.salary,
+      national_id: emp.national_id,
+      id_number: emp.id_number,
+      emergency_contact_name: emp.emergency_contact_name,
+      emergency_contact_phone: emp.emergency_contact_phone,
+      social_security_number: emp.social_security_number,
+      bank_account_number: emp.bank_account_number,
+      iban: emp.iban,
+      employment_type: emp.employment_type,
+      hazardous_occupation: emp.hazardous_occupation,
+      vehicle_status: emp.vehicle_status,
+      spouse_employed: emp.spouse_employed,
+      spouse_salary: emp.spouse_salary,
+    }
+  });
+
+  setBtnLoading(btn, false);
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongCreating");
+    errBox.classList.add("show");
+    return;
+  }
+
+  document.getElementById("editSupCompanyAdminOverlay").style.display = "none";
+  showToast("Saved.");
+  await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
 });
 
 // ================= Add Employee wizard =================
