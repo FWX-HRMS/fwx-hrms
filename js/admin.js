@@ -171,6 +171,10 @@ function applyTab(tab) {
   // no sense scoped to a list of admin accounts — same reasoning as
   // hiding it on the Supervisors tab already.
   document.getElementById("downloadReportBtn").style.display = (tab === "all") ? "" : "none";
+  // Supervisor / Frozen since / balance & entitlement columns are always
+  // "—" for supervisors and company admins — hide them outright on
+  // those two tabs rather than showing a wall of dashes.
+  document.getElementById("directoryPanel").classList.toggle("hide-balance-cols", tab === "supervisors" || tab === "companyAdmins");
   DIRECTORY_PAGE = 0;
   renderDirectory();
 }
