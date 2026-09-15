@@ -38,7 +38,7 @@ function updatePaginationControls(prefix, page, totalCount) {
 // based on the logged-in user's own role instead.
 function buildSidebarNav(role) {
   const nav = document.getElementById("navLinks");
-  document.getElementById("brandLabel").textContent = role === "staff" ? "Staff Portal" : "Supervisor Portal";
+  document.getElementById("brandLabel").textContent = role === "staff" ? "Staff Portal" : role === "company_admin" ? "Company Admin" : "Supervisor Portal";
   if (role === "admin") {
     nav.innerHTML = `
       <a href="supervisor.html">Team overview</a>
@@ -48,7 +48,7 @@ function buildSidebarNav(role) {
       <a href="sourcing-candidates.html">🔍 Sourcing Candidates</a>
       <a href="notifications.html" class="active">🔔 Notifications</a>
     `;
-  } else if (role === "supervisor") {
+  } else if (role === "supervisor" || role === "company_admin") {
     nav.innerHTML = `
       <a href="supervisor.html">Team overview</a>
       <a href="locations.html">Staff Locations</a>
