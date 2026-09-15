@@ -2989,6 +2989,7 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
 document.getElementById("downloadLeaveReportBtn").addEventListener("click", async () => {
   const leaveAllColumns = [
     { key: "name", label: "Employee Name", always: true },
+    { key: "id", label: "ID #", always: true },
     { key: "company", label: "Company" },
     { key: "date_from", label: "Date From" },
     { key: "date_to", label: "Date To" },
@@ -3059,6 +3060,7 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
     const isHourly = r.leave_type === "hourly";
     return [
       emp ? emp.full_name : "—",
+      emp ? emp.file_number : "—",
       emp ? (emp.client_company || "—") : "—",
       isHourly ? `${fmtDate(r.start_date)} ${r.time_from ? r.time_from.slice(0,5) : "—"}` : fmtDate(r.start_date),
       isHourly ? `${fmtDate(r.start_date)} ${r.time_to ? r.time_to.slice(0,5) : "—"}` : fmtDate(r.end_date),
