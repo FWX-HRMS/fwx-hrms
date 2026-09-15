@@ -1723,15 +1723,6 @@ async function refreshAll() {
   if (ME.role === "admin") document.getElementById("clientsLink").style.display = "";
   if (ME.role === "admin") document.getElementById("sourcingCandidatesLink").style.display = "";
   document.getElementById("pendingActionsHeader").textContent = ME.role === "admin" ? t("colStatus") : "";
-  // A company admin only gets the Users list (scoped to their company +
-  // departments) and the two report buttons — approving leave requests
-  // and viewing decided-request history aren't part of what was asked
-  // for, so both are hidden outright rather than left showing scoped
-  // (but still actionable) data.
-  if (ME.role === "company_admin") {
-    document.getElementById("pendingRequestsPanel").style.display = "none";
-    document.getElementById("requestHistoryPanel").style.display = "none";
-  }
   await refreshAll();
   if (ME.role === "admin") {
     // Applies any scheduled freezes whose date has arrived (from "Do Not
