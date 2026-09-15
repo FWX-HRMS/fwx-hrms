@@ -555,6 +555,41 @@
   </div>
 </div>
 
+<!-- Asked right after the new password is shown, regardless of which of
+     the four unfreeze-menu options was picked — a fresh contract period
+     for the now-active employee, defaulting everything else (salary,
+     job title, dob, education, address) forward from their most recent
+     contract. -->
+<div id="unfreezeContractOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:420px">
+    <h2 style="margin:0 0 4px">Contract Period</h2>
+    <p class="help-text" id="unfreezeContractEmployeeInfo" style="margin:0 0 16px"></p>
+    <form id="unfreezeContractForm">
+      <label for="unfreezeContractStartDate">Contract start date</label>
+      <input type="date" id="unfreezeContractStartDate" required>
+      <label for="unfreezeContractPeriodMonths" style="margin-top:12px">Contract period (months)</label>
+      <select id="unfreezeContractPeriodMonths" required></select>
+      <div style="display:flex; gap:10px; margin-top:16px">
+        <button type="submit" class="btn btn-primary" id="unfreezeContractSubmitBtn" style="width:220px">Create &amp; Share Contract</button>
+        <button type="button" class="btn btn-danger" id="unfreezeContractSkipBtn" style="width:220px">Skip</button>
+      </div>
+      <div class="error-msg" id="unfreezeContractError"></div>
+    </form>
+  </div>
+</div>
+
+<!-- Shown once the new contract is created and shared. -->
+<div id="unfreezeContractResultOverlay" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:380px; text-align:center">
+    <h2 style="margin:0 0 10px">Contract Shared</h2>
+    <p class="help-text" style="margin-bottom:18px">The employee will be notified and the new contract will be shared with them.</p>
+    <div style="display:flex; gap:10px; justify-content:center">
+      <button type="button" class="btn btn-primary" id="unfreezeContractResultViewBtn">View Contract</button>
+      <button type="button" class="btn btn-blue" id="unfreezeContractResultCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Focused edit for just the three vacation-balance fields — separate
      from the full Edit Employee modal, reachable directly from the
      Actions menu for a quicker adjustment. -->
@@ -796,6 +831,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/admin.js?v=renewfix1"></script>
+<script src="js/admin.js?v=unfreezecontract1"></script>
 </body>
 </html>
