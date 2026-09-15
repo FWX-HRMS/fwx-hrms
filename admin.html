@@ -9,6 +9,14 @@
 <style>
 .ew-spinner{width:40px;height:40px;border:4px solid #d8dde3;border-top-color:var(--accent,#2f7d5f);border-radius:50%;margin:24px auto;animation:ew-spin 0.8s linear infinite}
 @keyframes ew-spin{to{transform:rotate(360deg)}}
+/* Supervisor / Frozen since / balance & entitlement columns don't apply
+   to supervisors or company admins (they're always "—" for those roles)
+   — hidden via this class rather than changing how rows are built, so
+   toggling per tab is just one class swap in applyTab(). */
+#directoryPanel.hide-balance-cols table th:nth-child(n+6):nth-child(-n+14),
+#directoryPanel.hide-balance-cols table td:nth-child(n+6):nth-child(-n+14) {
+  display: none;
+}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -880,6 +888,6 @@
 <script src="js/i18n.js"></script>
 <script src="js/yearFirstDatePicker.js"></script>
 <script>initLangToggle();</script>
-<script src="js/admin.js?v=companyadmin2"></script>
+<script src="js/admin.js?v=hidecols1"></script>
 </body>
 </html>
