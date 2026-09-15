@@ -44,10 +44,25 @@ function timeAgo(dateStr) {
 
 async function loadTeamById() {
   const query = db.from("employees").select("id, full_name, file_number, client_company, role, department, supervisor_id").order("full_name");
-  const { data, error } = ME.role === "admin"
-    ? await query.neq("role", "admin")
-    : await query.eq("supervisor_id", ME.id);
+  let data, error;
+  if (ME.role === "admin") {
+    ({ data, error } = await query.neq("role", "admin"));
+  } else if (ME.role === "company_admin") {
+    ({ data, error } = await query.eq("client_company", ME.client_company));
+  } else {
+    ({ data, error } = await query.eq("supervisor_id", ME.id));
+  }
   if (error || !data) return {};
+
+  if (ME.role === "company_admin") {
+    // Same scoping as the Team overview page: a company admin only sees
+    // their own company's employees, within their assigned departments
+    // (comma-separated list stored in their own `department` field).
+    const normalize = (s) => (s || "").trim().toLowerCase();
+    const allowedDepartments = (ME.department || "").split(",").map(normalize).filter(Boolean);
+    data = data.filter(e => allowedDepartments.includes(normalize(e.department)) && e.role !== "admin" && e.role !== "company_admin");
+  }
+
   return Object.fromEntries(data.map(e => [e.id, e]));
 }
 
@@ -237,6 +252,7 @@ document.getElementById("locationsNextBtn").addEventListener("click", () => {
   if (!ME) return;
 
   document.getElementById("whoami").innerHTML = `${ME.full_name} · #${ME.file_number}<br><span style="opacity:.7">${ME.client_company || ""}</span>`;
+  if (ME.role === "company_admin") document.getElementById("brandLabel").textContent = "Company Admin";
   if (ME.role === "admin") document.getElementById("adminLink").style.display = "";
   if (ME.role === "admin") document.getElementById("clientsLink").style.display = "";
   if (ME.role === "admin") document.getElementById("sourcingCandidatesLink").style.display = "";
