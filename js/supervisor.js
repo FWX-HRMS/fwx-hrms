@@ -789,15 +789,30 @@ async function downloadPDF(title, subtitle, columns, rows, filename, redRowIndic
   };
   const columnStyles = {};
   const arabicSizeMm = fontSize * 0.34;
+  // A column is treated as "numeric" (and centered) only when every
+  // actual value in it looks like a number, a percentage, an hour count
+  // ("2h"), or is blank/"—" — anything else (names, companies, dates,
+  // statuses) stays left-aligned, matching how the table read before
+  // this was added.
+  const isNumericCell = (v) => {
+    const s = String(v ?? "").trim();
+    if (s === "" || s === "—" || s === "-") return true;
+    return /^-?\d+(\.\d+)?%?h?$/.test(s);
+  };
   columns.forEach((_, colIndex) => {
     let maxWidthMm = 0;
+    const values = [];
     for (const row of rows) {
       const raw = String(row[colIndex] ?? "");
+      values.push(raw);
       if (!containsArabic(raw)) continue;
       const w = measureArabicWidthMm(raw, arabicSizeMm) + 4; // 4mm padding
       if (w > maxWidthMm) maxWidthMm = w;
     }
-    if (maxWidthMm > 0) columnStyles[colIndex] = { minCellWidth: Math.min(maxWidthMm, 70) };
+    const nonBlank = values.filter(v => v.trim() !== "" && v.trim() !== "—" && v.trim() !== "-");
+    const numeric = nonBlank.length > 0 && nonBlank.every(isNumericCell);
+    columnStyles[colIndex] = { halign: numeric ? "center" : "left" };
+    if (maxWidthMm > 0) columnStyles[colIndex].minCellWidth = Math.min(maxWidthMm, 70);
   });
 
   doc.autoTable({
