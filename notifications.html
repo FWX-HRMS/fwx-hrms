@@ -27,7 +27,8 @@
     <div class="panel">
       <div style="position:relative; max-width:480px; margin-bottom:14px">
         <span style="position:absolute; inset-inline-start:12px; top:50%; transform:translateY(-50%); pointer-events:none; opacity:.55">🔍</span>
-        <input type="text" id="notificationsSearchInput" placeholder="Title" style="width:100%; padding-inline-start:36px">
+        <input type="text" id="notificationsSearchInput" placeholder="Title" style="width:100%; padding-inline-start:36px; padding-inline-end:32px">
+        <button type="button" id="notificationsSearchClearBtn" aria-label="Clear search" style="display:none; position:absolute; inset-inline-end:10px; top:50%; transform:translateY(-50%); width:22px; height:22px; border:none; background:transparent; font-size:17px; line-height:1; color:var(--ink-soft, #6b7684); cursor:pointer; padding:0">&times;</button>
       </div>
       <table>
         <thead>
@@ -84,6 +85,6 @@
 <script src="js/auth-guard.js"></script>
 <script src="js/i18n.js"></script>
 <script>initLangToggle();</script>
-<script src="js/notifications.js?v=compadminfix1"></script>
+<script src="js/notifications.js?v=clearbtn1"></script>
 </body>
 </html>
