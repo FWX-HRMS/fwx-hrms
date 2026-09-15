@@ -136,6 +136,7 @@ function applyTab(tab) {
   ACTIVE_TAB = tab;
   document.getElementById("tabAllBtn").classList.toggle("active", tab === "all");
   document.getElementById("tabSupervisorsBtn").classList.toggle("active", tab === "supervisors");
+  document.getElementById("tabCompanyAdminsBtn").classList.toggle("active", tab === "companyAdmins");
   document.getElementById("tabLeaveBtn").classList.toggle("active", tab === "leave");
   document.getElementById("tabContractsBtn").classList.toggle("active", tab === "contracts");
   document.getElementById("tabWarningsBtn").classList.toggle("active", tab === "warnings");
@@ -161,15 +162,21 @@ function applyTab(tab) {
     return;
   }
 
-  document.getElementById("tableTitle").textContent = tab === "supervisors" ? t("tabSupervisors") : t("tabEmployees");
-  document.getElementById("showAddFormBtn").style.display = tab === "supervisors" ? "none" : "";
+  document.getElementById("tableTitle").textContent = tab === "supervisors" ? t("tabSupervisors") : tab === "companyAdmins" ? "Company Admins" : t("tabEmployees");
+  document.getElementById("showAddFormBtn").style.display = tab === "all" ? "" : "none";
   document.getElementById("showAddSupervisorAdminBtn").style.display = tab === "supervisors" ? "" : "none";
-  document.getElementById("downloadReportBtn").style.display = tab === "supervisors" ? "none" : "";
+  document.getElementById("showAddCompanyAdminBtn").style.display = tab === "companyAdmins" ? "" : "none";
+  // Company admins aren't in any report anyway (reports only ever pull
+  // role "staff"), and the report dialog's Employees/Departments makes
+  // no sense scoped to a list of admin accounts — same reasoning as
+  // hiding it on the Supervisors tab already.
+  document.getElementById("downloadReportBtn").style.display = (tab === "all") ? "" : "none";
   DIRECTORY_PAGE = 0;
   renderDirectory();
 }
 document.getElementById("tabAllBtn").addEventListener("click", () => applyTab("all"));
 document.getElementById("tabSupervisorsBtn").addEventListener("click", () => applyTab("supervisors"));
+document.getElementById("tabCompanyAdminsBtn").addEventListener("click", () => applyTab("companyAdmins"));
 document.getElementById("tabContractsBtn").addEventListener("click", () => applyTab("contracts"));
 document.getElementById("tabWarningsBtn").addEventListener("click", () => applyTab("warnings"));
 document.getElementById("tabLeaveBtn").addEventListener("click", () => applyTab("leave"));
@@ -177,6 +184,7 @@ document.getElementById("tabLeaveBtn").addEventListener("click", () => applyTab(
 function roleLabel(role) {
   if (role === "supervisor") return t("roleSupervisor");
   if (role === "staff") return t("roleStaff");
+  if (role === "company_admin") return "Company Admin";
   return role;
 }
 
@@ -539,6 +547,8 @@ function renderDirectory() {
   const byId = Object.fromEntries(DIRECTORY.map(e => [e.id, e]));
   let allRows = ACTIVE_TAB === "supervisors"
     ? DIRECTORY.filter(e => e.role === "supervisor")
+    : ACTIVE_TAB === "companyAdmins"
+    ? DIRECTORY.filter(e => e.role === "company_admin")
     : DIRECTORY.filter(e => e.role === "staff");
   if (COMPANY_FILTER) allRows = allRows.filter(e => e.client_company === COMPANY_FILTER);
   const directoryQuery = document.getElementById("directorySearchInput").value.trim();
@@ -579,7 +589,7 @@ function renderDirectory() {
       <td>${e.file_number}</td>
       <td>${roleLabel(e.role)}</td>
       <td>${e.client_company || "—"}</td>
-      <td>${e.department || "—"}</td>
+      <td>${e.department ? e.department.split(",").map(d => d.trim()).filter(Boolean).join(", ") : "—"}</td>
       <td>${supervisorName}</td>
       <td style="white-space:nowrap">${e.frozen ? fmtDate(e.frozen_at ? e.frozen_at.slice(0,10) : null) : "—"}</td>
       <td>${e.role === "supervisor" ? "—" : (bal ? bal.remaining : "—")}</td>
@@ -3346,6 +3356,117 @@ document.getElementById("addSupervisorAdminForm").addEventListener("submit", asy
   };
 
   await Promise.all([loadSupervisors(), loadDirectory(), loadBalances()]);
+});
+
+// ================= Add Company Admin =================
+// A company admin is scoped to exactly one company and a chosen subset
+// of departments within it. Reuses the existing create_employee action
+// (role: "company_admin") rather than needing a new one, and stores the
+// selected departments as a comma-separated list in the existing
+// `department` column rather than a new dedicated column — the Team
+// overview page (supervisor.js) reads that same list back out to scope
+// what this admin can see. See the note at the end of this conversation
+// for the two things this can't fully guarantee without server access:
+// whether the `role` column accepts "company_admin" at all, and whether
+// Row Level Security policies allow this role to read the employees /
+// leave_requests / leave_balances tables in the first place.
+function populateCompanyAdminDepartmentCheckboxes(companyName) {
+  const list = DEPARTMENTS_BY_COMPANY[companyName] || DEFAULT_DEPARTMENTS;
+  const container = document.getElementById("compAdminDepartmentCheckboxes");
+  container.innerHTML = list.map(d => `
+    <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:400">
+      <input type="checkbox" class="comp-admin-department-checkbox" value="${d}" style="width:auto">
+      <span>${d}</span>
+    </label>
+  `).join("");
+}
+
+document.getElementById("showAddCompanyAdminBtn").addEventListener("click", async () => {
+  document.getElementById("addCompanyAdminForm").reset();
+  document.getElementById("addCompanyAdminForm").style.display = "";
+  document.getElementById("addCompanyAdminError").classList.remove("show");
+  document.getElementById("compAdminDepartmentError").classList.remove("show");
+  document.getElementById("companyAdminCredentialsBox").classList.remove("show");
+
+  const { data: companies } = await db.from("client_companies").select("name").order("name");
+  const companySelect = document.getElementById("compAdminCompany");
+  companySelect.innerHTML = `<option value="">${t("selectCompanyPlaceholder")}</option>` +
+    (companies || []).map(c => `<option value="${c.name}">${c.name}</option>`).join("");
+  if (COMPANY_FILTER) {
+    companySelect.value = COMPANY_FILTER;
+    companySelect.disabled = true;
+  } else {
+    companySelect.disabled = false;
+  }
+  populateCompanyAdminDepartmentCheckboxes(companySelect.value);
+  document.getElementById("addCompanyAdminOverlay").style.display = "flex";
+});
+document.getElementById("closeAddCompanyAdminBtn").addEventListener("click", () => {
+  document.getElementById("addCompanyAdminOverlay").style.display = "none";
+});
+document.getElementById("cancelAddCompanyAdminBtn").addEventListener("click", async () => {
+  document.getElementById("addCompanyAdminOverlay").style.display = "none";
+  const confirmed = await showConfirm(t("cancel"), "Any information entered so far will be lost. Are you sure you want to cancel?", "Yes, Cancel it", true);
+  if (!confirmed) {
+    document.getElementById("addCompanyAdminOverlay").style.display = "flex";
+  }
+});
+document.getElementById("compAdminCompany").addEventListener("change", () => {
+  populateCompanyAdminDepartmentCheckboxes(document.getElementById("compAdminCompany").value);
+});
+
+document.getElementById("addCompanyAdminForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errBox = document.getElementById("addCompanyAdminError");
+  const deptErrBox = document.getElementById("compAdminDepartmentError");
+  const credBox = document.getElementById("companyAdminCredentialsBox");
+  errBox.classList.remove("show");
+  deptErrBox.classList.remove("show");
+  credBox.classList.remove("show");
+
+  const full_name = document.getElementById("compAdminFullName").value.trim();
+  const email = document.getElementById("compAdminEmail").value.trim();
+  const client_company = document.getElementById("compAdminCompany").value;
+  const departments = Array.from(document.querySelectorAll(".comp-admin-department-checkbox:checked")).map(el => el.value);
+
+  if (!client_company) {
+    errBox.textContent = t("pleaseSelectCompany");
+    errBox.classList.add("show");
+    return;
+  }
+  if (departments.length === 0) {
+    deptErrBox.textContent = "Select at least one department this admin can see.";
+    deptErrBox.classList.add("show");
+    return;
+  }
+
+  const btn = document.getElementById("addCompanyAdminBtn");
+  setBtnLoading(btn, true, t("creating"));
+
+  const { data, error } = await db.functions.invoke("clever-action", {
+    body: { action: "create_employee", full_name, email, role: "company_admin", department: departments.join(","), client_company }
+  });
+
+  setBtnLoading(btn, false);
+
+  if (error || (data && data.error)) {
+    errBox.textContent = (data && data.error) ? data.error : t("somethingWrongCreating");
+    errBox.classList.add("show");
+    return;
+  }
+
+  document.getElementById("compAdminCredFileNumber").textContent = data.file_number;
+  document.getElementById("compAdminCredPassword").textContent = data.password;
+  credBox.classList.add("show");
+  document.getElementById("addCompanyAdminForm").style.display = "none";
+  document.getElementById("copyCompAdminCredsBtn").onclick = () => {
+    navigator.clipboard.writeText(
+      `${t("fileNumColonLabel")} ${data.file_number}\n${t("initialPasswordColonLabel")} ${data.password}\nSign in at: ${window.location.origin}`
+    );
+    showToast(t("copiedToast"));
+  };
+
+  await loadDirectory();
 });
 
 // ================= Add Employee wizard =================

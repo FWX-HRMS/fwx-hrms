@@ -141,15 +141,31 @@ async function loadTeam() {
   // the supervisor's own team view hides them, since a frozen employee
   // is no longer active and shouldn't clutter a supervisor's day-to-day
   // team list.
-  const { data, error } = ME.role === "admin"
-    ? await query.neq("role", "admin")
-    : await query.eq("supervisor_id", ME.id).eq("frozen", false);
+  let data, error;
+  if (ME.role === "admin") {
+    ({ data, error } = await query.neq("role", "admin"));
+  } else if (ME.role === "company_admin") {
+    ({ data, error } = await query.eq("client_company", ME.client_company).eq("frozen", false));
+  } else {
+    ({ data, error } = await query.eq("supervisor_id", ME.id).eq("frozen", false));
+  }
 
   if (error || !data) return [];
+
+  if (ME.role === "company_admin") {
+    // A company admin only manages a chosen subset of their own
+    // company's departments — stored as a comma-separated list in their
+    // own `department` field (reusing the existing column rather than
+    // needing a new one; see admin.js's Add Company Admin modal) — and
+    // never sees other admin-tier accounts.
+    const allowedDepartments = (ME.department || "").split(",").map(s => s.trim()).filter(Boolean);
+    data = data.filter(e => allowedDepartments.includes(e.department) && e.role !== "admin" && e.role !== "company_admin");
+  }
+
   TEAM_BY_ID = Object.fromEntries(data.map(e => [e.id, e]));
   TEAM_LIST = data;
   USERS_PAGE = 0;
-  document.getElementById("teamCount").textContent = ME.role === "admin"
+  document.getElementById("teamCount").textContent = (ME.role === "admin" || ME.role === "company_admin")
     ? `${data.length} ${data.length === 1 ? t("employeeCountSuffix") : t("employeeCountSuffixPlural")}`
     : `${data.length} ${data.length === 1 ? t("directReportsSuffix") : t("directReportsSuffixPlural")}`;
   renderUsers();
@@ -590,7 +606,16 @@ function showDateRangePrompt(title, dateLabels) {
       const departmentContainer = ensureRangeDepartmentCheckboxes();
       if (!departmentContainer) return;
       const companyForList = ME.role === "admin" ? (companySelectEl ? companySelectEl.value : "") : ME.client_company;
-      const list = lockedDepartment ? [lockedDepartment] : (DEPARTMENTS_BY_COMPANY[companyForList] || DEFAULT_DEPARTMENTS);
+      // A company admin's own department list is a comma-separated
+      // subset (see admin.js's Add Company Admin modal), not the full
+      // company list every other role sees here — offering a checkbox
+      // for a department they don't have access to would be misleading
+      // even though TEAM_LIST itself already excludes anyone in it.
+      const list = lockedDepartment
+        ? [lockedDepartment]
+        : ME.role === "company_admin"
+        ? (ME.department || "").split(",").map(s => s.trim()).filter(Boolean)
+        : (DEPARTMENTS_BY_COMPANY[companyForList] || DEFAULT_DEPARTMENTS);
       departmentContainer.innerHTML = list.map(d => `
         <label style="display:flex; align-items:center; gap:6px; font-size:13.5px; font-weight:400">
           <input type="checkbox" class="range-department-checkbox" value="${d}" checked ${lockedDepartment ? "disabled" : ""} style="width:auto">
@@ -1682,6 +1707,11 @@ async function refreshAll() {
 }
 
 (async () => {
+  // NOTE: requireSession("supervisor") is in auth-guard.js, which I
+  // don't have the source for in this session — if it validates the
+  // role against a fixed allowed list for this page, "company_admin"
+  // may be rejected before ME is even set below, sending the account
+  // back to the login page. This needs verifying against the real file.
   ME = await requireSession("supervisor");
   if (!ME) return;
   document.getElementById("whoami").innerHTML = `${ME.full_name} · #${ME.file_number}<br><span style="opacity:.7">${ME.client_company || ""}</span>`;
@@ -1689,6 +1719,15 @@ async function refreshAll() {
   if (ME.role === "admin") document.getElementById("clientsLink").style.display = "";
   if (ME.role === "admin") document.getElementById("sourcingCandidatesLink").style.display = "";
   document.getElementById("pendingActionsHeader").textContent = ME.role === "admin" ? t("colStatus") : "";
+  // A company admin only gets the Users list (scoped to their company +
+  // departments) and the two report buttons — approving leave requests
+  // and viewing decided-request history aren't part of what was asked
+  // for, so both are hidden outright rather than left showing scoped
+  // (but still actionable) data.
+  if (ME.role === "company_admin") {
+    document.getElementById("pendingRequestsPanel").style.display = "none";
+    document.getElementById("requestHistoryPanel").style.display = "none";
+  }
   await refreshAll();
   if (ME.role === "admin") {
     // Applies any scheduled freezes whose date has arrived (from "Do Not
