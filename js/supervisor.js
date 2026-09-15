@@ -708,6 +708,18 @@ function containsArabic(text) {
   return /[\u0600-\u06FF]/.test(text || "");
 }
 
+// Sorts by file number, smallest first — numerically when both sides
+// parse as numbers (the normal case), falling back to a plain string
+// compare for anything that doesn't (so a stray non-numeric ID doesn't
+// throw off the whole sort, just sorts alongside the numeric ones by
+// its text).
+function compareFileNumberAsc(a, b) {
+  const na = parseInt(a, 10);
+  const nb = parseInt(b, 10);
+  if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+  return String(a ?? "").localeCompare(String(b ?? ""));
+}
+
 // An "English" document (or a mostly-English cell) can still contain an
 // employee's name written in Arabic. jsPDF's plain doc.text()/autoTable
 // have no Arabic glyphs at all, so those names come out as corrupted
@@ -892,6 +904,8 @@ document.getElementById("downloadBalanceReportBtn").addEventListener("click", as
   if (range.from) source = source.filter(e => e.hiring_date && e.hiring_date >= range.from);
   if (range.to) source = source.filter(e => e.hiring_date && e.hiring_date <= range.to);
 
+  source = [...source].sort((a, b) => compareFileNumberAsc(a.file_number, b.file_number));
+
   if (source.length === 0) {
     await showInfo(t("noResultsTitle"), t("noMatchingEmployeeToast"));
     return;
@@ -947,6 +961,8 @@ document.getElementById("downloadDetailReportBtn").addEventListener("click", asy
   // so it stays in effect no matter how narrowly the rest of the report
   // is scoped.
   if (!range.includeHourly) rows = rows.filter(r => r.leave_type !== "hourly");
+
+  rows = [...rows].sort((a, b) => compareFileNumberAsc(TEAM_BY_ID[a.employee_id].file_number, TEAM_BY_ID[b.employee_id].file_number));
 
   if (rows.length === 0) {
     await showInfo(t("noResultsTitle"), t("noMatchingRequestsToast"));

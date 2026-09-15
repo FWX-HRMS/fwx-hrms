@@ -1573,6 +1573,18 @@ function containsArabic(text) {
   return /[\u0600-\u06FF]/.test(text || "");
 }
 
+// Sorts by file number, smallest first — numerically when both sides
+// parse as numbers (the normal case), falling back to a plain string
+// compare for anything that doesn't (so a stray non-numeric ID doesn't
+// throw off the whole sort, just sorts alongside the numeric ones by
+// its text).
+function compareFileNumberAsc(a, b) {
+  const na = parseInt(a, 10);
+  const nb = parseInt(b, 10);
+  if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+  return String(a ?? "").localeCompare(String(b ?? ""));
+}
+
 // More robust than containsArabic() for deciding overall text direction:
 // counts Arabic-script vs Latin-script characters and picks whichever is
 // dominant, so a handful of stray Arabic characters left over in an older
@@ -2936,6 +2948,8 @@ document.getElementById("downloadReportBtn").addEventListener("click", async () 
   // already searched for by ID.
   if (!range.employeeId && !range.includeFrozen) source = source.filter(e => !e.frozen);
 
+  source = [...source].sort((a, b) => compareFileNumberAsc(a.file_number, b.file_number));
+
   if (source.length === 0) {
     showInfoPopup(t("noResultsTitle"), t("noMatchingEmployeeToast"));
     return;
@@ -3045,6 +3059,8 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
   // "which of this person's requests do you want," so it stays in
   // effect no matter how narrowly the rest of the report is scoped.
   if (!range.includeHourly) rows = rows.filter(r => r.leave_type !== "hourly");
+
+  rows = [...rows].sort((a, b) => compareFileNumberAsc(byId[a.employee_id].file_number, byId[b.employee_id].file_number));
 
   if (rows.length === 0) {
     showInfoPopup(t("noResultsTitle"), t("noMatchingRequestsToast"));
