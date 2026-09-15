@@ -1585,6 +1585,16 @@ function compareFileNumberAsc(a, b) {
   return String(a ?? "").localeCompare(String(b ?? ""));
 }
 
+// Leave type/status values come out of the database lowercase
+// ("annual", "rejected", etc.) — this capitalizes just the first letter
+// for display in reports, without touching the underlying value used
+// anywhere else (filtering, styling classes, etc. all still compare
+// against the raw lowercase string).
+function capitalizeWord(s) {
+  const str = String(s ?? "");
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
+}
+
 // More robust than containsArabic() for deciding overall text direction:
 // counts Arabic-script vs Latin-script characters and picks whichever is
 // dominant, so a handful of stray Arabic characters left over in an older
@@ -3081,8 +3091,8 @@ document.getElementById("downloadLeaveReportBtn").addEventListener("click", asyn
       isHourly ? `${fmtDate(r.start_date)} ${r.time_from ? r.time_from.slice(0,5) : "—"}` : fmtDate(r.start_date),
       isHourly ? `${fmtDate(r.start_date)} ${r.time_to ? r.time_to.slice(0,5) : "—"}` : fmtDate(r.end_date),
       isHourly ? `${r.hours_requested}h` : String(r.days_requested),
-      r.leave_type,
-      r.status
+      capitalizeWord(r.leave_type),
+      capitalizeWord(r.status)
     ];
   });
 
