@@ -2162,7 +2162,116 @@ async function showActiveEmployeeNotification(id, employee) {
   } else {
     showToast(t("couldNotResetPasswordToast"));
   }
+
+  await openUnfreezeContractPrompt(id, employee);
 }
+
+// Right after the password step, ask about a contract period for the
+// now-active employee — everything else (salary, job title, dob,
+// education, address) defaults forward from their most recent contract,
+// same "only ask what's actually changing" pattern as the Contract
+// Renewal table's "Renew with Same Terms" flow.
+async function openUnfreezeContractPrompt(id, employee) {
+  const { data: contracts } = await db
+    .from("contracts")
+    .select("*")
+    .eq("employee_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const latest = contracts && contracts[0];
+
+  const periodSelect = document.getElementById("unfreezeContractPeriodMonths");
+  periodSelect.innerHTML = Array.from({ length: 60 }, (_, i) => i + 1).map(n => `<option value="${n}">${n}</option>`).join("");
+  periodSelect.value = latest && latest.contract_period_months ? String(latest.contract_period_months) : "12";
+
+  const overlay = document.getElementById("unfreezeContractOverlay");
+  overlay.dataset.employeeId = id;
+  document.getElementById("unfreezeContractEmployeeInfo").textContent = `${employee.full_name} · #${employee.file_number}`;
+  document.getElementById("unfreezeContractStartDate").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("unfreezeContractError").classList.remove("show");
+  overlay.style.display = "flex";
+}
+
+document.getElementById("unfreezeContractSkipBtn").addEventListener("click", () => {
+  document.getElementById("unfreezeContractOverlay").style.display = "none";
+});
+
+document.getElementById("unfreezeContractForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const overlay = document.getElementById("unfreezeContractOverlay");
+  const target_id = overlay.dataset.employeeId;
+  const start_date = document.getElementById("unfreezeContractStartDate").value;
+  const contract_period_months = Number(document.getElementById("unfreezeContractPeriodMonths").value);
+  const errBox = document.getElementById("unfreezeContractError");
+  errBox.classList.remove("show");
+
+  const submitBtn = document.getElementById("unfreezeContractSubmitBtn");
+  setBtnLoading(submitBtn, true);
+  showGlobalSpinner();
+  try {
+    const { data: contracts } = await db.from("contracts").select("*").eq("employee_id", target_id).order("created_at", { ascending: false }).limit(1);
+    const latest = contracts && contracts[0];
+    const emp = DIRECTORY.find(x => x.id === target_id);
+
+    const { data, error } = await db.functions.invoke("clever-action", {
+      body: {
+        action: "create_contract",
+        target_id,
+        dob: (latest && latest.dob) || (emp && emp.dob) || null,
+        education: (latest && latest.education) || (emp && emp.education) || null,
+        address: (latest && latest.address) || (emp && emp.address) || null,
+        salary: (latest && latest.salary != null) ? latest.salary : ((emp && emp.salary) || null),
+        job_title: (latest && latest.job_title) || "",
+        start_date,
+        contract_period_months,
+        lang: getLang(),
+      }
+    });
+    if (error || (data && data.error)) {
+      throw new Error((data && data.error) ? data.error : (error && error.message) ? error.message : "Something went wrong.");
+    }
+
+    if (data && data.contract) {
+      const templateArgs = {
+        employeeName: emp ? emp.full_name : "",
+        nationalId: emp ? emp.national_id : null,
+        jobTitle: (latest && latest.job_title) || "",
+        salary: (latest && latest.salary != null) ? latest.salary : ((emp && emp.salary) || ""),
+        startDate: start_date,
+        contractPeriodMonths: contract_period_months,
+        companyName: emp ? emp.client_company : null,
+      };
+      const exactText = buildFullContractText(templateArgs);
+      const exactTextEnglish = buildFullContractTextEnglish(templateArgs);
+      await db.functions.invoke("clever-action", {
+        body: { action: "update_contract", contract_id: data.contract.id, contract_text: exactText, contract_text_alt: exactTextEnglish, language: "ar" }
+      });
+      await db.functions.invoke("clever-action", { body: { action: "share_contract", contract_id: data.contract.id } });
+    }
+
+    await Promise.all([loadDirectory(), loadContractsDataOnly()]);
+
+    overlay.style.display = "none";
+    document.getElementById("unfreezeContractResultOverlay").dataset.contractId = data && data.contract ? data.contract.id : "";
+    document.getElementById("unfreezeContractResultOverlay").style.display = "flex";
+  } catch (err) {
+    console.error("unfreezeContractForm submit failed:", err);
+    errBox.textContent = (err && err.message) ? err.message : "Something went wrong. Please try again.";
+    errBox.classList.add("show");
+  } finally {
+    hideGlobalSpinner();
+    setBtnLoading(submitBtn, false);
+  }
+});
+
+document.getElementById("unfreezeContractResultCloseBtn").addEventListener("click", () => {
+  document.getElementById("unfreezeContractResultOverlay").style.display = "none";
+});
+document.getElementById("unfreezeContractResultViewBtn").addEventListener("click", () => {
+  const contractId = document.getElementById("unfreezeContractResultOverlay").dataset.contractId;
+  document.getElementById("unfreezeContractResultOverlay").style.display = "none";
+  if (contractId) openContractViewModal(contractId);
+});
 
 function openUnfreezeNextActionMenu(id, employee) {
   document.getElementById("unfreezeNextActionOverlay").dataset.employeeId = id;
