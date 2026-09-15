@@ -743,7 +743,15 @@ document.getElementById("contractCreateCancelBtn").addEventListener("click", () 
 // technically active — that's the whole point of proactive renewal.
 async function openRenewContractModal(employeeId) {
   const e = DIRECTORY.find(x => x.id === employeeId);
-  if (!e) return;
+  if (!e) {
+    // Previously failed completely silently here — the calling flow
+    // (e.g. handleRenewFromExpiryNotification) already hides whatever
+    // modal was open before calling this, so a silent return meant the
+    // screen just went blank with zero feedback. Surface it instead.
+    console.error("openRenewContractModal: no employee in DIRECTORY for id", employeeId);
+    showToast("Couldn't find that employee's record. Please refresh the page and try again.");
+    return;
+  }
 
   const { data: contracts } = await db
     .from("contracts")
@@ -3931,6 +3939,12 @@ async function handleRenewFromExpiryNotification() {
   const notification_id = overlay.dataset.notificationId;
   const employee_id = overlay.dataset.employeeId;
   overlay.style.display = "none";
+
+  if (!employee_id) {
+    console.error("handleRenewFromExpiryNotification: no employeeId on contractActionChoiceOverlay dataset");
+    showToast("Something went wrong opening the renewal form. Please refresh and try again.");
+    return;
+  }
 
   // Resolve the admin notification now that action is being taken — the
   // renewal itself proceeds through the existing signing flow from here,
